@@ -1,26 +1,26 @@
 # FW validation summary
 
-Generado: 2026-07-09T22:43:58
+Generado: 2026-07-09T23:49:45
 Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 
-## Boots analizados: **24**
+## Boots analizados: **38**
 
 ### Éxito global FW (ambos UIDs OK)
 
-- **12/24** (50.0%)
+- **22/38** (57.9%)
 
 ### UID `:8` (tas2783-1 / Left)
 
-- `OK`: 12
-- `WARN`: 12
+- `OK`: 22
+- `WARN`: 16
 
 ### UID `:b` (tas2783-2 / Right)
 
-- `OK`: 24
+- `OK`: 38
 
 ### Regresión capture (Problema A)
 
-- `REGRESSION_CAPTURE=YES`: **0/24**
+- `REGRESSION_CAPTURE=YES`: **0/38**
 
 ### Audio L+R (entradas con --audio)
 
@@ -28,16 +28,16 @@ Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 
 ### Por contexto (`suspend_resume`)
 
-- **boot**: 11/12 OK global
-- **suspend_resume**: 1/12 OK global
+- **boot**: 12/13 OK global
+- **suspend_resume**: 10/25 OK global
 
 ### Por frecuencia (`rate`)
 
-- **48000 Hz**: 12/24 OK global
+- **48000 Hz**: 22/38 OK global
 
 ### Kernels
 
-- `7.0.0-27-generic`: 24 boots
+- `7.0.0-27-generic`: 38 boots
 
 ## Tabla completa
 
@@ -67,6 +67,20 @@ Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 | 22 | 2026-07-09T22:30 | OK | OK |  |  | boot | 48000 | NO | auto@boot post-collapse-recovery |
 | 23 | 2026-07-09T22:42 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
 | 24 | 2026-07-09T22:43 | WARN | OK |  |  | suspend_resume | 48000 | NO | suspend-2240-cable-icon |
+| 25 | 2026-07-09T23:07 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 26 | 2026-07-09T23:10 | WARN | OK |  |  | suspend_resume | 48000 | NO | phase5-loop-1 |
+| 27 | 2026-07-09T23:12 | WARN | OK |  |  | suspend_resume | 48000 | NO | phase5-loop-2 |
+| 28 | 2026-07-09T23:14 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 29 | 2026-07-09T23:29 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 30 | 2026-07-09T23:30 | OK | OK |  |  | suspend_resume | 48000 | NO | phase5-post-0002 |
+| 31 | 2026-07-09T23:32 | OK | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 32 | 2026-07-09T23:36 | OK | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 33 | 2026-07-09T23:38 | OK | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 34 | 2026-07-09T23:40 | OK | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 35 | 2026-07-09T23:44 | OK | OK |  |  | suspend_resume | 48000 | NO | phase5-post-0002-N |
+| 36 | 2026-07-09T23:45 | OK | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 37 | 2026-07-09T23:46 | OK | OK |  |  | suspend_resume | 48000 | NO | phase5-confirm-0002 |
+| 38 | 2026-07-09T23:47 | OK | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
 
 ## Criterio RFC Serie B (objetivo)
 

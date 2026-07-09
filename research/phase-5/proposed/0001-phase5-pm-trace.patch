@@ -1,0 +1,116 @@
+From: snd-repair phase5 <snd-repair@local>
+Date: Thu, 9 Jul 2026 23:15:00 +0200
+Subject: [PATCH phase5 1/2] ASoC: tas2783: PHASE5 PM and firmware lifecycle trace
+
+Observation-only instrumentation for phase-5 suspend lifecycle investigation.
+No behavior change. Apply on top of upstream series A+B+C.
+
+Signed-off-by: snd-repair phase5 <snd-repair@local>
+---
+ sound/soc/codecs/tas2783-sdw.c | 49 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 49 insertions(+)
+
+diff --git a/sound/soc/codecs/tas2783-sdw.c b/sound/soc/codecs/tas2783-sdw.c
+--- a/sound/soc/codecs/tas2783-sdw.c
++++ b/sound/soc/codecs/tas2783-sdw.c
+@@ -103,6 +103,16 @@ struct tas2783_prv {
+ 	bool fw_dl_success;
+ };
+ 
++static void tas2783_phase5_trace(struct device *dev, struct tas2783_prv *tas_dev,
++				 const char *ctx, const char *fn)
++{
++	if (!tas_dev || !tas_dev->sdw_peripheral)
++		return;
++	dev_info(dev, "PHASE5 ctx=%s fn=%s uid=0x%x hw_init=%d fw_done=%d fw_ok=%d\n",
++		 ctx, fn, tas_dev->sdw_peripheral->id.unique_id, tas_dev->hw_init,
++		 tas_dev->fw_dl_task_done, tas_dev->fw_dl_success);
++}
++
+ static const struct reg_default tas2783_reg_default[] = {
+ 	{TAS2783_AMP_LEVEL, 0x28},
+ 	{TASDEV_REG_SDW(0, 0, 0x03), 0x28},
+@@ -733,6 +743,8 @@ static void tas2783_fw_ready(const struct firmware *fmw, void *context)
+ 	s32  img_sz, ret = 0, cur_file = 0;
+ 	s32 offset = 0;
+ 
++	tas2783_phase5_trace(tas_dev->dev, tas_dev, "fw", "tas2783_fw_ready");
++
+ 	struct tas_fw_hdr *hdr __free(kfree) = kzalloc_obj(*hdr);
+ 	struct tas_fw_file *file __free(kfree) = kzalloc_obj(*file);
+ 	if (!file || !hdr) {
+@@ -813,6 +825,7 @@ out:
+ 	tas_dev->fw_dl_task_done = true;
+ 	wake_up(&tas_dev->fw_wait);
++	tas2783_phase5_trace(tas_dev->dev, tas_dev, "fw", "tas2783_fw_ready_done");
+ 	if (fmw)
+ 		release_firmware(fmw);
+ }
+ 
+@@ -1118,6 +1131,8 @@ static s32 tas2783_sdca_dev_suspend(struct device *dev)
+ {
+ 	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
+ 
++	tas2783_phase5_trace(dev, tas_dev, "pm", "system_suspend");
++
+ 	if (!tas_dev->hw_init)
+ 		return 0;
+ 
+@@ -1136,6 +1151,8 @@ static s32 tas2783_sdca_dev_resume(struct device *dev)
+ 	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
+ 	unsigned long t;
+ 
++	tas2783_phase5_trace(dev, tas_dev, "pm", "system_resume");
++
+ 	if (!slave->unattach_request)
+ 		goto regmap_sync;
+ 
+@@ -1189,6 +1206,8 @@ static s32 tas_io_init(struct device *dev, struct sdw_slave *slave)
+ 	s32 ret;
+ 	u8 unique_id = tas_dev->sdw_peripheral->id.unique_id;
+ 
++	tas2783_phase5_trace(dev, tas_dev, "init", "tas_io_init");
++
+ 	if (tas_dev->hw_init)
+ 		return 0;
+ 
+@@ -1237,6 +1256,8 @@ static s32 tas_io_init(struct device *dev, struct sdw_slave *slave)
+ 			tas_dev->hw_init = true;
+ 	}
+ 
++	tas2783_phase5_trace(dev, tas_dev, "init", "tas_io_init_done");
++
+ 	return ret;
+ }
+ 
+@@ -1250,6 +1271,12 @@ static s32 tas_update_status(struct sdw_slave *slave,
+ 		status == SDW_SLAVE_UNATTACHED ? "unattached" :
+ 		 status == SDW_SLAVE_ATTACHED ? "attached" : "alert");
+ 
++	tas2783_phase5_trace(dev, tas_dev,
++			     status == SDW_SLAVE_ATTACHED ? "sdw" : "sdw",
++			     status == SDW_SLAVE_ATTACHED ? "update_status_attached" :
++			     status == SDW_SLAVE_UNATTACHED ? "update_status_unattached" :
++			     "update_status_alert");
++
+ 	tas_dev->status = status;
+ 	if (status == SDW_SLAVE_UNATTACHED)
+ 		tas_dev->hw_init = false;
+@@ -1334,6 +1361,8 @@ static s32 tas_sdw_probe(struct sdw_slave *peripheral,
+ 	struct sdca_function_data *function_data = NULL;
+ 	int ret, i;
+ 
++	dev_info(dev, "PHASE5 ctx=probe fn=tas_sdw_probe uid=0x%x\n", peripheral->id.unique_id);
++
+ 	ret = sdw_slave_read_prop(peripheral);
+ 	if (ret)
+ 		return dev_err_probe(dev, ret,
+@@ -1398,6 +1427,8 @@ static void tas_sdw_remove(struct sdw_slave *peripheral)
+ {
+ 	struct tas2783_prv *tas_dev = dev_get_drvdata(&peripheral->dev);
+ 
++	tas2783_phase5_trace(&peripheral->dev, tas_dev, "probe", "tas_sdw_remove");
++
+ 	pm_runtime_disable(tas_dev->dev);
+ 	tas_remove(tas_dev);
+ 	mutex_destroy(&tas_dev->calib_lock);

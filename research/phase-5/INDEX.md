@@ -1,8 +1,8 @@
 # Phase 5 — Kernel contract investigation (suspend lifecycle)
 
 > **Branch:** `research/suspend-lifecycle`  
-> **Status:** active — **no new product patches** until information gain is proven  
-> **Phase 4 outcome:** three root causes fixed (capture, ch_map, boot FW); suspend `:8` remains  
+> **Status:** fix validated (#30–#35) — upstream series B 0003 ready; PM `-110` remains separate  
+> **Phase 4 outcome:** three root causes fixed (capture, ch_map, boot FW); suspend `:8` **fixed by 0003**  
 > **Phase 5 goal:** find **which layer contract is broken**, not add `usleep_range()` retries
 
 English (canonical). Spanish summary: [`../es/FASE-5-INDICE.md`](../es/FASE-5-INDICE.md)
@@ -61,6 +61,8 @@ Phase 5 asks *why the framework allows that state* — the property SoundWire/AS
 | `templates/state-transition.csv` | Manual state machine rows |
 | `templates/resume-timeline.csv` | Per-resume ms offsets |
 | `templates/invariants.yaml` | Invariant definitions + test queries |
+| `research/phase-5/proposed/` | Draft kernel patches (0001 trace, 0002 fw reload) |
+| `scripts/build-phase5-proposed.sh` | Build/install proposed phase5 module |
 
 ---
 
@@ -69,6 +71,11 @@ Phase 5 asks *why the framework allows that state* — the property SoundWire/AS
 - New `usleep_range` / retry-only patches (0006-style without lifecycle proof)
 - Reopening capture / ch_map / UCM unless invariant T07 breaks on cold boot
 - Userspace-only “fixes” without T02/T05 evidence
+
+## Upstream deliverable
+
+- [`../../upstream/series-B-firmware/0003-ASoC-tas2783-reload-firmware-after-system-sleep.patch`](../../upstream/series-B-firmware/0003-ASoC-tas2783-reload-firmware-after-system-sleep.patch) — clean fix (no PHASE5 trace)
+- Lab trace + build: [`proposed/`](proposed/) + `scripts/build-phase5-proposed.sh`
 
 ---
 

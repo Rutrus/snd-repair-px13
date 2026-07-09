@@ -21,13 +21,16 @@ invariants:
 | Boot/resume id | I1 | I2 | I3 | I4 | Notes |
 |----------------|----|----|----|----|-------|
 | boot #22 | ✓ | ✓ | ✓ | n/a | |
-| resume #24 | ✗ | ✓ | ✓ | ✓ | px13 false OK |
-| | | | | | |
+| resume #24 | ✗ | ✓ | ✓ | ✓ | pre-0003; px13 false OK |
+| resume #30 | ✓ | ✓ | ✓ | ✓ | post-0003; first OK |
+| resume #31–35 | ✓ | ✓ | ✓ | ✓ | 5/5 consecutive OK |
+| **post-0003 total** | **6/6** | **6/6** | **6/6** | **6/6** | matrix #30–35 |
 
 ## Script
 
 ```bash
-./scripts/phase5-check-invariants.sh   # TODO: parse matrix + wpctl
+./scripts/phase5-check-invariants.sh
+./scripts/phase5-resume-collect.sh --notes N [--with-matrix]   # after each suspend
 ```
 
 Breaking any **always** invariant → new track or revised state machine (T01).

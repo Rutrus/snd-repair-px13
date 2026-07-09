@@ -1,7 +1,57 @@
 boot_id,resume_ts,offset_ms,layer,event,uid8_done,uid8_ok,uidb_done,uidb_ok,notes
+24,2026-07-09T22:40:53,-24000,PM,suspend entry (s2idle),,,,,
 24,2026-07-09T22:40:53,0,PM,suspend exit,,,,
+24,2026-07-09T22:40:53,0,kernel,PM failed to resume -110 rt721,,,,
 24,2026-07-09T22:40:53,0,kernel,PM failed to resume -110 :8,,,,
+24,2026-07-09T22:40:53,0,kernel,PM failed to resume -110 :b,,,,
+24,2026-07-09T22:40:53,0,systemd,px13-audio-resume.service start,,,,
 24,2026-07-09T22:41:04,11000,px13,SDW -110 detected + PW stop,,,,
-24,2026-07-09T22:41:07,14000,px13,PCI bind OK,,,,
-24,2026-07-09T22:41:37,44000,px13,done (no kmsg errors yet),,,,
-24,2026-07-09T22:41:41,48000,kernel,:8 playback without fw done=0,0,0,,
+24,2026-07-09T22:41:05,12000,px13,PCI reset attempt 1/3 + unbind c4:00.5,,,,
+24,2026-07-09T22:41:07,14000,px13,PCI bind OK + amd-soundwire card present,,,,
+24,2026-07-09T22:41:07,14000,px13,wait 30s async FW (no probe/fw_ready in kmsg),,,,H-L1
+24,2026-07-09T22:41:37,44000,px13,no FW errors in kmsg + UCM HiFi,,,,
+24,2026-07-09T22:41:38,45000,px13,PW restart,,,,
+24,2026-07-09T22:41:38,45000,kernel,first hw_params ENTER :8 (pre-error),,,,
+24,2026-07-09T22:41:41,48000,kernel,:8 fw download wait timeout + done=0,0,0,,
+24,2026-07-09T22:43:58,185000,userspace,Dummy Output (wpctl),,,,suspend-2240-cable-icon
+30,2026-07-09T23:30:11,-29000,PM,suspend entry (s2idle),,,,,post-0002
+30,2026-07-09T23:30:11,0,PM,suspend exit,,,,,post-0002
+30,2026-07-09T23:30:11,0,kernel,PM failed to resume -110 rt721,,,,,post-0002
+30,2026-07-09T23:30:11,0,kernel,PM failed to resume -110 :8,,,,,post-0002
+30,2026-07-09T23:30:11,0,kernel,PM failed to resume -110 :b,,,,,post-0002
+30,2026-07-09T23:30:11,11000,px13,SDW resume -110 detected — extended settle + 3 PCI attempts,,,,,post-0002
+30,2026-07-09T23:30:11,11000,px13,stopping pipewire (+ sockets) for uid 1000 (rutrus),,,,,post-0002
+35,2026-07-09T23:39:06,-5000,PM,suspend entry (s2idle),,,,,dup-test
+35,2026-07-09T23:39:06,0,PM,suspend exit,,,,,dup-test
+35,2026-07-09T23:39:06,11000,px13,stopping pipewire (+ sockets) for uid 1000 (rutrus),,,,,dup-test
+35,2026-07-09T23:39:06,12000,px13,PCI reset attempt 1/2,,,,,dup-test
+35,2026-07-09T23:39:06,12000,px13,unbinding PCI 0000:c4:00.5,,,,,dup-test
+35,2026-07-09T23:39:06,14000,px13,binding PCI 0000:c4:00.5,,,,,dup-test
+35,2026-07-09T23:39:06,14000,px13,amd-soundwire card is present,,,,,dup-test
+35,2026-07-09T23:39:06,14000,px13,waiting 12s for async FW download,,,,,dup-test
+35,2026-07-09T23:39:06,26000,px13,no FW errors in kernel log (speaker-test not installed),,,,,dup-test
+35,2026-07-09T23:39:06,26000,px13,alsaucm set _verb HiFi (ASUSTeKCOMPUTERINC.-ProArtPX13HN7306EAC-1.0-HN7306EAC),,,,,dup-test
+35,2026-07-09T23:39:06,26000,px13,starting pipewire for uid 1000 (rutrus),,,,,dup-test
+35,2026-07-09T23:39:06,32000,px13,pipewire start for uid 1000 failed,,,,,dup-test
+35,2026-07-09T23:39:06,32000,px13,done,,,,,dup-test
+35,2026-07-09T23:44:22,-5000,PM,suspend entry (s2idle),,,,,post-0002-N
+35,2026-07-09T23:44:22,0,PM,suspend exit,,,,,post-0002-N
+35,2026-07-09T23:44:22,12000,px13,stopping pipewire (+ sockets) for uid 1000 (rutrus),,,,,post-0002-N
+35,2026-07-09T23:44:22,12000,px13,PCI reset attempt 1/2,,,,,post-0002-N
+35,2026-07-09T23:44:22,12000,px13,unbinding PCI 0000:c4:00.5,,,,,post-0002-N
+35,2026-07-09T23:44:22,14000,px13,binding PCI 0000:c4:00.5,,,,,post-0002-N
+35,2026-07-09T23:44:22,14000,px13,amd-soundwire card is present,,,,,post-0002-N
+35,2026-07-09T23:44:22,14000,px13,waiting 12s for async FW download,,,,,post-0002-N
+37,2026-07-09T23:46:06,-5000,PM,suspend entry (s2idle),,,,,confirm-0002
+37,2026-07-09T23:46:06,0,PM,suspend exit,,,,,confirm-0002
+37,2026-07-09T23:46:06,11000,px13,stopping pipewire (+ sockets) for uid 1000 (rutrus),,,,,confirm-0002
+37,2026-07-09T23:46:06,12000,px13,PCI reset attempt 1/2,,,,,confirm-0002
+37,2026-07-09T23:46:06,12000,px13,unbinding PCI 0000:c4:00.5,,,,,confirm-0002
+37,2026-07-09T23:46:06,14000,px13,binding PCI 0000:c4:00.5,,,,,confirm-0002
+37,2026-07-09T23:46:06,14000,px13,amd-soundwire card is present,,,,,confirm-0002
+37,2026-07-09T23:46:06,14000,px13,waiting 12s for async FW download,,,,,confirm-0002
+37,2026-07-09T23:46:06,26000,px13,no FW errors in kernel log (speaker-test not installed),,,,,confirm-0002
+37,2026-07-09T23:46:06,26000,px13,alsaucm set _verb HiFi (ASUSTeKCOMPUTERINC.-ProArtPX13HN7306EAC-1.0-HN7306EAC),,,,,confirm-0002
+37,2026-07-09T23:46:06,26000,px13,starting pipewire for uid 1000 (rutrus),,,,,confirm-0002
+37,2026-07-09T23:46:06,32000,px13,pipewire start for uid 1000 failed,,,,,confirm-0002
+37,2026-07-09T23:46:06,32000,px13,done,,,,,confirm-0002

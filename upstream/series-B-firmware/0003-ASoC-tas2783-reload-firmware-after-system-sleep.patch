@@ -1,0 +1,112 @@
+From: ASUS ProArt PX13 debug <snd-repair@local>
+Date: Thu, 9 Jul 2026 00:00:00 +0200
+Subject: [PATCH 3/3] ASoC: tas2783: reload firmware after system sleep
+
+TAS2783 firmware is loaded into amplifier RAM during tas_io_init(). After
+system suspend/resume the driver can retain hw_init while no async download
+is in flight — hw_params() then waits indefinitely for fw_dl_task_done.
+
+Invalidate firmware bookkeeping on system_suspend and re-run tas_io_init()
+from resume, update_status(), and hw_params() when the slave is attached
+but firmware state is stale.
+
+Validated on ASUS ProArt PX13 (AMD ACP70): 6/6 suspend/resume cycles with
+:8 and :b FW OK after this change (matrix boots #30–#35, kernel 7.0.0-27).
+
+Signed-off-by: ASUS ProArt PX13 debug <snd-repair@local>
+---
+ sound/soc/codecs/tas2783-sdw.c | 39 +++++++++++++++++++++++++++++++++-
+ 1 file changed, 38 insertions(+), 1 deletion(-)
+
+diff --git a/sound/soc/codecs/tas2783-sdw.c b/sound/soc/codecs/tas2783-sdw.c
+--- a/sound/soc/codecs/tas2783-sdw.c
++++ b/sound/soc/codecs/tas2783-sdw.c
+@@ -103,6 +103,9 @@ struct tas2783_prv {
+ 	bool fw_dl_success;
+ };
+ 
++static s32 tas_io_init(struct device *dev, struct sdw_slave *slave);
++static s32 tas2783_fw_reinit(struct device *dev, struct sdw_slave *slave);
++
+ static const struct reg_default tas2783_reg_default[] = {
+ 	{TAS2783_AMP_LEVEL, 0x28},
+ 	{TASDEV_REG_SDW(0, 0, 0x03), 0x28},
+@@ -917,6 +920,14 @@ static s32 tas_sdw_hw_params(struct snd_pcm_substream *substream,
+ 	struct sdw_slave *sdw_peripheral = tas_dev->sdw_peripheral;
+ 	s32 ret, retry = 3;
+ 
++	if (!tas_dev->fw_dl_success && !tas_dev->fw_dl_task_done &&
++	    tas_dev->status == SDW_SLAVE_ATTACHED) {
++		ret = tas2783_fw_reinit(&sdw_peripheral->dev, sdw_peripheral);
++		if (ret)
++			dev_warn(tas_dev->dev,
++				 "fw reinit from hw_params failed: %d\n", ret);
++	}
++
+ 	if (!tas_dev->fw_dl_success && !tas_dev->fw_dl_task_done) {
+ 		ret = wait_event_timeout(tas_dev->fw_wait, tas_dev->fw_dl_task_done,
+ 					 msecs_to_jiffies(TIMEOUT_FW_DL_MS));
+@@ -1096,6 +1107,14 @@ static s32 tas2783_sdca_dev_suspend(struct device *dev)
+ 
+ static s32 tas2783_sdca_dev_system_suspend(struct device *dev)
+ {
++	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
++
++	if (tas_dev && tas_dev->hw_init) {
++		tas_dev->hw_init = false;
++		tas_dev->fw_dl_task_done = false;
++		tas_dev->fw_dl_success = false;
++	}
++
+ 	return tas2783_sdca_dev_suspend(dev);
+ }
+ 
+@@ -1103,6 +1122,7 @@ static s32 tas2783_sdca_dev_resume(struct device *dev)
+ {
+ 	struct sdw_slave *slave = dev_to_sdw_dev(dev);
+ 	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
++	s32 ret = 0;
+ 	unsigned long t;
+ 
+ 	if (!slave->unattach_request)
+@@ -1121,7 +1141,10 @@ static s32 tas2783_sdca_dev_resume(struct device *dev)
+ regmap_sync:
+ 	regcache_cache_only(tas_dev->regmap, false);
+ 	regcache_sync(tas_dev->regmap);
+-	return 0;
++
++	if (tas_dev->status == SDW_SLAVE_ATTACHED && !tas_dev->hw_init)
++		ret = tas2783_fw_reinit(dev, slave);
++	return ret;
+ }
+ 
+ static const struct dev_pm_ops tas2783_sdca_pm = {
+@@ -1209,6 +1232,17 @@ static s32 tas_io_init(struct device *dev, struct sdw_slave *slave)
+ 	return ret;
+ }
+ 
++static s32 tas2783_fw_reinit(struct device *dev, struct sdw_slave *slave)
++{
++	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
++
++	tas_dev->hw_init = false;
++	tas_dev->fw_dl_task_done = false;
++	tas_dev->fw_dl_success = false;
++
++	return tas_io_init(dev, slave);
++}
++
+ static s32 tas_update_status(struct sdw_slave *slave,
+ 			     enum sdw_slave_status status)
+ {
+@@ -1223,6 +1257,10 @@ static s32 tas_update_status(struct sdw_slave *slave,
+ 	if (status == SDW_SLAVE_UNATTACHED)
+ 		tas_dev->hw_init = false;
+ 
++	if (status == SDW_SLAVE_ATTACHED && tas_dev->hw_init &&
++	    (!tas_dev->fw_dl_success || !tas_dev->fw_dl_task_done))
++		tas_dev->hw_init = false;
++
+ 	/* Perform initialization only if slave status
+ 	 * is present and hw_init flag is false
+ 	 */

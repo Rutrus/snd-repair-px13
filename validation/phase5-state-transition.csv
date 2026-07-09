@@ -1,0 +1,15 @@
+from_state,to_state,trigger,callback,file,ctx,boot_id,notes
+BOOT,SDW_BUS_INIT,pci_probe,?,snd_pci_ps,boot,22,
+SDW_BUS_INIT,SLAVE_ATTACHED,enumeration,?,soundwire/bus.c,boot,22,:8 :b rt721
+SLAVE_ATTACHED,FW_DOWNLOADING,async_work,tas2783_fw_ready,tas2783-sdw.c,boot,22,
+FW_DOWNLOADING,FW_READY,fw_complete,?,tas2783-sdw.c,boot,22,done=1
+FW_READY,AUDIO_OK,hw_params+trigger,?,tas2783-sdw.c,boot,22,
+AUDIO_OK,SUSPEND_ENTRY,user suspend,PM core,,both,24,
+SUSPEND_ENTRY,RESUME_ENTRY,PM resume,acpi_subsys_resume,tas2783-sdw.c,resume,24,-110 :8 :b rt721
+RESUME_ENTRY,SLAVE_REATTACHED?,PCI unbind/bind,?,px13-audio-fix.sh,resume,24,card present no reprobe
+SLAVE_REATTACHED?,FW_RELOAD?,skipped,tas_io_init blocked by hw_init,tas2783-sdw.c,resume,24,H-L1 confirmed
+FW_RELOAD?,DUMMY_OUTPUT,hw_params without fw,?,tas2783-sdw.c,resume,24,:8 done=0
+SUSPEND_ENTRY,RESUME_ENTRY,PM resume,system_suspend clears fw flags,tas2783-sdw.c,resume,30-35,-110 still
+RESUME_ENTRY,FW_RELOAD,tas2783_fw_reinit,tas_io_init+fw_ready,tas2783-sdw.c,resume,30-35,0003 patch
+FW_RELOAD,FW_READY,fw_complete,tas2783_fw_ready,tas2783-sdw.c,resume,30-35,done=1 both UIDs
+FW_READY,AUDIO_OK,hw_params+trigger,?,tas2783-sdw.c,resume,30-35,6/6 OK matrix
