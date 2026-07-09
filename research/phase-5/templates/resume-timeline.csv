@@ -1,0 +1,7 @@
+boot_id,resume_ts,offset_ms,layer,event,uid8_done,uid8_ok,uidb_done,uidb_ok,notes
+24,2026-07-09T22:40:53,0,PM,suspend exit,,,,
+24,2026-07-09T22:40:53,0,kernel,PM failed to resume -110 :8,,,,
+24,2026-07-09T22:41:04,11000,px13,SDW -110 detected + PW stop,,,,
+24,2026-07-09T22:41:07,14000,px13,PCI bind OK,,,,
+24,2026-07-09T22:41:37,44000,px13,done (no kmsg errors yet),,,,
+24,2026-07-09T22:41:41,48000,kernel,:8 playback without fw done=0,0,0,,

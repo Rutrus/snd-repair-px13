@@ -1,0 +1,10 @@
+from_state,to_state,trigger,callback,file,ctx,boot_id,notes
+BOOT,SDW_BUS_INIT,pci_probe,?,snd_pci_ps,boot,22,
+SDW_BUS_INIT,SLAVE_ATTACHED,enumeration,?,soundwire/bus.c,boot,22,:8 :b rt721
+SLAVE_ATTACHED,FW_DOWNLOADING,async_work,tas2783_fw_ready,tas2783-sdw.c,boot,22,
+FW_DOWNLOADING,FW_READY,fw_complete,?,tas2783-sdw.c,boot,22,done=1
+FW_READY,AUDIO_OK,hw_params+trigger,?,tas2783-sdw.c,boot,22,
+AUDIO_OK,SUSPEND_ENTRY,user suspend,PM core,,both,,
+SUSPEND_ENTRY,RESUME_ENTRY,PM resume,?,core,both,24,-110 :8
+RESUME_ENTRY,FW_READY?,?,?,tas2783-sdw.c,resume,24,UNKNOWN
+FW_READY?,DUMMY_OUTPUT,wpctl enum,?,userspace,resume,24,:8 done=0

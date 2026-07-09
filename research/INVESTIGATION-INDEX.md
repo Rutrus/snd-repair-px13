@@ -5,6 +5,8 @@
 
 **Phase 4:** only **suspend/resume** (`:8` / `-110`) remains. Cold boot stereo, capture A, ch_mask C — resolved.
 
+**Phase 5 (branch `research/suspend-lifecycle`):** kernel **contract** investigation — no retry patches until lifecycle traced. → [`phase-5/INDEX.md`](phase-5/INDEX.md)
+
 Líneas **independientes**. No mezclar evidencia entre tracks salvo correlación explícita en logs.
 
 ---

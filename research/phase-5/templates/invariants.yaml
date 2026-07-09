@@ -1,0 +1,19 @@
+# Phase 5 invariant definitions — see tracks/T07-invariants.md
+
+invariants:
+  - id: I1
+    description: "If :8 FW complete → Speaker sink exists"
+    always: true
+    status: broken_on_resume
+  - id: I2
+    description: "If Speaker missing → :8 done=0 or fw_dl_success=0"
+    always: true
+    status: holds
+  - id: I3
+    description: "If :8 fails → :b often still OK"
+    always: sometimes
+    status: holds
+  - id: I4
+    description: "PM -110 on :8 precedes done=0 before hw_params"
+    always: true
+    status: holds
