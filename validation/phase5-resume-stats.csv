@@ -1,0 +1,5 @@
+run,timestamp,pm110,uid8_fw,uidb_fw,dummy_sink,load1,notes
+1,2026-07-09T23:10:41+02:00,0,WARN,OK,0
+?,0.43,loop
+2,2026-07-09T23:12:30+02:00,0,WARN,OK,0
+?,0.71,loop

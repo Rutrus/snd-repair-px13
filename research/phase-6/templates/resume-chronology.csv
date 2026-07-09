@@ -1,0 +1,1 @@
+run_id,boot_id,proc_boot_id,resume_ts,offset_s,offset_ms,pm,uid8_attach,uidb_attach,rt721_attach,uid8_fw,uidb_fw,pipewire,default_sink,speaker_present,pb_without_fw,rt_status_8,rt_status_b,rt_status_rt721,audio_test,composite,notes

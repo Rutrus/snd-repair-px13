@@ -8,7 +8,13 @@ for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
 	[[ -d "$runtime_dir" ]] || continue
 	echo "px13-restore-pipewire: uid $uid ($user_name)"
 	sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
-		systemctl --user unmask pipewire.socket pipewire-pulse.socket 2>/dev/null || true
+		systemctl --user unmask --runtime pipewire.socket pipewire-pulse.socket 2>/dev/null || true
+	sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
+		systemctl --user daemon-reload 2>/dev/null || true
+	sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
+		systemctl --user reset-failed pipewire wireplumber pipewire-pulse 2>/dev/null || true
+	sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
+		systemctl --user start pipewire.socket pipewire-pulse.socket 2>/dev/null || true
 	sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
 		systemctl --user start pipewire wireplumber pipewire-pulse 2>/dev/null \
 		|| echo "px13-restore-pipewire: start failed for uid $uid" >&2

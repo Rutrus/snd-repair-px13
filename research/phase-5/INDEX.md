@@ -1,9 +1,10 @@
 # Phase 5 — Kernel contract investigation (suspend lifecycle)
 
 > **Branch:** `research/suspend-lifecycle`  
-> **Status:** fix validated (#30–#35) — upstream series B 0003 ready; PM `-110` remains separate  
-> **Phase 4 outcome:** three root causes fixed (capture, ch_map, boot FW); suspend `:8` **fixed by 0003**  
-> **Phase 5 goal:** find **which layer contract is broken**, not add `usleep_range()` retries
+> **Status:** bifurcation capture — **no kernel patches** until ATTACHED vs UNATTACHED after `-110` is explained  
+> **Phase 4 outcome:** boot path fixed (capture, ch_map, FW); suspend UX **still broken** on PM `-110` + stuck Unattached  
+> **Phase 5 goal:** find **which layer contract is broken** (SDW re-enumeration / rt721 ordering), not FW retry hacks  
+> **Experiment:** [`BIFURCATION-EXPERIMENT.md`](BIFURCATION-EXPERIMENT.md)
 
 English (canonical). Spanish summary: [`../es/FASE-5-INDICE.md`](../es/FASE-5-INDICE.md)
 

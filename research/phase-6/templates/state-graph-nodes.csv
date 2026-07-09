@@ -1,0 +1,15 @@
+node_id,label,layer,description
+BOOT,Clean boot,system,PCI + SDW enumeration complete
+RESUME_WAKE,PM suspend exit,PM,Anchor offset_ms=0
+RT721_OK,RT721 resume OK,codec,Init complete before timeout
+RT721_TIMEOUT,RT721 init timeout,codec,Initialization not complete
+PM110,PM -110,PM,failed to resume on slave
+ATTACHED,SDW Attached,bus,sysfs status=Attached
+UNATTACHED,SDW Unattached,bus,sysfs status=Unattached — FW path blocked
+FW_LOADING,FW async in flight,codec,tas_io_init / fw_ready started
+FW_READY,fw_ok=1,codec,fw_ready_done in kmsg
+PW_ACTIVE,PipeWire up,userspace,pipewire+wireplumber active
+PW_STREAM,Stream opened,userspace,hw_params / playback attempt
+SPEAKER,Speaker sink,userspace,wpctl default = internal speaker
+DUMMY,Dummy Output,userspace,No usable SmartAmp sink
+AUDIO_OK,speaker-test pass,userspace,Composite PASS

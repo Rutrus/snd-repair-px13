@@ -1,0 +1,2 @@
+boot_id,run_id,resume_ts,pm,attach,fw,speaker,audio,composite,uid8_attach_t60,post_pci_attach,notes
+40,,2026-07-10T00:13:21,FAIL,NO,NO,NO,NO,WARN,NO,NO,manual-from-journal-boot40-user-fail

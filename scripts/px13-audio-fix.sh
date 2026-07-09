@@ -135,8 +135,10 @@ start_pipewire_user() {
 	}
 
 	sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
-		systemctl --user unmask pipewire.socket pipewire-pulse.socket 2>/dev/null \
+		systemctl --user unmask --runtime pipewire.socket pipewire-pulse.socket 2>/dev/null \
 		|| true
+	sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
+		systemctl --user daemon-reload 2>/dev/null || true
 
 	log "starting pipewire for uid $uid ($user_name)"
 	local attempt

@@ -5,7 +5,9 @@
 
 **Phase 4:** only **suspend/resume** (`:8` / `-110`) remains. Cold boot stereo, capture A, ch_mask C — resolved.
 
-**Phase 5 (branch `research/suspend-lifecycle`):** kernel **contract** investigation — no retry patches until lifecycle traced. → [`phase-5/INDEX.md`](phase-5/INDEX.md)
+**Phase 5 (branch `research/suspend-lifecycle`):** TAS2783 lifecycle traced; 0003 **on hold**. → [`phase-5/INDEX.md`](phase-5/INDEX.md)
+
+**Phase 6:** **State transition analysis** — PASS vs FAIL bifurcation after resume; **no kernel patches**. → [`phase-6/INDEX.md`](phase-6/INDEX.md)
 
 Líneas **independientes**. No mezclar evidencia entre tracks salvo correlación explícita en logs.
 

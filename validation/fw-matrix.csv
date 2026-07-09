@@ -37,3 +37,6 @@ boot_id,timestamp,kernel,uid8_fw,uidb_fw,uid8_warn,uidb_warn,left_audio,right_au
 36,2026-07-09T23:45:54+02:00,7.0.0-27-generic,OK,OK,0,0,,,suspend_resume,48000,NO,auto@suspend
 37,2026-07-09T23:46:39+02:00,7.0.0-27-generic,OK,OK,0,0,,,suspend_resume,48000,NO,phase5-confirm-0002
 38,2026-07-09T23:47:38+02:00,7.0.0-27-generic,OK,OK,0,0,,,suspend_resume,48000,NO,auto@suspend
+39,2026-07-10T00:08:42+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+40,2026-07-10T00:15:33+02:00,7.0.0-27-generic,WARN,OK,7,0,,,suspend_resume,48000,NO,auto@suspend
+41,2026-07-10T00:21:16+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
