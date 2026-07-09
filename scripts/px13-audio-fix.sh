@@ -30,7 +30,12 @@ PW_STOP_SEC="${PX13_PIPEWIRE_STOP_SEC:-12}"
 SKIP_UCM="${PX13_SKIP_UCM:-0}"
 SKIP_PIPEWIRE="${PX13_SKIP_PIPEWIRE:-0}"
 LOCK_FILE="${PX13_LOCK_FILE:-/run/px13-audio-fix.lock}"
-SND_REPAIR_REPO="${SND_REPAIR_REPO:-/home/rutrus/snd_repair}"
+SND_REPAIR_REPO="${SND_REPAIR_REPO:-}"
+if [[ -z "$SND_REPAIR_REPO" && -f /etc/default/px13-snd-repair ]]; then
+	# shellcheck source=/dev/null
+	source /etc/default/px13-snd-repair
+fi
+SND_REPAIR_REPO="${SND_REPAIR_REPO:-${HOME}/snd_repair}"
 
 log() { echo "px13-audio-fix: $*"; }
 
@@ -49,6 +54,7 @@ recent_resume_pm110() {
 }
 
 schedule_fw_validation() {
+	[[ "${PX13_AFTER_SUSPEND:-0}" == "1" ]] || return 0
 	local hook="${SND_REPAIR_REPO}/scripts/fw-validation-suspend-hook.sh"
 	[[ -x "$hook" ]] || return 0
 	"$hook" 2>/dev/null || true
@@ -129,9 +135,15 @@ start_pipewire_user() {
 		|| true
 
 	log "starting pipewire for uid $uid ($user_name)"
-	sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
-		systemctl --user start pipewire wireplumber pipewire-pulse 2>/dev/null \
-		|| log "pipewire start for uid $uid failed"
+	local attempt
+	for attempt in 1 2 3; do
+		if sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
+			systemctl --user start pipewire wireplumber pipewire-pulse 2>/dev/null; then
+			return 0
+		fi
+		sleep 2
+	done
+	log "pipewire start for uid $uid failed"
 }
 
 ucm_card_name() {
@@ -253,9 +265,10 @@ pci_reset() {
 acquire_lock
 
 if recent_resume_pm110; then
-	log "SDW resume -110 detected — extra settle + 3rd PCI attempt"
-	FW_SETTLE_SEC=$((FW_SETTLE_SEC + 8))
+	log "SDW resume -110 detected — extended settle + 3 PCI attempts"
+	FW_SETTLE_SEC="${PX13_FW_SETTLE_RESUME_SEC:-30}"
 	FW_PROBE_RETRIES=3
+	PW_STOP_SEC="${PX13_PIPEWIRE_STOP_RESUME_SEC:-20}"
 fi
 
 if [[ "$SKIP_PIPEWIRE" != "1" ]]; then

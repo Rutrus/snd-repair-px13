@@ -1,8 +1,9 @@
 [Unit]
 Description=snd_repair Series B boot validation log (TAS2783 / PX13)
 Documentation=file:@REPO_ROOT@/validation/README.md
-After=sound.target default.target
+After=sound.target
 Wants=sound.target
+Before=default.target
 
 [Service]
 Type=oneshot

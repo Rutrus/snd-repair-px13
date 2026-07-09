@@ -69,6 +69,13 @@ if [[ "$FORCE" -eq 0 ]]; then
 	else
 		SUSPEND_TS_FILE="${STATE_DIR}/suspend-${PROC_BOOT_ID}-ts"
 		now_epoch="$(date +%s)"
+		if [[ "$FORCE" -eq 0 ]]; then
+			if command -v journalctl >/dev/null 2>&1 \
+				&& ! journalctl -k -b 0 --no-pager 2>/dev/null | grep -q 'PM: suspend exit'; then
+				echo "No PM suspend exit this boot — skip suspend_resume collect (use --force)" >&2
+				exit 0
+			fi
+		fi
 		if [[ -f "$SUSPEND_TS_FILE" ]]; then
 			last_epoch="$(cat "$SUSPEND_TS_FILE")"
 			if [[ "$((now_epoch - last_epoch))" -lt 45 ]]; then

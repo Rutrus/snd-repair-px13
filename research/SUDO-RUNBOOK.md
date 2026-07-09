@@ -7,8 +7,11 @@ Commands that require root. Run after pull/reboot as needed.
 ```bash
 sudo ~/snd_repair/scripts/install-px13-audio-fix.sh
 sudo ~/snd_repair/scripts/install-fw-validation-service.sh --suspend-only
+systemctl --user daemon-reload
 sudo systemctl daemon-reload
 ```
+
+Reinstall after pull — drop-in must include `PX13_AFTER_SUSPEND=1` (not boot rebind).
 
 ## Track C — webcam groups (logout required after)
 

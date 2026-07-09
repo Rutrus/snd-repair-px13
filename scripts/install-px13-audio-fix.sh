@@ -33,6 +33,7 @@ if [[ "$REMOVE" -eq 1 ]]; then
 		echo "Sin backup en $BACKUP — nada que restaurar" >&2
 		exit 1
 	fi
+	rm -f /etc/default/px13-snd-repair
 	exit 0
 fi
 
@@ -45,5 +46,16 @@ if [[ -f "$DEST" && ! -f "$BACKUP" ]]; then
 fi
 
 install -m 0755 "$SRC" "$DEST"
+
+REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
+DEFAULTS="/etc/default/px13-snd-repair"
+cat >"$DEFAULTS" <<EOF
+# snd_repair paths (installed by install-px13-audio-fix.sh)
+SND_REPAIR_REPO=${REPO}
+PX13_RUN_USER=${SUDO_USER:-${USER}}
+EOF
+chmod 644 "$DEFAULTS"
+
 echo "Instalado snd_repair px13-audio-fix → $DEST"
+echo "Defaults → $DEFAULTS"
 echo "Ejecutar: sudo $DEST"
