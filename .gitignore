@@ -27,6 +27,10 @@ research/acpi_debug/
 upstream/_test/
 upstream/_test-apply/
 
+# Firmware propietario (nunca versionar)
+firmware/
+*.bin
+
 # Temporales
 /tmp/
 *.log

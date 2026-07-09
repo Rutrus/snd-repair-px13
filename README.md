@@ -25,25 +25,27 @@ Documented fix for built-in **TAS2783** (SoundWire) speakers on the **ASUS ProAr
 
 | Project | Focus |
 |---------|--------|
-| **brainchillz** | Stage 1 — extract and install proprietary ASUS firmware (`1714-1-8.bin`, `1714-1-B.bin`) |
+| **brainchillz** | Stage 1 — proprietary firmware, ALSA UCM (`tas2783.conf`, `rt721.conf`), systemd boot/resume |
 | **snd_repair (this repo)** | Stage 2 — kernel driver bugs (Problems A/B/C), investigation, upstream-ready patches |
 
 **Recommended order for new users:**
 
-1. Install firmware (brainchillz repo or [`docs/01-firmware-installation.md`](docs/01-firmware-installation.md))
-2. Apply kernel patches from this repo (`scripts/build-from-upstream.sh`)
-3. Reboot and verify with `speaker-test`
+1. Run brainchillz `fix-px13-audio.sh` (see [`docs/INSTALL.md`](docs/INSTALL.md))
+2. Apply kernel patches: `./scripts/build-from-upstream.sh`
+3. Reboot and verify: [`docs/VERIFICATION.md`](docs/VERIFICATION.md)
 
 ---
 
 ## Quick start
 
+**Full guide:** [`docs/INSTALL.md`](docs/INSTALL.md) (brainchillz firmware + UCM + systemd, then kernel modules).
+
 | Step | What | Where |
 |------|------|-------|
-| 1 | Install ASUS firmware | [`docs/01-firmware-installation.md`](docs/01-firmware-installation.md) |
+| 1 | Userspace fix (firmware, UCM, suspend) | [brainchillz](https://github.com/brainchillz/asus-proart-px13-linux-speaker-fix) or [`docs/INSTALL.md`](docs/INSTALL.md) |
 | 2 | Prepare kernel source tree | `./scripts/prepare-kernel-tree.sh` |
 | 3 | **Build clean modules (recommended)** | `./scripts/build-from-upstream.sh` |
-| 4 | Reboot and verify | `speaker-test -D plughw:1,2 -c 2 -t wav -l 1` |
+| 4 | Reboot and verify | [`docs/VERIFICATION.md`](docs/VERIFICATION.md) |
 
 Executive summary: [`docs/SUMMARY.md`](docs/SUMMARY.md)  
 Maintainer-style review: [`docs/TECHNICAL-REVIEW.md`](docs/TECHNICAL-REVIEW.md)
@@ -107,9 +109,10 @@ snd_repair/
 
 ## Documentation
 
+- [`docs/INSTALL.md`](docs/INSTALL.md) — **start here**
 - [`docs/README.md`](docs/README.md) — full index  
 - [`docs/KERNEL-UPDATE.md`](docs/KERNEL-UPDATE.md) — after `apt upgrade`  
-- [`docs/GITHUB.md`](docs/GITHUB.md) — publish to GitHub  
+- [`CHANGELOG.md`](CHANGELOG.md) — release notes  
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — patches, DCO, issues  
 
 ---

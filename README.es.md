@@ -21,21 +21,23 @@ Solución documentada para altavoces integrados **TAS2783** (SoundWire) en **ASU
 
 | Proyecto | Enfoque |
 |----------|---------|
-| **brainchillz** | Etapa 1 — firmware propietario ASUS |
+| **brainchillz** | Etapa 1 — firmware, UCM (`tas2783.conf`, `rt721.conf`), systemd boot/resume |
 | **snd_repair** | Etapa 2 — bugs del kernel (problemas A/B/C), upstream |
 
-**Orden recomendado:** firmware (brainchillz o [`docs/es/01-instalacion-firmware.md`](docs/es/01-instalacion-firmware.md)) → `./scripts/build-from-upstream.sh` → reboot.
+**Orden recomendado:** [`docs/es/INSTALACION.md`](docs/es/INSTALACION.md) → `./scripts/build-from-upstream.sh` → [`docs/es/VERIFICACION.md`](docs/es/VERIFICACION.md).
 
 ---
 
 ## Inicio rápido
 
+Guía completa: [`docs/es/INSTALACION.md`](docs/es/INSTALACION.md).
+
 | Paso | Qué | Dónde |
 |------|-----|-------|
-| 1 | Firmware ASUS | [`docs/es/01-instalacion-firmware.md`](docs/es/01-instalacion-firmware.md) |
+| 1 | Capa usuario (firmware, UCM, suspend) | brainchillz o INSTALACION.md |
 | 2 | Árbol de fuentes | `./scripts/prepare-kernel-tree.sh` |
-| 3 | **Módulos limpios (recomendado)** | `./scripts/build-from-upstream.sh` |
-| 4 | Verificar | `speaker-test -D plughw:1,2 -c 2 -t wav -l 1` |
+| 3 | **Módulos limpios** | `./scripts/build-from-upstream.sh` |
+| 4 | Verificar | VERIFICACION.md |
 
 ---
 
@@ -53,7 +55,7 @@ Solución documentada para altavoces integrados **TAS2783** (SoundWire) en **ASU
 
 ## Más documentación
 
-[`docs/es/README.md`](docs/es/README.md) · [`docs/es/REVISION-TECNICA.md`](docs/es/REVISION-TECNICA.md) · [`CONTRIBUTING.md`](CONTRIBUTING.md)
+[`docs/es/INSTALACION.md`](docs/es/INSTALACION.md) · [`docs/es/README.md`](docs/es/README.md) · [`CHANGELOG.md`](CHANGELOG.md) · [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 **Firmware:** binarios propietarios; no incluidos en el repo. Ver instalación en docs.
 

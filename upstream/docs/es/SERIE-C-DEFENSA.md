@@ -1,5 +1,7 @@
 # Serie C — validación pre-envío (respuesta al mantenedor)
 
+> [English](../SERIE-C-DEFENSE.md) | **Español**
+
 Documento interno. **No enviar como parche**; usar para redactar cover letter y rebuttals.
 
 ## Pregunta esperada

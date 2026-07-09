@@ -1,64 +1,66 @@
-# Checklist pre-envío upstream
+# Upstream pre-submit checklist
 
-Responder **sí** a las cuatro preguntas antes de `git send-email`. Estado al 2026-07-09.
+> **English** | [Español](es/PRE-SUBMIT-CHECKLIST.md)
 
----
-
-## Serie A — capture sin `source_ports`
-
-| Pregunta | Respuesta |
-|----------|-----------|
-| **¿Genérico?** | **Sí.** Cualquier TAS2783 SDW cuyo DisCo no anuncie `source_ports` (solo `sink_ports`). No depende del DMI ASUS. |
-| **¿Respeta SDW/ASoC?** | **Sí.** No intenta programar un DPN inexistente; alinea driver con propiedades runtime del slave (`sdw_slave.prop`). |
-| **¿Rompe otras plataformas?** | **No** si el codec tiene `source_ports` reales (mic/feedback): el guard no actúa. Solo afecta topologías speaker-only en dailinks de capture compartidos. |
-| **¿Causa en historial git?** | Comportamiento preexistente: el driver siempre asumía port 2 en capture. Revisar `git log -S source_ports -- sound/soc/codecs/tas2783-sdw.c` en árbol mainline antes del envío. |
-
-**Madurez:** alta — enviar primero.
+Answer **yes** to all four questions before `git send-email`. Status as of 2026-07-09.
 
 ---
 
-## Serie B — firmware `-110` (RFC)
+## Series A — capture without `source_ports`
 
-| Pregunta | Respuesta |
-|----------|-----------|
-| **¿Genérico?** | **Parcial.** Observado en AMD ACP70 + 2× TAS2783; mecanismo (timeout en `sdw_nwrite_no_pm`) es plausible en otras topologías SDW multislave. |
-| **¿Respeta SDW/ASoC?** | **Sí** como retry acotado; cuestión abierta: ¿pertenece al codec o al bus SDW? |
-| **¿Rompe otras plataformas?** | Riesgo bajo (solo reintenta en `-ETIMEDOUT`/`-EAGAIN`), pero sin matriz amplia no demostrado. |
-| **¿Causa en historial git?** | Investigar timing race FW async vs `hw_params`; posible interacción con enumeración multislave AMD. |
+| Question | Answer |
+|----------|--------|
+| **Generic?** | **Yes.** Any TAS2783 SDW whose DisCo does not advertise `source_ports` (playback-only `sink_ports`). Not DMI-specific. |
+| **Respects SDW/ASoC?** | **Yes.** Does not program a non-existent DPN; aligns driver with runtime slave properties (`sdw_slave.prop`). |
+| **Breaks other platforms?** | **No** when codec has real `source_ports` (mic/feedback): guard does not run. Only speaker-only topologies on shared capture dailinks. |
+| **Cause in git history?** | Pre-existing: driver always assumed port 2 on capture. Run `git log -S source_ports -- sound/soc/codecs/tas2783-sdw.c` on mainline before send. |
 
-**Madurez:** experimental — ver `series-B-firmware/VALIDATION-TODO.md` (20–30 boots, S3, rates).
-
----
-
-## Serie C — `ch_mask` multicodec playback
-
-| Pregunta | Respuesta |
-|----------|-----------|
-| **¿Genérico?** | **Sí** para `num_codecs > 1 && ch == num_codecs` en playback. Afecta AMD ACP70 (2× TAS2783) e Intel MTL (hasta 4× en `soc-acpi-intel-mtl-match.c`). No toca el caso `step=0` intencional (mono duplicado a N codecs). |
-| **¿Respeta SDW/ASoC?** | **Sí.** `snd_sdw_params_to_config()` documenta que el driver puede sobrescribir `port_config`; `ch_maps` es el mecanismo ASoC estándar (capture ya lo usaba con `step > 0`). |
-| **¿Rompe otras plataformas?** | Diseños que **requieren** stereo completo en cada codec en playback (`ch != num_codecs` o un solo codec) mantienen el comportamiento anterior. |
-| **¿Causa en historial git?** | `asoc_sdw_hw_params()` comentario *"Identical data will be sent to all codecs in playback"* — comportamiento deliberado para mono duplicado; la extensión para `ch == num_codecs` es la corrección mínima. |
-
-**Madurez:** alta — **validado L/R** en PX13 (2026-07-09).
+**Maturity:** high — send first.
 
 ---
 
-## Serie D — documentación
+## Series B — firmware `-110` (RFC)
 
-No es parche. Adjuntar `INVESTIGATION-SUMMARY.md` o `Opinion_experto.md` si el maintainer pide contexto.
+| Question | Answer |
+|----------|--------|
+| **Generic?** | **Partial.** Seen on AMD ACP70 + 2× TAS2783; mechanism (`sdw_nwrite_no_pm` timeout) plausible on other multislave SDW topologies. |
+| **Respects SDW/ASoC?** | **Yes** as bounded retry; open question: codec vs SDW bus layer? |
+| **Breaks other platforms?** | Low risk (retries only on `-ETIMEDOUT`/`-EAGAIN`), but not proven across wide matrix. |
+| **Cause in git history?** | Investigate FW async timing race vs `hw_params`; possible AMD multislave enumeration interaction. |
+
+**Maturity:** experimental — see `series-B-firmware/VALIDATION-TODO.md` (20–30 boots, S3, rates).
 
 ---
 
-## Orden de envío recomendado
+## Series C — multicodec playback `ch_mask`
 
-1. **Serie A** (capture) — independiente
-2. **Serie C** (channel map) — independiente de A y B
-3. **Serie B** (RFC) — tras `VALIDATION-TODO.md`
-4. **Serie D** — bajo demanda
+| Question | Answer |
+|----------|--------|
+| **Generic?** | **Yes** for `num_codecs > 1 && ch == num_codecs` in playback. Affects AMD ACP70 (2× TAS2783) and Intel MTL (up to 4× in `soc-acpi-intel-mtl-match.c`). Does not touch intentional `step=0` (mono duplicated to N codecs). |
+| **Respects SDW/ASoC?** | **Yes.** `snd_sdw_params_to_config()` documents driver may override `port_config`; `ch_maps` is standard ASoC (capture already used it with `step > 0`). |
+| **Breaks other platforms?** | Designs requiring full stereo on each codec in playback (`ch != num_codecs` or single codec) keep prior behaviour. |
+| **Cause in git history?** | `asoc_sdw_hw_params()` comment *"Identical data will be sent to all codecs in playback"* — deliberate for mono duplicate; `ch == num_codecs` extension is minimal fix. |
 
-## Antes de `git send-email`
+**Maturity:** high — **L/R validated** on PX13 (2026-07-09).
 
-- [ ] Sustituir `Signed-off-by: ASUS ProArt PX13 debug <snd-repair@local>` por tu identidad
-- [ ] Rebase sobre `linux-next` o rama de mantainer
-- [ ] `checkpatch.pl` en archivos tocados
-- [ ] Confirmar que módulos de depuración (ENZOPLAY/ENZODBG) **no** están en el árbol enviado
+---
+
+## Series D — documentation
+
+Not a patch. Attach `INVESTIGATION-SUMMARY.md` or `expert-report.md` if maintainer requests context.
+
+---
+
+## Recommended send order
+
+1. **Series A** (capture) — independent
+2. **Series C** (channel map) — independent of A and B
+3. **Series B** (RFC) — after `VALIDATION-TODO.md`
+4. **Series D** — on request
+
+## Before `git send-email`
+
+- [ ] Replace `Signed-off-by: ASUS ProArt PX13 debug <snd-repair@local>` with your identity
+- [ ] Rebase on `linux-next` or maintainer branch
+- [ ] `checkpatch.pl` on touched files
+- [ ] Confirm debug modules (ENZOPLAY/ENZODBG) are **not** in sent tree

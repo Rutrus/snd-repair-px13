@@ -7,7 +7,7 @@ Four **independent** series. **Do not send A and C on the same day.**
 | Series | Issue | Directory | When to send |
 |--------|-------|-----------|--------------|
 | A | Capture without `source_ports` | `series-A-capture/` | **Now** |
-| C | Multicodec `ch_mask` | `series-C-channel-map/` | After `docs/SERIE-C-DEFENSA.md` |
+| C | Multicodec `ch_mask` | `series-C-channel-map/` | After `docs/SERIE-C-DEFENSE.md` |
 | B | FW `-110` | `series-B-firmware/` | RFC + 20–30 boot matrix |
 | D | Investigation | `docs/` | On request |
 

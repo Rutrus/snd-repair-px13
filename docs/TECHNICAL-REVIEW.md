@@ -185,7 +185,7 @@ If that can be fixed at machine-driver level, the system stays consistent withou
 | Document | Content |
 |----------|---------|
 | [`expert-report.md`](expert-report.md) | Full investigation log, ENZOPLAY traces |
-| [`../upstream/docs/SERIE-C-DEFENSA.md`](../upstream/docs/SERIE-C-DEFENSA.md) | Series C maintainer Q&A |
+| [`../upstream/docs/SERIE-C-DEFENSE.md`](../upstream/docs/SERIE-C-DEFENSE.md) | Series C maintainer Q&A |
 | [`../upstream/docs/MAINTAINER-REVIEW.md`](../upstream/docs/MAINTAINER-REVIEW.md) | checkpatch, recipients, matrices |
 | [`../upstream/SUBMISSION-PLAN.md`](../upstream/SUBMISSION-PLAN.md) | Submission schedule |
 

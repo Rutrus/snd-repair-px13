@@ -1,11 +1,13 @@
-# Revisión pre-envío (estilo maintainer)
+# Pre-submission review (maintainer style)
 
-Estado: 2026-07-09 — parches A/C aplican limpio sobre `linux-source-7.0.0`.
+> **English** | [Español](es/MAINTAINER-REVIEW.md)
+
+Status: 2026-07-09 — patches A/C apply cleanly on `linux-source-7.0.0`.
 
 ## checkpatch.pl --strict
 
-| Parche | Resultado |
-|--------|-----------|
+| Patch | Result |
+|-------|--------|
 | series-A-capture/0001 | ✅ 0 errors, 0 warnings |
 | series-C-channel-map/0001 | ✅ 0 errors (commit message re-wrap) |
 | series-C-channel-map/0002 | ✅ 0 errors, 0 warnings |
@@ -15,19 +17,19 @@ scripts/checkpatch.pl --strict --no-tree upstream/series-A-capture/*.patch
 scripts/checkpatch.pl --strict --no-tree upstream/series-C-channel-map/*.patch
 ```
 
-## Destinatarios (MAINTAINERS 7.0)
+## Recipients (MAINTAINERS 7.0)
 
-| Rol | Contacto | Serie |
-|-----|----------|-------|
+| Role | Contact | Series |
+|------|---------|--------|
 | alsa-devel | alsa-devel@vger.kernel.org | A, B, C |
 | ASoC | Mark Brown, Liam Girdwood | A, C |
 | SoundWire | Vinod Koul, Bard Liao | B, C |
 | TI codecs (`sound/soc/codecs/tas2*`) | Shenghao Ding, Kevin Lu, Baojun Xu | A, B, C |
 | sdw_utils (Cirrus/Intel heritage) | Charles Keepax | C |
-| AMD ASoC | Vijendar Mukunda | opcional (Reported-on) |
+| AMD ASoC | Vijendar Mukunda | optional (Reported-on) |
 
 ```bash
-# Ejemplo send-email (ajustar identidad y ruta kernel)
+# Example send-email (adjust identity and kernel path)
 git send-email --to alsa-devel@vger.kernel.org \
   --cc shenghao-ding@ti.com --cc kevin-lu@ti.com --cc baojun.xu@ti.com \
   --cc vkoul@kernel.org --cc broonie@kernel.org \
@@ -35,60 +37,60 @@ git send-email --to alsa-devel@vger.kernel.org \
   upstream/series-A-capture/0001*.patch
 ```
 
-## Serie A — mensaje genérico ✅
+## Series A — generic message ✅
 
-Commit centrado en **propiedades runtime SDW** (`source_ports == 0`), no en ASUS.
-Hardware solo en `Reported-on:`.
+Commit focuses on **runtime SDW properties** (`source_ports == 0`), not ASUS branding.
+Hardware only in `Reported-on:`.
 
-## Serie C — respuesta al maintainer
+## Series C — maintainer rebuttal
 
-**P: ¿Por qué `soc_sdw_utils` estaba mal para todos los codecs?**
+**Q: Why was `soc_sdw_utils` wrong for all codecs?**
 
-R: No estaba mal en general — `step=0` es **deliberado** para mono duplicado a N
-codecs. Fallaba en el caso simétrico **capture ya resuelto**: `ch == num_codecs`
-con un altavoz por codec. CS35L56 evita esto con `snd_soc_dai_set_tdm_slot()` en
-`soc_sdw_cs_amp.c`; TAS2783/AMD no tienen equivalente en `soc_sdw_ti_amp.c`.
+A: Not wrong in general — `step=0` is **deliberate** for mono duplicated to N codecs.
+It failed in the symmetric **capture-already-solved** case: `ch == num_codecs` with one
+speaker per codec. CS35L56 avoids this via `snd_soc_dai_set_tdm_slot()` in
+`soc_sdw_cs_amp.c`; TAS2783/AMD have no equivalent in `soc_sdw_ti_amp.c`.
 
-**P: ¿Por qué no solo tas2783?**
+**Q: Why not tas2783 only?**
 
-R: Tras utils, `ch_maps` sigue siendo `0x3` en ambos codecs; tas2783 solo no
-basta (demostrado con ENZOPLAY). Hacen falta las dos capas.
+A: After utils alone, `ch_maps` still shows `0x3` on both codecs; tas2783-only is
+insufficient (proven with ENZOPLAY). Both layers are required.
 
-**P: ¿Rompe 4 codecs (Intel MTL)?**
+**Q: Break 4-codec Intel MTL?**
 
-R: Condición `ch == num_codecs` → masks `BIT(0..N-1)`. ACPI MTL lista 4× TAS2783
-en un link; algoritmo coherente. **No probado en hardware MTL** — decirlo en cover
-letter (ya incluido).
+A: Condition `ch == num_codecs` → masks `BIT(0..N-1)`. MTL ACPI lists 4× TAS2783 on
+one link; algorithm is consistent. **Not tested on MTL hardware** — state in cover
+letter (already included).
 
-| Escenario playback | Comportamiento |
-|--------------------|----------------|
-| 1 codec, stereo | Sin cambio |
-| N codecs, 1 ch (mono) | Sin cambio (duplicado) |
-| N codecs, ch != N | Sin cambio |
-| **N codecs, ch == N** | **Nuevo: BIT(i) por codec** |
+| Playback scenario | Behaviour |
+|-------------------|-----------|
+| 1 codec, stereo | Unchanged |
+| N codecs, 1 ch (mono) | Unchanged (duplicate) |
+| N codecs, ch != N | Unchanged |
+| **N codecs, ch == N** | **New: BIT(i) per codec** |
 
-## Serie B — RFC + tabla objetiva
+## Series B — RFC + objective table
 
-Matriz actual (7 boots, pre/post parches):
+Current matrix (7 boots, pre/post patches):
 
 | Boot | UID `:8` | UID `:b` | Audio |
 |------|----------|----------|-------|
-| 1 | OK | FAIL(fw) | solo-L |
-| 2 | OK | OK | solo-L |
-| 3 | OK | WARN | solo-L |
-| 4 | OK | FAIL(fw) | solo-L |
-| 5 | OK | FAIL(fw) | solo-L |
-| 6 | OK | OK | solo-L |
-| 7 | OK | OK | solo-L → **L/R tras serie C** |
+| 1 | OK | FAIL(fw) | left-only |
+| 2 | OK | OK | left-only |
+| 3 | OK | WARN | left-only |
+| 4 | OK | FAIL(fw) | left-only |
+| 5 | OK | FAIL(fw) | left-only |
+| 6 | OK | OK | left-only |
+| 7 | OK | OK | left-only → **L/R after series C** |
 
-**Antes 0006+0007:** `:b` FAIL ~50% (3/6 boots con fallo FW).  
-**Boot 7:** 0 FAIL; estéreo aún roto hasta serie C.
+**Before 0006+0007:** `:b` FAIL ~50% (3/6 boots with FW failure).  
+**Boot 7:** 0 FAIL; stereo still broken until series C.
 
-Pendiente para RFC → patch formal: `VALIDATION-TODO.md` (20–30 boots, S3, rates).
+Pending for RFC → formal patch: `VALIDATION-TODO.md` (20–30 boots, S3, rates).
 
-## Checklist final
+## Final checklist
 
-- [ ] Sustituir `Signed-off-by: ASUS ProArt PX13 debug <snd-repair@local>`
-- [ ] Rebase sobre `linux-next` / rama maintainer
-- [ ] Confirmar ENZOPLAY/ENZODBG **no** en árbol enviado
-- [ ] Enviar A y C; B como `[RFC PATCH]`
+- [ ] Replace `Signed-off-by: ASUS ProArt PX13 debug <snd-repair@local>`
+- [ ] Rebase on `linux-next` / maintainer branch
+- [ ] Confirm ENZOPLAY/ENZODBG **not** in sent tree
+- [ ] Send A and C; B as `[RFC PATCH]`
