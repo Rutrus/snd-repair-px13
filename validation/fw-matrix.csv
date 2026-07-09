@@ -1,2 +1,17 @@
 boot_id,timestamp,kernel,uid8_fw,uidb_fw,uid8_warn,uidb_warn,left_audio,right_audio,suspend_resume,rate,regression_capture,notes
 1,2026-07-09T12:58:00+02:00,7.0.0-27-generic,OK,OK,0,0,1,1,boot,48000,NO,0006+0007+0009 L/R validado manual
+2,2026-07-09T17:04:55+02:00,7.0.0-27-generic,WARN,OK,81,0,,,boot,48000,NO,auto@boot
+3,2026-07-09T17:16:35+02:00,7.0.0-27-generic,WARN,OK,156,0,,,suspend_resume,48000,NO,
+4,2026-07-09T17:21:17+02:00,7.0.0-27-generic,WARN,OK,162,0,,,suspend_resume,48000,NO,manual@suspend
+5,2026-07-09T17:22:30+02:00,7.0.0-27-generic,WARN,OK,162,0,,,suspend_resume,48000,NO,auto@suspend
+6,2026-07-09T17:25:09+02:00,7.0.0-27-generic,WARN,OK,197,0,,,suspend_resume,48000,NO,auto@suspend
+7,2026-07-09T17:29:09+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+8,2026-07-09T17:52:58+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+9,2026-07-09T18:00:53+02:00,7.0.0-27-generic,WARN,OK,77,0,,,suspend_resume,48000,NO,auto@suspend-manual-recovery
+10,2026-07-09T19:22:12+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+11,2026-07-09T19:27:26+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,pre-suspend-ok
+12,2026-07-09T19:30:16+02:00,7.0.0-27-generic,WARN,OK,39,0,,,suspend_resume,48000,NO,auto@suspend
+13,2026-07-09T20:00:20+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+14,2026-07-09T20:09:44+02:00,7.0.0-27-generic,WARN,OK,7,0,,,suspend_resume,48000,NO,resume-20:05-fail
+15,2026-07-09T20:37:04+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+16,2026-07-09T20:37:34+02:00,7.0.0-27-generic,OK,OK,0,0,,,suspend_resume,48000,NO,auto@suspend

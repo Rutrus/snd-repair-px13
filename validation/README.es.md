@@ -2,6 +2,8 @@
 
 > [English](README.md) | **Español**
 
+**Guía completa:** [`../docs/es/VALIDACION-FW.md`](../docs/es/VALIDACION-FW.md) — instalación, systemd, modo manual, troubleshooting.
+
 Directorio generado por `scripts/fw-validation-collect.sh`. No editar CSV a mano salvo correcciones.
 
 ## Estructura
@@ -15,10 +17,22 @@ validation/
 
 ## Tras cada arranque
 
+Manual:
+
 ```bash
 ./scripts/fw-validation-run.sh boot
 ./scripts/fw-validation-run.sh boot --notes "0006+0007+0009"
 ```
+
+### Automático (systemd)
+
+Ver **[`../docs/es/VALIDACION-FW.md`](../docs/es/VALIDACION-FW.md)**.
+
+```bash
+./scripts/install-fw-validation-service.sh
+sudo ./scripts/install-fw-validation-service.sh --suspend-only
+```
+
 
 ## Con prueba de audio
 

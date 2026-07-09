@@ -1,0 +1,16 @@
+[Unit]
+Description=snd_repair Series B boot validation log (TAS2783 / PX13)
+Documentation=file:@REPO_ROOT@/validation/README.md
+After=sound.target default.target
+Wants=sound.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=SND_REPAIR_REPO=@REPO_ROOT@
+Environment=SND_REPAIR_FW_DELAY=25
+ExecStart=@REPO_ROOT@/scripts/fw-validation-boot-hook.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

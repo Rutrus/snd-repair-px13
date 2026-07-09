@@ -22,6 +22,7 @@ BOOT_LOGS="${VAL_DIR}/boot-logs"
 ALSA_DEV="${ALSA_DEV:-plughw:1,2}"
 
 DO_AUDIO=0
+FORCE=0
 SUSPEND_RESUME="boot"
 RATE=""
 NOTES=""
@@ -34,6 +35,7 @@ usage() {
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--audio)    DO_AUDIO=1; shift ;;
+	--force)    FORCE=1; shift ;;
 	--suspend)  SUSPEND_RESUME="suspend_resume"; shift ;;
 	--rate)     RATE="${2:?--rate requiere valor}"; shift 2 ;;
 	--notes)    NOTES="${2:?--notes requiere texto}"; shift 2 ;;
@@ -54,6 +56,28 @@ KERNEL="$(uname -r)"
 CMDLINE="$(tr '\0' ' ' < /proc/cmdline 2>/dev/null || true)"
 TIMESTAMP="$(date -Is)"
 PROC_BOOT_ID="$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown)"
+STATE_DIR="${VAL_DIR}/.state"
+
+# Deduplicación por contexto (boot vs suspend_resume comparten proc boot_id)
+if [[ "$FORCE" -eq 0 ]]; then
+	if [[ "$SUSPEND_RESUME" == "boot" ]]; then
+		BOOT_STAMP="${STATE_DIR}/boot-${PROC_BOOT_ID}"
+		if [[ -f "$BOOT_STAMP" ]]; then
+			echo "Boot ${PROC_BOOT_ID} ya registrado (contexto boot); usa --force para repetir" >&2
+			exit 0
+		fi
+	else
+		SUSPEND_TS_FILE="${STATE_DIR}/suspend-${PROC_BOOT_ID}-ts"
+		now_epoch="$(date +%s)"
+		if [[ -f "$SUSPEND_TS_FILE" ]]; then
+			last_epoch="$(cat "$SUSPEND_TS_FILE")"
+			if [[ "$((now_epoch - last_epoch))" -lt 45 ]]; then
+				echo "Suspend ya registrado hace <45s (boot ${PROC_BOOT_ID}); usa --force para repetir" >&2
+				exit 0
+			fi
+		fi
+	fi
+fi
 
 # boot_id secuencial en CSV (reproducible entre sesiones)
 if [[ -f "$CSV" ]]; then
@@ -131,6 +155,7 @@ if [[ "$DO_AUDIO" -eq 1 ]]; then
 fi
 
 [[ -z "$RATE" ]] && RATE="48000"
+[[ -z "$NOTES" && "$SUSPEND_RESUME" == "suspend_resume" ]] && NOTES="manual@suspend"
 
 # Escapar CSV (notas con comas)
 csv_escape() {
@@ -180,6 +205,13 @@ fi
 echo "Registrado boot #${BOOT_ID} → ${CSV}"
 echo "Log completo → ${BOOT_LOG}"
 echo "  :8=${UID8_FW}  :b=${UIDB_FW}  regression_capture=${REGRESSION}  capture_dailink_warn=${CAPTURE_DAILINK_WARN}"
+
+mkdir -p "$STATE_DIR"
+if [[ "$SUSPEND_RESUME" == "boot" ]]; then
+	echo "$PROC_BOOT_ID" >"${STATE_DIR}/boot-${PROC_BOOT_ID}"
+else
+	date +%s >"${STATE_DIR}/suspend-${PROC_BOOT_ID}-ts"
+fi
 
 # Actualizar resumen
 "$(dirname "$0")/fw-validation-summarize.sh" "$VAL_DIR"

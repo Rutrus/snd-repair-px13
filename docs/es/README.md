@@ -11,6 +11,7 @@
 | [VERIFICACION.md](VERIFICACION.md) | Checklist post-instalación |
 | [REVERSION.md](REVERSION.md) | Restaurar módulos y capa de usuario |
 | [ACTUALIZACION-KERNEL.md](ACTUALIZACION-KERNEL.md) | Tras `apt upgrade` |
+| [VALIDACION-FW.md](VALIDACION-FW.md) | **Matriz de boots** — logging auto/manual (Serie B) |
 
 ## Resumen y análisis
 

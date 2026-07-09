@@ -1,0 +1,39 @@
+---
+description: Default documentation language is English; Spanish in docs/es/ only
+alwaysApply: true
+---
+
+# Documentation language
+
+**Default language for all project documentation is English.**
+
+## Write in English
+
+- `docs/` (except `docs/es/`)
+- `research/`
+- `validation/`, `upstream/docs/`
+- `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`
+- Comments in install scripts meant for maintainers
+- Commit messages and PR descriptions for this repo
+
+## Spanish (explicit exceptions only)
+
+- User-facing guides mirrored under `docs/es/` (e.g. `INSTALACION.md`, `VALIDACION-FW.md`)
+- Files explicitly named `*.es.md` or `README.es.md`
+- Chat with the user may stay in Spanish per user preference; **files on disk stay English by default**
+
+## Bilingual pattern
+
+```
+docs/INSTALL.md          ← English (canonical)
+docs/es/INSTALACION.md   ← Spanish mirror
+research/track-A-….md    ← English
+```
+
+When adding a new doc, create the English version first. Add a Spanish mirror under `docs/es/` only when there is already a bilingual pair for that topic.
+
+## Research and reports
+
+Investigation notes, failure reports, and track docs in `research/` must be **English**, not Spanish.
+
+If legacy content is in Spanish, prefer translating or replacing with an English file on the next edit; link EN/ES pairs in the index when both exist.

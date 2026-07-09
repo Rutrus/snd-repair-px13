@@ -11,6 +11,7 @@
 | [VERIFICATION.md](VERIFICATION.md) | Post-install checklist |
 | [ROLLBACK.md](ROLLBACK.md) | Restore stock modules and userspace |
 | [KERNEL-UPDATE.md](KERNEL-UPDATE.md) | After `apt upgrade` |
+| [FW-VALIDATION.md](FW-VALIDATION.md) | **Boot matrix** — auto/manual logging (Serie B) |
 
 ## Overview and analysis
 

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Instala scripts/px13-audio-fix.sh sobre brainchillz /usr/local/sbin/px13-audio-fix.sh
+#
+# Uso:
+#   sudo ./scripts/install-px13-audio-fix.sh
+#   sudo ./scripts/install-px13-audio-fix.sh --remove
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SRC="${SCRIPT_DIR}/px13-audio-fix.sh"
+DEST="/usr/local/sbin/px13-audio-fix.sh"
+BACKUP="/usr/local/sbin/px13-audio-fix.sh.brainchillz.bak"
+REMOVE=0
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--remove|--uninstall) REMOVE=1; shift ;;
+	-h|--help)
+		sed -n '3,7p' "$0"
+		exit 0
+		;;
+	*) echo "Opción desconocida: $1" >&2; exit 1 ;;
+	esac
+done
+
+if [[ "$REMOVE" -eq 1 ]]; then
+	if [[ -f "$BACKUP" ]]; then
+		install -m 0755 "$BACKUP" "$DEST"
+		rm -f "$BACKUP"
+		echo "Restaurado brainchillz original → $DEST"
+	else
+		echo "Sin backup en $BACKUP — nada que restaurar" >&2
+		exit 1
+	fi
+	exit 0
+fi
+
+[[ -f "$SRC" ]] || { echo "Falta $SRC" >&2; exit 1; }
+chmod +x "$SRC"
+
+if [[ -f "$DEST" && ! -f "$BACKUP" ]]; then
+	cp -a "$DEST" "$BACKUP"
+	echo "Backup → $BACKUP"
+fi
+
+install -m 0755 "$SRC" "$DEST"
+echo "Instalado snd_repair px13-audio-fix → $DEST"
+echo "Ejecutar: sudo $DEST"

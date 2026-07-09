@@ -19,9 +19,12 @@ modules.order
 
 # Logs de validación locales (mantener validation/fw-matrix.csv si se desea versionar)
 validation/boot-logs/*.log
+validation/.state/
 
 # Investigación ACPI (volcados grandes, regenerables)
 research/acpi_debug/
+research/snapshots/*
+!research/snapshots/.gitkeep
 
 # Copias locales de prueba upstream (regenerables)
 upstream/_test/

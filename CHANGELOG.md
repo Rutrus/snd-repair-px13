@@ -8,7 +8,11 @@ All notable changes to this repository. Kernel patch content is tracked per seri
 
 ### Added
 
-- [`docs/INSTALL.md`](docs/INSTALL.md) / [`docs/es/INSTALACION.md`](docs/es/INSTALACION.md) — end-to-end install guide (brainchillz + snd_repair)
+- FW validation automation: `scripts/install-fw-validation-service.sh`, suspend drop-in, boot hook
+- Hardened `scripts/px13-audio-fix.sh` + install/restore helpers
+- Investigation tracks under `research/` (failure report, backlog, tracks A–D)
+- `docs/FW-VALIDATION.md` / `docs/es/VALIDACION-FW.md`
+- `.cursor/rules/documentation-english.mdc` — default docs language is English
 - [`docs/PREREQUISITES.md`](docs/PREREQUISITES.md) / [`docs/es/PREREQUISITOS.md`](docs/es/PREREQUISITOS.md)
 - [`docs/VERIFICATION.md`](docs/VERIFICATION.md) / [`docs/es/VERIFICACION.md`](docs/es/VERIFICACION.md)
 - [`docs/ROLLBACK.md`](docs/ROLLBACK.md) / [`docs/es/REVERSION.md`](docs/es/REVERSION.md)
