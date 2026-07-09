@@ -1,0 +1,90 @@
+--- a/drivers/soundwire/amd_manager.c
++++ b/drivers/soundwire/amd_manager.c
+@@ -483,6 +483,10 @@
+ 	struct amd_sdw_manager *amd_manager = to_amd_sdw(bus);
+ 	u32 frame_fmt_reg, dpn_frame_fmt;
+ 
++	dev_err(amd_manager->dev,
++		"ENZODBG[5] amd_port ENTER link=%d port=%d bps=%d flow=%d data=%d\n",
++		bus->link_id, p_params->num, p_params->bps,
++		p_params->flow_mode, p_params->data_mode);
+ 	dev_dbg(amd_manager->dev, "p_params->num:0x%x\n", p_params->num);
+ 	switch (amd_manager->acp_rev) {
+ 	case ACP63_PCI_REV_ID:
+@@ -494,6 +498,9 @@
+ 			frame_fmt_reg = acp63_sdw1_dp_reg[p_params->num].frame_fmt_reg;
+ 			break;
+ 		default:
++			dev_err(amd_manager->dev,
++				"ENZODBG[5] amd_port FAIL link=%d ret=-EINVAL bad instance\n",
++				bus->link_id);
+ 			return -EINVAL;
+ 		}
+ 		break;
+@@ -503,6 +510,9 @@
+ 		frame_fmt_reg = acp70_sdw_dp_reg[p_params->num].frame_fmt_reg;
+ 		break;
+ 	default:
++		dev_err(amd_manager->dev,
++			"ENZODBG[5] amd_port FAIL link=%d ret=-EINVAL bad acp_rev=0x%x\n",
++			bus->link_id, amd_manager->acp_rev);
+ 		return -EINVAL;
+ 	}
+ 
+@@ -511,6 +521,9 @@
+ 	u32p_replace_bits(&dpn_frame_fmt, p_params->data_mode, AMD_DPN_FRAME_FMT_PDM);
+ 	u32p_replace_bits(&dpn_frame_fmt, p_params->bps - 1, AMD_DPN_FRAME_FMT_WORD_LEN);
+ 	writel(dpn_frame_fmt, amd_manager->mmio + frame_fmt_reg);
++	dev_err(amd_manager->dev,
++		"ENZODBG[5] amd_port OK link=%d port=%d ret=0\n",
++		bus->link_id, p_params->num);
+ 	return 0;
+ }
+ 
+@@ -519,6 +532,14 @@
+ 				    enum sdw_reg_bank bank)
+ {
+ 	struct amd_sdw_manager *amd_manager = to_amd_sdw(bus);
++
++	dev_err(amd_manager->dev,
++		"ENZODBG[4] amd_xport ENTER link=%d rev=0x%x port=%d bank=%d "
++		"hstart=%d hstop=%d lane=%d off1=%d off2=%d samp=%d\n",
++		bus->link_id, amd_manager->acp_rev, params->port_num, bank,
++		params->hstart, params->hstop, params->lane_ctrl,
++		params->offset1, params->offset2, params->sample_interval);
++
+ 	u32 dpn_frame_fmt;
+ 	u32 dpn_sampleinterval;
+ 	u32 dpn_hctrl;
+@@ -547,6 +568,9 @@
+ 					acp63_sdw1_dp_reg[params->port_num].lane_ctrl_ch_en_reg;
+ 			break;
+ 		default:
++			dev_err(amd_manager->dev,
++				"ENZODBG[4] amd_xport FAIL link=%d ret=-EINVAL instance=%d\n",
++				bus->link_id, amd_manager->instance);
+ 			return -EINVAL;
+ 		}
+ 		break;
+@@ -560,6 +584,9 @@
+ 		lane_ctrl_ch_en_reg = acp70_sdw_dp_reg[params->port_num].lane_ctrl_ch_en_reg;
+ 		break;
+ 	default:
++		dev_err(amd_manager->dev,
++			"ENZODBG[4] amd_xport FAIL link=%d ret=-EINVAL acp_rev=0x%x\n",
++			bus->link_id, amd_manager->acp_rev);
+ 		return -EINVAL;
+ 	}
+ 	writel(AMD_SDW_SSP_COUNTER_VAL, amd_manager->mmio + ACP_SW_SSP_COUNTER);
+@@ -588,6 +615,11 @@
+ 	dpn_lanectrl = readl(amd_manager->mmio + lane_ctrl_ch_en_reg);
+ 	u32p_replace_bits(&dpn_lanectrl, params->lane_ctrl, AMD_DPN_CH_EN_LCTRL);
+ 	writel(dpn_lanectrl, amd_manager->mmio + lane_ctrl_ch_en_reg);
++
++	dev_err(amd_manager->dev,
++		"ENZODBG[4] amd_xport OK link=%d port=%d hstart=%d hstop=%d lane=%d ret=0\n",
++		bus->link_id, params->port_num, params->hstart, params->hstop,
++		params->lane_ctrl);
+ 	return 0;
+ }
+ 

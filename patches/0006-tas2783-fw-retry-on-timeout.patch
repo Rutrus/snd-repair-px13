@@ -1,0 +1,40 @@
+--- a/sound/soc/codecs/tas2783-sdw.c
++++ b/sound/soc/codecs/tas2783-sdw.c
+@@ -42,6 +42,7 @@
+ #define TIMEOUT_FW_DL_MS (3000)
+ #define FW_DL_OFFSET	84 /* binary file information */
+ #define FW_FL_HDR	20 /* minimum number of bytes in one chunk */
++#define TAS2783_FW_NWRITE_RETRIES	5
+ #define TAS2783_PROBE_TIMEOUT 5000
+ #define TAS2783_CALI_GUID EFI_GUID(0x1f52d2a1, 0xbb3a, 0x457d, 0xbc, \
+ 				   0x09, 0x43, 0xa3, 0xf4, 0x31, 0x0a, 0x92)
+@@ -773,11 +774,25 @@ static void tas2783_fw_ready(const struct firmware *fmw, void *context)
+ 			file->version, file->length,
+ 			file->dest_addr, file->fw_data);
+ 
+-		ret = sdw_nwrite_no_pm(tas_dev->sdw_peripheral,
+-				       file->dest_addr,
+-				       file->length,
+-				       file->fw_data);
+-		if (ret < 0) {
++		{
++			int attempt;
++
++			ret = -EIO;
++			for (attempt = 0; attempt < TAS2783_FW_NWRITE_RETRIES; attempt++) {
++				ret = sdw_nwrite_no_pm(tas_dev->sdw_peripheral,
++						       file->dest_addr,
++						       file->length,
++						       file->fw_data);
++				if (ret >= 0)
++					break;
++				if (ret != -ETIMEDOUT && ret != -EAGAIN)
++					break;
++				if (attempt + 1 < TAS2783_FW_NWRITE_RETRIES)
++					usleep_range(10000, 15000);
++			}
++		}
++		if (ret < 0) {
+ 			dev_err(tas_dev->dev,
+ 				"FW download failed: %d", ret);
+ 			break;

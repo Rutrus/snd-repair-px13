@@ -1,0 +1,42 @@
+From: ASUS ProArt PX13 debug <snd-repair@local>
+Date: Thu, 9 Jul 2026 00:00:00 +0200
+Subject: [PATCH 2/2] ASoC: tas2783: honor dai_link channel map for SDW port
+
+snd_sdw_params_to_config() documents that drivers may override fields in
+port_config. For multicodec links, asoc_sdw_hw_params() fills per-codec
+ch_maps; apply ch_map->ch_mask when calling sdw_stream_add_slave() instead
+of always programming the full PCM channel count on every slave.
+
+Reported-on: AMD ACP70 2x TAS2783 (stereo playback validated with
+speaker-test per channel).
+
+Signed-off-by: ASUS ProArt PX13 debug <snd-repair@local>
+---
+ sound/soc/codecs/tas2783-sdw.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/sound/soc/codecs/tas2783-sdw.c b/sound/soc/codecs/tas2783-sdw.c
+--- a/sound/soc/codecs/tas2783-sdw.c
++++ b/sound/soc/codecs/tas2783-sdw.c
+@@ -943,6 +943,21 @@ static s32 tas_sdw_hw_params(struct snd_pcm_substream *substream,
+ 	else
+ 		port_config.num = 2;
+ 
++	{
++		struct snd_soc_pcm_runtime *rtd =
++			snd_soc_substream_to_rtd(substream);
++		const struct snd_soc_dai_link_ch_map *ch_map;
++		int i;
++
++		for_each_rtd_ch_maps(rtd, i, ch_map) {
++			if (snd_soc_rtd_to_codec(rtd, ch_map->codec) == dai &&
++			    ch_map->ch_mask) {
++				port_config.ch_mask = ch_map->ch_mask;
++				break;
++			}
++		}
++	}
++
+ 	ret = sdw_stream_add_slave(sdw_peripheral,
+ 				   &stream_config, &port_config, 1, sdw_stream);
+ 	if (ret)

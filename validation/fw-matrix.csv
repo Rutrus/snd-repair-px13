@@ -1,0 +1,2 @@
+boot_id,timestamp,kernel,uid8_fw,uidb_fw,uid8_warn,uidb_warn,left_audio,right_audio,suspend_resume,rate,regression_capture,notes
+1,2026-07-09T12:58:00+02:00,7.0.0-27-generic,OK,OK,0,0,1,1,boot,48000,NO,0006+0007+0009 L/R validado manual

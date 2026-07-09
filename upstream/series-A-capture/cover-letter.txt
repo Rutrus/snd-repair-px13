@@ -1,0 +1,22 @@
+To: alsa-devel@vger.kernel.org
+Cc: Shenghao Ding <shenghao-ding@ti.com>,
+    Kevin Lu <kevin-lu@ti.com>,
+    Baojun Xu <baojun.xu@ti.com>,
+    Vinod Koul <vkoul@kernel.org>,
+    Mark Brown <broonie@kernel.org>
+Subject: [PATCH] ASoC: tas2783: skip capture when no SoundWire source ports
+
+Hi,
+
+Single patch for tas2783-sdw.c.
+
+Some SoundWire amplifier DisCo properties expose sink ports only. When
+such a codec is still referenced on a capture dai_link, stream prepare
+fails because no source DPN exists. Skip capture attachment based on
+runtime slave properties (source_ports == 0).
+
+Reported-on: ASUS ProArt PX13 (AMD ACP70). No functional change to
+playback.
+
+Thanks,
+[your name]

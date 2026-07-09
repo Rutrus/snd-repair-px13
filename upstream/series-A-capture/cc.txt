@@ -1,0 +1,5 @@
+Shenghao Ding <shenghao-ding@ti.com>
+Kevin Lu <kevin-lu@ti.com>
+Baojun Xu <baojun.xu@ti.com>
+Vinod Koul <vkoul@kernel.org>
+Mark Brown <broonie@kernel.org>

@@ -1,0 +1,37 @@
+# Árbol de fuentes del kernel (descargar con scripts/prepare-kernel-tree.sh)
+linux-source-*/
+build/
+
+# Paquetes .deb de fuentes
+linux-source-*.deb
+
+# Artefactos de compilación
+*.ko
+*.ko.zst
+*.o
+*.cmd
+Module.symvers
+modules.order
+.tmp_versions/
+
+# Backups locales de módulos
+*.ko.zst.orig
+
+# Logs de validación locales (mantener validation/fw-matrix.csv si se desea versionar)
+validation/boot-logs/*.log
+
+# Investigación ACPI (volcados grandes, regenerables)
+research/acpi_debug/
+
+# Copias locales de prueba upstream (regenerables)
+upstream/_test/
+upstream/_test-apply/
+
+# Temporales
+/tmp/
+*.log
+*~
+
+# Editor / OS
+.DS_Store
+*.swp

@@ -1,0 +1,31 @@
+From: ASUS ProArt PX13 debug <snd-repair@local>
+Date: Thu, 9 Jul 2026 00:00:00 +0200
+Subject: [PATCH 2/2] ASoC: tas2783: wait for async firmware in hw_params
+
+Firmware is loaded asynchronously after probe. hw_params() can run
+before tas2783_fw_ready() completes, causing a spurious "playback
+without fw download" error. Wait on the existing fw_wait queue with
+the same timeout used elsewhere before rejecting playback.
+
+Signed-off-by: ASUS ProArt PX13 debug <snd-repair@local>
+---
+ sound/soc/codecs/tas2783-sdw.c | 7 ++++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/sound/soc/codecs/tas2783-sdw.c b/sound/soc/codecs/tas2783-sdw.c
+--- a/sound/soc/codecs/tas2783-sdw.c
++++ b/sound/soc/codecs/tas2783-sdw.c
+@@ -903,6 +903,13 @@
+ 	struct sdw_slave *sdw_peripheral = tas_dev->sdw_peripheral;
+ 	s32 ret, retry = 3;
+ 
++	if (!tas_dev->fw_dl_success && !tas_dev->fw_dl_task_done) {
++		ret = wait_event_timeout(tas_dev->fw_wait, tas_dev->fw_dl_task_done,
++					 msecs_to_jiffies(TIMEOUT_FW_DL_MS));
++		if (!ret)
++			dev_err(tas_dev->dev, "fw download wait timeout in hw_params");
++	}
++
+ 	if (!tas_dev->fw_dl_success) {
+ 		dev_err(tas_dev->dev, "error playback without fw download");
+ 		return -EINVAL;

@@ -1,0 +1,52 @@
+From: ASUS ProArt PX13 debug <snd-repair@local>
+Date: Thu, 9 Jul 2026 00:00:00 +0200
+Subject: [PATCH] ASoC: tas2783: skip capture when no SoundWire source ports
+
+The runtime-discovered SoundWire slave properties indicate that this
+amplifier exposes only sink data ports. Do not attach it to capture
+streams: no source DPN exists and stream preparation otherwise fails
+with -EINVAL when sdw_program_port_params() runs.
+
+Check source_ports on the slave and skip capture hw_params/hw_free when
+zero. Playback is unchanged.
+
+Reported-on: ASUS ProArt PX13 (AMD ACP70, speaker-only TAS2783 DisCo).
+
+Signed-off-by: ASUS ProArt PX13 debug <snd-repair@local>
+---
+ sound/soc/codecs/tas2783-sdw.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/sound/soc/codecs/tas2783-sdw.c b/sound/soc/codecs/tas2783-sdw.c
+--- a/sound/soc/codecs/tas2783-sdw.c
++++ b/sound/soc/codecs/tas2783-sdw.c
+@@ -912,6 +912,18 @@ static s32 tas_sdw_hw_params(struct snd_pcm_substream *substream,
+ 	if (!sdw_stream)
+ 		return -EINVAL;
+ 
++	/*
++	 * Speaker-only DisCo exposes sink_ports (playback) but no
++	 * source_ports. Do not join the capture SDW stream or
++	 * sdw_program_port_params() will fail on a non-existent DPN.
++	 */
++	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE &&
++	    !sdw_peripheral->prop.source_ports) {
++		dev_dbg(tas_dev->dev,
++			"no source_ports, skipping capture hw_params\n");
++		return 0;
++	}
++
+ 	ret = tas_clear_latch(tas_dev);
+ 	if (ret)
+ 		dev_err(tas_dev->dev,
+@@ -963,6 +975,10 @@ static s32 tas_sdw_pcm_hw_free(struct snd_pcm_substream *substream,
+ 	struct sdw_stream_runtime *sdw_stream =
+ 		snd_soc_dai_get_dma_data(dai, substream);
+ 
++	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE &&
++	    !tas_dev->sdw_peripheral->prop.source_ports)
++		return 0;
++
+ 	sdw_stream_remove_slave(tas_dev->sdw_peripheral, sdw_stream);
+ 
+ 	mutex_lock(&tas_dev->pde_lock);

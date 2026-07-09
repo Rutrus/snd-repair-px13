@@ -1,0 +1,46 @@
+To: alsa-devel@vger.kernel.org
+Cc: Shenghao Ding <shenghao-ding@ti.com>,
+    Kevin Lu <kevin-lu@ti.com>,
+    Baojun Xu <baojun.xu@ti.com>,
+    Vinod Koul <vkoul@kernel.org>,
+    Mark Brown <broonie@kernel.org>,
+    Charles Keepax <ckeepax@opensource.cirrus.com>,
+    Liam Girdwood <lgirdwood@gmail.com>
+Subject: [PATCH 0/2] ASoC: SoundWire multicodec playback channel maps
+
+Hi,
+
+Two-layer fix for multicodec SoundWire playback routing:
+
+  1/2 soc_sdw_utils: when playback has N channels and N codec DAIs on
+      the link, assign ch_maps[i].ch_mask = BIT(i). Capture already splits
+      channels across codecs; playback intentionally used step=0 ("identical
+      data to all codecs") which suits mono duplication but not one-speaker-
+      per-codec topologies.
+
+  2/2 tas2783-sdw: honor ch_map->ch_mask in port_config (the helper
+      snd_sdw_params_to_config() sets the full PCM mask by default).
+
+Why both patches?
+  - Utils alone: ch_maps correct but TAS2783 still programmed ch_mask=0x3
+    on every slave (confirmed in runtime traces).
+  - Codec alone: ch_maps still 0x3 for every codec; nothing to honor.
+
+Why change sdw_utils and not only tas2783?
+  - ch_maps are owned by the machine/utils layer; capture already uses them.
+  - CS35L56 machines often set TDM slots in soc_sdw_cs_amp.c instead;
+    TI TAS2783 paths rely on asoc_sdw_hw_params() without per-codec TDM
+    setup — the utils gap affects any codec that trusts ch_maps.
+
+Regression scope:
+  - Trigger only when num_codecs > 1 && ch == num_codecs in playback.
+  - Unchanged: mono -> N codecs, stereo -> N!=2 codecs, single codec.
+  - 4-codec case (Intel MTL ACPI: 4x tas2783 on one link): ch=4 gives
+    masks 0x1/0x2/0x4/0x8 — not hardware-tested here, but same algorithm
+    as validated 2-codec stereo on AMD ACP70.
+
+Reported-on: ASUS ProArt PX13 — speaker-test -s1/-s2 isolated L/R after
+both patches; kernel logs show ch_mask 0x1 and 0x2 per slave UID.
+
+Thanks,
+[your name]

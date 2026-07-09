@@ -1,0 +1,40 @@
+To: alsa-devel@vger.kernel.org
+Cc: Shenghao Ding <shenghao-ding@ti.com>,
+    Kevin Lu <kevin-lu@ti.com>,
+    Baojun Xu <baojun.xu@ti.com>,
+    Vinod Koul <vkoul@kernel.org>
+Subject: [RFC PATCH 0/2] ASoC: tas2783: mitigate intermittent firmware download failures
+
+Hi,
+
+[EXPERIMENTAL — requesting feedback before a formal submission]
+
+On a 2x TAS2783 SoundWire link (Reported-on: ASUS ProArt PX13, AMD ACP70),
+sdw_nwrite_no_pm() during async firmware download intermittently returns
+-ETIMEDOUT on the second slave (UID 0xb). The first slave is unaffected.
+
+Reliability matrix (7 cold boots, same hardware):
+
+  Boot | UID 0x8 (Left) | UID 0xb (Right)
+  -----|----------------|------------------
+    1  | OK             | FAIL (-110)
+    2  | OK             | OK
+    3  | OK             | WARN (race)
+    4  | OK             | FAIL (-110)
+    5  | OK             | FAIL (-110)
+    6  | OK             | OK
+    7  | OK             | OK   (with patches 0006+0007)
+
+Before patches: ~50% FW failure rate on second slave.
+After patches (boot 7): 0 failures in limited sample (n=1 post-fix boot).
+
+This series adds:
+  1/2 — bounded retries on -ETIMEDOUT/-EAGAIN during FW write
+  2/2 — wait in hw_params until async FW load completes
+
+Not yet completed: 20–30 reboot matrix, suspend/resume, 44.1/48/96 kHz,
+buffer size sweep (see VALIDATION-TODO.md). Open question: should retries
+live in the codec driver or in the SoundWire bus layer?
+
+Thanks,
+[your name]

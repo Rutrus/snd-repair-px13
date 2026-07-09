@@ -1,0 +1,23 @@
+--- a/sound/soc/codecs/tas2783-sdw.c
++++ b/sound/soc/codecs/tas2783-sdw.c
+@@ -903,8 +903,18 @@ static s32 tas_sdw_hw_params(struct snd_pcm_substream *substream,
+ 	struct sdw_slave *sdw_peripheral = tas_dev->sdw_peripheral;
+ 	s32 ret, retry = 3;
+ 
+-	if (!tas_dev->fw_dl_success) {
+-		dev_err(tas_dev->dev, "error playback without fw download");
++	if (!tas_dev->fw_dl_success && !tas_dev->fw_dl_task_done) {
++		ret = wait_event_timeout(tas_dev->fw_wait, tas_dev->fw_dl_task_done,
++					 msecs_to_jiffies(TIMEOUT_FW_DL_MS));
++		if (!ret)
++			dev_err(tas_dev->dev, "fw download wait timeout in hw_params");
++	}
++
++	if (!tas_dev->fw_dl_success) {
++		dev_err(tas_dev->dev,
++			"error playback without fw download (uid=0x%x done=%d)",
++			sdw_peripheral->id.unique_id,
++			tas_dev->fw_dl_task_done);
+ 		return -EINVAL;
+ 	}
+ 

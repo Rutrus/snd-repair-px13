@@ -1,0 +1,39 @@
+# Borrador git send-email — Serie A
+# Sustituir YOUR_NAME / YOUR_EMAIL antes de enviar.
+#
+# Uso (desde árbol con el patch aplicado o git am):
+#   git send-email --to alsa-devel@vger.kernel.org \
+#     --cc shenghao-ding@ti.com,kevin-lu@ti.com,baojun.xu@ti.com \
+#     --cc vkoul@kernel.org,broonie@kernel.org \
+#     upstream/series-A-capture/0001-*.patch
+#
+# O con cover letter:
+#   git send-email --compose cover-letter.txt \
+#     --to alsa-devel@vger.kernel.org \
+#     --cc-file upstream/series-A-capture/cc.txt \
+#     upstream/series-A-capture/0001-*.patch
+
+To: alsa-devel@vger.kernel.org
+Cc: Shenghao Ding <shenghao-ding@ti.com>,
+    Kevin Lu <kevin-lu@ti.com>,
+    Baojun Xu <baojun.xu@ti.com>,
+    Vinod Koul <vkoul@kernel.org>,
+    Mark Brown <broonie@kernel.org>
+Subject: [PATCH] ASoC: tas2783: skip capture when no SoundWire source ports
+
+Hi,
+
+Some SoundWire amplifier DisCo properties expose sink data ports only.
+Machine drivers may still list such a codec on a capture dai_link. The
+driver then attempts to join a capture stream and program a source DPN
+that does not exist, and prepare fails with -EINVAL.
+
+This patch checks the runtime-discovered slave properties and skips
+capture stream attachment when source_ports is zero. Playback is
+unchanged.
+
+Reported-on: ASUS ProArt PX13 (AMD ACP70). A longer investigation
+report is available on request.
+
+Thanks,
+YOUR_NAME
