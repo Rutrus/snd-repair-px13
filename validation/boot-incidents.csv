@@ -1,0 +1,2 @@
+timestamp,kind,outcome,notes
+2026-07-09T22:27:03+02:00,boot,SOFT_LOCKUP,px13 PCI unbind early boot; no fw-matrix row; recovered by reboot → boot #22

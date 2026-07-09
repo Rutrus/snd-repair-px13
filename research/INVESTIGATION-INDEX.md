@@ -1,7 +1,9 @@
-# Índice de investigación — PX13 snd_repair
+# Investigation index — PX13 snd_repair
 
-> **Estado:** activo desde 2026-07-09  
-> **Máquina:** ASUS ProArt PX13 HN7306EAC · kernel `7.0.0-27-generic`
+> **Canonical state (EN):** [`../docs/PROJECT-STATE.md`](../docs/PROJECT-STATE.md) · **ES:** [`../docs/es/ESTADO-PROYECTO.md`](../docs/es/ESTADO-PROYECTO.md)  
+> **Machine:** ASUS ProArt PX13 HN7306EAC · kernel `7.0.0-27-generic`
+
+**Phase 4:** only **suspend/resume** (`:8` / `-110`) remains. Cold boot stereo, capture A, ch_mask C — resolved.
 
 Líneas **independientes**. No mezclar evidencia entre tracks salvo correlación explícita en logs.
 
@@ -12,7 +14,7 @@ Líneas **independientes**. No mezclar evidencia entre tracks salvo correlación
 | Track | Prioridad | Tema | Bloquea audio | Documento |
 |-------|-----------|------|---------------|-----------|
 | **A** | P0 | FW `:8` + suspend/resume (Serie B) | Sí | [track-A-serie-b-suspend.md](track-A-serie-b-suspend.md) |
-| **B** | P2 | Capture `SDW1-PIN4` prepare `-22` | No | [track-B-capture-pin4.md](track-B-capture-pin4.md) |
+| **B** | Closed | Capture `-22` (0004) | No | [track-B-capture-pin4.md](track-B-capture-pin4.md) |
 | **C** | P3 | Webcam `/dev/media0` + dma-buf | No | [track-C-webcam-media0.md](track-C-webcam-media0.md) |
 | **D** | P3 | PipeWire / px13 / systemd validación | A veces | [track-D-userspace-pipewire.md](track-D-userspace-pipewire.md) |
 
@@ -46,8 +48,8 @@ Líneas **independientes**. No mezclar evidencia entre tracks salvo correlación
 
 | Track | Estado investigación | Siguiente paso |
 |-------|---------------------|----------------|
-| A | Evidencia sólida (0/7 resume OK) | Módulos prod + trazas ENZOFW; reboot → 1 suspend de prueba |
-| B | Documentado, no bloqueante | Revisar UCM `tas2783.conf` capture |
+| A | **Active P0** — 0/9 real suspend OK | Serie B → `install-tas2783.ko` → 3–5 suspends |
+| B | **Closed** — 0004, 0/20 regression | — |
 | C | **Causa probable:** usuario fuera de grupo `video` | `sudo usermod -aG video,render rutrus` + verificar |
 | D | Mitigaciones en `px13-audio-fix.sh` | Reinstalar + validar tras reboot |
 

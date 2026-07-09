@@ -17,6 +17,8 @@
 #   PX13_PIPEWIRE_STOP_SEC=12   stop timeout per user before SIGKILL
 #   PX13_SKIP_UCM=1             skip alsaucm HiFi
 #   PX13_SKIP_PIPEWIRE=1        skip pipewire stop/start (debug)
+#   PX13_SKIP_SPEAKER_TEST=1    no pink-noise probe after PCI reset (boot/resume)
+#   PX13_SKIP_PCI_ON_BOOT=1     skip PCI unbind/bind on cold boot (resume only)
 
 set -uo pipefail
 
@@ -29,6 +31,8 @@ FW_PROBE_RETRIES="${PX13_FW_PROBE_RETRIES:-2}"
 PW_STOP_SEC="${PX13_PIPEWIRE_STOP_SEC:-12}"
 SKIP_UCM="${PX13_SKIP_UCM:-0}"
 SKIP_PIPEWIRE="${PX13_SKIP_PIPEWIRE:-0}"
+SKIP_SPEAKER_TEST="${PX13_SKIP_SPEAKER_TEST:-0}"
+SKIP_PCI_ON_BOOT="${PX13_SKIP_PCI_ON_BOOT:-0}"
 LOCK_FILE="${PX13_LOCK_FILE:-/run/px13-audio-fix.lock}"
 SND_REPAIR_REPO="${SND_REPAIR_REPO:-}"
 if [[ -z "$SND_REPAIR_REPO" && -f /etc/default/px13-snd-repair ]]; then
@@ -182,6 +186,7 @@ fw_broken_since() {
 }
 
 probe_fw_once() {
+	[[ "$SKIP_SPEAKER_TEST" == "1" ]] && return 0
 	local dev="${PX13_ALSA_DEV:-plughw:1,2}"
 	command -v speaker-test >/dev/null 2>&1 || return 0
 	timeout 6 speaker-test -D "$dev" -c 2 -t pink -l 1 -r 48000 >/dev/null 2>&1
@@ -198,7 +203,7 @@ check_fw_after_reset() {
 		return 1
 	fi
 
-	if command -v speaker-test >/dev/null 2>&1; then
+	if [[ "$SKIP_SPEAKER_TEST" != "1" ]] && command -v speaker-test >/dev/null 2>&1; then
 		if probe_fw_once; then
 			if fw_broken_since "$marker"; then
 				log "speaker-test triggered FW errors"
@@ -271,12 +276,32 @@ if recent_resume_pm110; then
 	PW_STOP_SEC="${PX13_PIPEWIRE_STOP_RESUME_SEC:-20}"
 fi
 
-if [[ "$SKIP_PIPEWIRE" != "1" ]]; then
+boot_only=0
+if [[ "${PX13_AFTER_SUSPEND:-0}" != "1" && "$SKIP_PCI_ON_BOOT" == "1" ]]; then
+	boot_only=1
+	log "cold boot — skipping PCI reset (PX13_SKIP_PCI_ON_BOOT=1)"
+fi
+
+if [[ "$SKIP_PIPEWIRE" != "1" && "$boot_only" -eq 0 ]]; then
 	for_each_logged_in_user stop_pipewire_user
 fi
 
 fw_ok=0
-for ((reset_try = 1; reset_try <= FW_PROBE_RETRIES; reset_try++)); do
+if [[ "$boot_only" -eq 1 ]]; then
+	if grep -q "$CARD_MATCH" /proc/asound/cards 2>/dev/null; then
+		if journalctl -k -b 0 --no-pager 2>/dev/null \
+			| grep -qE '0102:0000:01:(8|b).*(playback without fw|FW download failed|fw download wait timeout)'; then
+			log "FW errors already in kernel log on boot path"
+		else
+			fw_ok=1
+			log "amd-soundwire present, no FW errors — boot path OK"
+		fi
+	else
+		log "WARNING: amd-soundwire card missing on boot path"
+	fi
+fi
+
+for ((reset_try = 1; reset_try <= FW_PROBE_RETRIES && boot_only == 0; reset_try++)); do
 	log "PCI reset attempt ${reset_try}/${FW_PROBE_RETRIES}"
 
 	if ! pci_reset; then

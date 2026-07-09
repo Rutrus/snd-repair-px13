@@ -1,26 +1,26 @@
 # FW validation summary
 
-Generado: 2026-07-09T21:30:04
-Fuente: `validation/fw-matrix.csv`
+Generado: 2026-07-09T22:43:58
+Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 
-## Boots analizados: **17**
+## Boots analizados: **24**
 
 ### Éxito global FW (ambos UIDs OK)
 
-- **8/17** (47.1%)
+- **12/24** (50.0%)
 
 ### UID `:8` (tas2783-1 / Left)
 
-- `OK`: 8
-- `WARN`: 9
+- `OK`: 12
+- `WARN`: 12
 
 ### UID `:b` (tas2783-2 / Right)
 
-- `OK`: 17
+- `OK`: 24
 
 ### Regresión capture (Problema A)
 
-- `REGRESSION_CAPTURE=YES`: **0/17**
+- `REGRESSION_CAPTURE=YES`: **0/24**
 
 ### Audio L+R (entradas con --audio)
 
@@ -28,16 +28,16 @@ Fuente: `validation/fw-matrix.csv`
 
 ### Por contexto (`suspend_resume`)
 
-- **boot**: 7/8 OK global
-- **suspend_resume**: 1/9 OK global
+- **boot**: 11/12 OK global
+- **suspend_resume**: 1/12 OK global
 
 ### Por frecuencia (`rate`)
 
-- **48000 Hz**: 8/17 OK global
+- **48000 Hz**: 12/24 OK global
 
 ### Kernels
 
-- `7.0.0-27-generic`: 17 boots
+- `7.0.0-27-generic`: 24 boots
 
 ## Tabla completa
 
@@ -60,6 +60,13 @@ Fuente: `validation/fw-matrix.csv`
 | 15 | 2026-07-09T20:37 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
 | 16 | 2026-07-09T20:37 | OK | OK |  |  | suspend_resume | 48000 | NO | false-positive-no-suspend |
 | 17 | 2026-07-09T21:28 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 18 | 2026-07-09T21:33 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 19 | 2026-07-09T21:39 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 20 | 2026-07-09T21:46 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 21 | 2026-07-09T22:22 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 22 | 2026-07-09T22:30 | OK | OK |  |  | boot | 48000 | NO | auto@boot post-collapse-recovery |
+| 23 | 2026-07-09T22:42 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 24 | 2026-07-09T22:43 | WARN | OK |  |  | suspend_resume | 48000 | NO | suspend-2240-cable-icon |
 
 ## Criterio RFC Serie B (objetivo)
 

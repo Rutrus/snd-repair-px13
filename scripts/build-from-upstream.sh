@@ -11,6 +11,10 @@ KVER="$(uname -r)"
 BUILD="$KERNEL_BUILD"
 
 if [[ ! -f "$SRC/.snd-repair-upstream-applied" ]]; then
+	if find "$SRC/sound/soc" -name '*.rej' 2>/dev/null | grep -q .; then
+		echo "Stale .rej files — reset first: $SCRIPT_DIR/reset-kernel-tree.sh" >&2
+		exit 1
+	fi
 	"$SCRIPT_DIR/apply-upstream-patches.sh"
 fi
 

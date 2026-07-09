@@ -16,3 +16,10 @@ boot_id,timestamp,kernel,uid8_fw,uidb_fw,uid8_warn,uidb_warn,left_audio,right_au
 15,2026-07-09T20:37:04+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
 16,2026-07-09T20:37:34+02:00,7.0.0-27-generic,OK,OK,0,0,,,suspend_resume,48000,NO,false-positive-no-suspend
 17,2026-07-09T21:28:13+02:00,7.0.0-27-generic,WARN,OK,3,0,,,suspend_resume,48000,NO,auto@suspend
+18,2026-07-09T21:33:39+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+19,2026-07-09T21:39:44+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+20,2026-07-09T21:46:02+02:00,7.0.0-27-generic,WARN,OK,22,0,,,suspend_resume,48000,NO,auto@suspend
+21,2026-07-09T22:22:57+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+22,2026-07-09T22:30:44+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot post-collapse-recovery
+23,2026-07-09T22:42:38+02:00,7.0.0-27-generic,WARN,OK,19,0,,,suspend_resume,48000,NO,auto@suspend
+24,2026-07-09T22:43:58+02:00,7.0.0-27-generic,WARN,OK,46,0,,,suspend_resume,48000,NO,suspend-2240-cable-icon

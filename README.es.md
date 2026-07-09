@@ -2,6 +2,8 @@
 
 Solución documentada para altavoces integrados **TAS2783** (SoundWire) en **ASUS ProArt PX13 (HN7306EAC)** bajo Ubuntu / Linux Mint con kernel 7.0+.
 
+**Resultado:** de sin audio a **estéreo funcional en cold boot**. Queda **suspend/resume** (`:8` / `-110`) — ver [`docs/es/ESTADO-PROYECTO.md`](docs/es/ESTADO-PROYECTO.md).
+
 > [English](README.md) · Licencia: [MIT](LICENSE) (docs/scripts); parches kernel [GPL-2.0-only](LICENSE)
 
 ---

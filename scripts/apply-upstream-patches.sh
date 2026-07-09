@@ -19,9 +19,13 @@ fi
 
 if [[ -f "$PROD_STAMP" ]]; then
 	echo "Local production patches (patches/) were applied on this tree." >&2
-	echo "Reset before upstream patches, e.g.:" >&2
-	echo "  rm -f $STAMP $PROD_STAMP $KVER_STAMP $SRC/.snd-repair-production-kernel-version" >&2
-	echo "  cd $SRC && git checkout -- sound/ 2>/dev/null || true" >&2
+	echo "Reset first: $SCRIPT_DIR/reset-kernel-tree.sh" >&2
+	exit 1
+fi
+
+if grep -q ENZOPLAY "$SRC/sound/soc/codecs/tas2783-sdw.c" 2>/dev/null; then
+	echo "Tree has production/debug changes (ENZOPLAY) without a clean reset." >&2
+	echo "Run: $SCRIPT_DIR/reset-kernel-tree.sh" >&2
 	exit 1
 fi
 

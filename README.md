@@ -2,7 +2,7 @@
 
 Documented fix for built-in **TAS2783** (SoundWire) speakers on the **ASUS ProArt PX13 (HN7306EAC)** under Ubuntu / Linux Mint with kernel 7.0+.
 
-**Result:** from no audio to working stereo (proprietary firmware + kernel driver patches).
+**Result:** from no audio to **working stereo on cold boot**. The remaining work is **suspend/resume** (UID `:8` / PM `-110`) — see [`docs/PROJECT-STATE.md`](docs/PROJECT-STATE.md).
 
 > [Español](README.es.md) · License: [MIT](LICENSE) (docs/scripts); kernel patches [GPL-2.0-only](LICENSE)
 
