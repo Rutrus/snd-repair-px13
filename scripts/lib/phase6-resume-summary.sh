@@ -99,8 +99,8 @@ phase6_resume_path_summary() {
 		echo "  → H3? (queue_work, no bus ATTACHED/completion)"
 	elif [[ "$att" -eq 1 && "$comp" -eq 1 ]]; then
 		echo "  → Case D (PASS path)"
-	elif [[ "$mr" -eq 1 && "$ping" -eq 0 && "$ping_irq" -eq 0 ]]; then
-		echo "  → Case A? (no ping path after reset — pre-0004 trace)"
+	elif [[ "$mr" -eq 1 && "$ping_irq" -eq 0 && "$acp_irq" -eq 0 && "$ping" -eq 0 ]]; then
+		echo "  → H1? (post-reset: no ACP IRQ / ping_irq / ping_status)"
 	fi
 	echo ""
 }

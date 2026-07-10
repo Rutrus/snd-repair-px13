@@ -39,7 +39,7 @@ phase6_amd_trace_present() {
 }
 
 phase6_amd_irq_trace_present() {
-	grep -q 'fn=ping_irq' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
+	grep -q 'fn=irq_enabled' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
 }
 
 cleanup_rejects() {
@@ -105,7 +105,7 @@ backup_ps="$HOME/${name_ps}.zst.orig"
 [[ -f "$ko" ]] || { echo "Missing $ko" >&2; exit 1; }
 [[ -f "$ko_ps" ]] || { echo "Missing $ko_ps" >&2; exit 1; }
 
-if strings "$ko" | grep -qE 'fn=ping_irq|fn=irq_enabled'; then
+	if strings "$ko" | grep -qE 'fn=irq_enabled|fn=ping_irq'; then
 	echo "OK: PHASE6 AMD IRQ trace strings present"
 else
 	echo "WARN: PHASE6 AMD IRQ strings not found" >&2
