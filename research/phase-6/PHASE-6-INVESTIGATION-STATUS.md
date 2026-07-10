@@ -1,42 +1,52 @@
 # Phase 6 investigation status (ACP70 / PX13)
 
-English (canonical). Last updated: 2026-07-10 (runs 0010–0012).
+English (canonical). Last updated: 2026-07-10 (run **0013** — S1).
 
-**Progress:** ~92% delimitation. **Method:** uncertainty shrinks one layer per iteration — not shotgun patching.
+**Progress:** ~95% delimitation. **S1 bisect complete** on run 0013; S2 ruled out on that run.
 
-**Canonical facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md) (FACT 1–10; maintainer-safe wording)
+**Canonical facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md)
 
 ---
 
 ## Problem statement (demonstrated)
 
-> The first observable failure occurs **after** `amd_resume_runtime()` executes `manager_reset` and re-enables interrupts. All SoundWire re-enumeration activity then **disappears from the log** until RT721 exhausts `wait_for_completion_timeout()` (~5 s, `-110`).
-
-Supported by repeated FAIL-1 runs (0010, 0012): in every instrumented FAIL-1 run to date, `manager_reset` and `irq_enabled` appear; no `sdw0_irq` / `ping_irq` / `queue_work` / `ATTACHED` / `completion`.
+> After `manager_reset` and `irq_enabled`, no transition from the ACP manager into SoundWire re-enumeration is observed; RT721 blocks on `initialization_complete()` until `-110`.
 
 ---
 
-## Upstream diagram (maintainer entry point)
+## Upstream diagram (updated run 0013)
 
 ```text
 resume
    ↓
-manager_reset                    ✅ every FAIL-1 to date
+manager_reset                    ✅
    ↓
-irq_enabled                      ✅ every FAIL-1 to date (0010, 0012)
+irq_enabled                      ✅
    ↓
-────────────────────────────────  ← first reproducible gap
-(no observed ACP IRQ activity)
-────────────────────────────────
+intr_stat_post_enable = 0x0        ✅ 0013 (immediate read)
+irq_handler_enter                ✗ none in wait window
    ↓
-no UNATTACHED → ATTACHED
+────────────────────────────────  S1 (not S2 on 0013)
    ↓
-no completion()
+no ATTACHED / no completion
    ↓
-RT721 wait_init_timeout (-110)   witness only
+RT721 wait_init_timeout (-110)
 ```
 
-A maintainer can start work **at the gap** — not at RT721 or TAS2783.
+**Maintainer focus:** why `ACP_EXTERNAL_INTR_STAT` is **0** immediately after enable + `manager_reset` on ACP70 — not codec PM, not IRQ routing (this run).
+
+---
+
+## S1 vs S2 (run 0013)
+
+| Probe | 0013 |
+|-------|------|
+| `intr_stat_post_enable` | **0x0** |
+| `irq_handler_enter` | **NO** |
+| `irq_thread_enter` | **NO** |
+| Verdict | **S1** |
+
+S2 (stat≠0, no handler) **not observed**. Optional: repeat on another FAIL for confidence; capture PASS with stat≠0 + handler for contrast.
 
 ---
 
@@ -44,110 +54,58 @@ A maintainer can start work **at the gap** — not at RT721 or TAS2783.
 
 | Statement | Status |
 |-----------|--------|
-| `manager_reset` runs | **Observed in every instrumented FAIL-1 run to date** |
-| `irq_enabled` runs | **Observed in every instrumented FAIL-1 run to date** (0004+) |
-| No transition ACP manager → SDW enumeration after enable | **Observed** (FACT 3; 0010, 0012) |
-| RT721 `-110` is consequence | **Proven** |
-| Hardware never asserts IRQ | **Not proven** — only *no observed IRQ activity* |
-| IRQ routing broken | **Not proven** — 0005 bisects S1 vs S2 |
-
-Remaining branches after enable (0005 target):
-
-```text
-enable IRQ
-      │
-      ├── HW never raises STAT bit          → S1
-      ├── HW raises bit, lost before handler → S2
-      ├── handler enters, exits early
-      └── handler takes non-SDW path
-```
+| Gap after `irq_enabled` | **Observed** (0010, 0012, 0013) |
+| S1 pattern on 0013 | **stat=0, no handler** |
+| S2 on 0013 | **Ruled out** |
+| HW never asserts IRQ (absolute) | **Not claimed** — single post-enable read + no handler in window |
+| PASS contrast | **Still wanted** for upstream gold |
 
 ---
 
-## Hypotheses (post-0010 / 0012)
+## Hypotheses (post-0013)
 
 | ID | ~% | Scope |
 |----|---:|-------|
-| **H-ACP** | **80** | ACP IRQ chain: hardware assert or PCI/routing (S1/S2) |
-| **H-SDW** | 15 | After IRQ proven: protocol / empty status |
-| **H-other** | 5 | Codec, FW, bus core skip |
-
-See [KNOWN-FACTS.md](KNOWN-FACTS.md) for ruled-out items.
-
----
-
-## FAIL classes
-
-| Class | RT721 | Runs |
-|-------|-------|------|
-| **FAIL-1** | `wait_init` → `-110` | 0004–0006, 0008–0010, **0012** |
-| **FAIL-2** | `resume_early_exit` | 0007, 0011 (cascade; `resume≥2`) |
-
-Chronology `OK` + Dummy ≠ PASS. Clean reboot before PASS capture.
+| **H-ACP-HW** | **75** | ACP block / FW / sequencing — no pending STAT after reset |
+| **H-ACP-TIMING** | 15 | Event after our read (needs STAT poll or PASS trace) |
+| **H-SDW** | 10 | Unlikely until IRQ reaches software |
 
 ---
 
 ## Run reference (recent)
 
-| Run | Post-reset AMD | Notes |
-|-----|----------------|-------|
-| 0010 | reset → irq_enabled → silence → -110 | Inflection; IO_PAGE_FAULT NO |
-| 0012 | same as 0010 | **Reproduces** 0010; IO_PAGE_FAULT NO |
-| 0011 | irq_enabled → silence | FAIL-2 cascade |
+| Run | S1/S2 | Key |
+|-----|-------|-----|
+| 0010, 0012 | gap only | irq_enabled → silence |
+| **0013** | **S1** | `stat=0x0`, no handler; `run-13-s1s2` |
 
 ```bash
-./scripts/phase6-experiment.sh sm 0012
+./scripts/phase6-experiment.sh sm 0013
 ```
 
 ---
 
 ## Instrumentation
 
-| Patch | Purpose | Status |
-|-------|---------|--------|
-| 0003 | resume=N, bus witness | Installed |
-| 0004 | irq_enabled, sdw0_irq, ping_irq | Installed |
-| **0005** | **S1/S2 only:** `intr_stat_post_enable`, `irq_handler_enter`, `irq_thread_enter` | Ready — [0005](proposed/0005-phase6-s1-s2-bisect.patch) |
-
-0005 instruments **ACP only** — not more SoundWire / `ping_status`.
-
----
-
-## Frozen scope
-
-RT721, TAS2783, machine driver, 0003 FW reload, PipeWire, `px13-audio-rebind`, extra `bus.c` — sufficient separation achieved.
-
----
-
-## PASS value (when it appears)
-
-Same instrumentation; first divergence is the entire upstream story:
-
-```text
-FAIL:  reset → irq_enabled → (no observed IRQ activity) → timeout
-PASS:  reset → irq_enabled → ACP IRQ → ping → queue_work → ATTACHED → completion
-```
-
-Not required to continue S1/S2 bisect, but **gold** for maintainer report.
+| Patch | Status |
+|-------|--------|
+| 0003–0004 | Installed |
+| **0005** | **Installed** — S1 confirmed run 0013 |
 
 ---
 
 ## Exit criteria
 
-- [x] Known facts documented ([KNOWN-FACTS.md](KNOWN-FACTS.md))
-- [x] Reproducible FAIL-1 gap (0010 + 0012)
-- [x] `irq_enabled` proven; IO_PAGE_FAULT demoted
-- [ ] 0005 run: S1 or S2 on clean-boot FAIL
-- [ ] Optional: clean-boot PASS with same trace
+- [x] 0005 S1 on clean-boot FAIL (0013)
+- [x] S2 ruled out on 0013
+- [ ] Optional: second FAIL-1 with 0005 (reproducibility)
+- [ ] PASS with same trace (upstream contrast)
 
 ---
 
 ## Commands
 
 ```bash
-./scripts/build-phase6-amd-trace.sh   # 0003+0004+0005
-sudo reboot
-./scripts/phase6-experiment.sh arm --notes run-13-s1s2
-systemctl suspend
-./scripts/phase6-experiment.sh sm
+./scripts/phase6-experiment.sh sm 0013
+./scripts/phase6-experiment.sh tl 0013
 ```

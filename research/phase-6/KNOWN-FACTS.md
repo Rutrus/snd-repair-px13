@@ -79,14 +79,15 @@ Some other FAILs show correlation — track as **observation**, not cause.
 
 ---
 
-## FACT 7 — First known gap (reproducible)
+## FACT 7 — First known gap; S1 on run 0013 (0005)
 
 ```text
 irq_enabled
       │
-      ├──────────────  ← first reproducible gap (0010, 0012)
-      │  (no observed ACP IRQ activity)
-      ├──────────────
+      ├──────────────  ← gap (0010, 0012: no observed IRQ activity)
+      │  intr_stat_post_enable = 0x0   (0013, immediately post-enable)
+      │  irq_handler_enter = none    (0013, full wait window)
+      ├──────────────  → S1 pattern (not S2)
       │
       ▼
 (no ATTACHED / no completion)
@@ -94,9 +95,11 @@ irq_enabled
 RT721 timeout (-110)
 ```
 
-**Not yet proven:** whether hardware never asserts the interrupt (S1) vs an interrupt exists but never reaches the handler (S2). Patch **0005** (`intr_stat_post_enable` + `irq_handler_enter`) is intended to separate these.
+**Run 0013 (`run-13-s1s2`, resume=1):** after `irq_enabled`, `intr_stat_post_enable stat=0x0`; no `irq_handler_enter` or `irq_thread_enter` before `wait_init_timeout` at kernel t=+5131ms. **`sm` verdict: S1** — no pending interrupt visible at enable time and no handler activity during wait.
 
-**Conservative wording:** *no observed / instrumented IRQ activity* — not a proof that hardware never asserted until 0005 runs.
+**Conservative reading:** compatible with the ACP block **not asserting** a post-reset interrupt (hardware / firmware / sequencing). **Rules out S2** on this run (stat≠0 but no handler). Does not prove the bit never toggles later without a later STAT poll; does prove no delivered IRQ reached software in the wait window.
+
+Earlier runs (0010, 0012) established the gap before 0005; 0013 names it **S1**.
 
 ---
 
@@ -132,7 +135,7 @@ Do not propose RT721 or TAS2783 trace changes without new evidence that breaks F
 - PipeWire / `px13-audio-rebind`  
 - Additional `bus.c` trace (question answered)
 
-**Active layer:** ACP PCI IRQ path only until S1/S2 resolved.
+**Active layer:** ACP block post-`irq_enabled` — why `ACP_EXTERNAL_INTR_STAT` is 0x0 after reset (S1). IRQ routing (S2) ruled out on run 0013.
 
 ---
 
