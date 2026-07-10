@@ -4,7 +4,7 @@ English (canonical). Last updated: 2026-07-10 (runs 0010–0012).
 
 **Progress:** ~92% delimitation. **Method:** uncertainty shrinks one layer per iteration — not shotgun patching.
 
-**Canonical facts (do not re-debate):** [KNOWN-FACTS.md](KNOWN-FACTS.md)
+**Canonical facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md) (FACT 1–10; maintainer-safe wording)
 
 ---
 
@@ -12,7 +12,7 @@ English (canonical). Last updated: 2026-07-10 (runs 0010–0012).
 
 > The first observable failure occurs **after** `amd_resume_runtime()` executes `manager_reset` and re-enables interrupts. All SoundWire re-enumeration activity then **disappears from the log** until RT721 exhausts `wait_for_completion_timeout()` (~5 s, `-110`).
 
-Supported by repeated FAIL-1 runs (0010, 0012): `manager_reset` + `irq_enabled` always; no `sdw0_irq` / `ping_irq` / `queue_work` / `ATTACHED` / `completion`.
+Supported by repeated FAIL-1 runs (0010, 0012): in every instrumented FAIL-1 run to date, `manager_reset` and `irq_enabled` appear; no `sdw0_irq` / `ping_irq` / `queue_work` / `ATTACHED` / `completion`.
 
 ---
 
@@ -21,12 +21,12 @@ Supported by repeated FAIL-1 runs (0010, 0012): `manager_reset` + `irq_enabled` 
 ```text
 resume
    ↓
-manager_reset                    ✅ always (FAIL-1)
+manager_reset                    ✅ every FAIL-1 to date
    ↓
-irq_enabled                      ✅ always (0010, 0012)
+irq_enabled                      ✅ every FAIL-1 to date (0010, 0012)
    ↓
 ────────────────────────────────  ← first reproducible gap
-(no ACP interrupt activity in log)
+(no observed ACP IRQ activity)
 ────────────────────────────────
    ↓
 no UNATTACHED → ATTACHED
@@ -44,11 +44,11 @@ A maintainer can start work **at the gap** — not at RT721 or TAS2783.
 
 | Statement | Status |
 |-----------|--------|
-| `manager_reset` runs | **Proven** |
-| `irq_enabled` runs | **Proven** (0010, 0012) |
-| No downstream SDW activity in log | **Proven** (FAIL-1) |
+| `manager_reset` runs | **Observed in every instrumented FAIL-1 run to date** |
+| `irq_enabled` runs | **Observed in every instrumented FAIL-1 run to date** (0004+) |
+| No transition ACP manager → SDW enumeration after enable | **Observed** (FACT 3; 0010, 0012) |
 | RT721 `-110` is consequence | **Proven** |
-| Hardware never asserts IRQ | **Not proven** — only *no IRQ observable by current trace* |
+| Hardware never asserts IRQ | **Not proven** — only *no observed IRQ activity* |
 | IRQ routing broken | **Not proven** — 0005 bisects S1 vs S2 |
 
 Remaining branches after enable (0005 target):
@@ -124,8 +124,8 @@ RT721, TAS2783, machine driver, 0003 FW reload, PipeWire, `px13-audio-rebind`, e
 Same instrumentation; first divergence is the entire upstream story:
 
 ```text
-FAIL:  reset → irq_enabled → (silence) → timeout
-PASS:  reset → irq_enabled → handler → ping → queue_work → ATTACHED → completion
+FAIL:  reset → irq_enabled → (no observed IRQ activity) → timeout
+PASS:  reset → irq_enabled → ACP IRQ → ping → queue_work → ATTACHED → completion
 ```
 
 Not required to continue S1/S2 bisect, but **gold** for maintainer report.

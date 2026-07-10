@@ -16,17 +16,17 @@ This chain does **not** depend on TAS2783, PipeWire, or userspace recovery scrip
 
 ---
 
-## FACT 1 — `manager_reset` always runs on system resume (FAIL-1 runs)
+## FACT 1 — `manager_reset` on system resume (FAIL-1)
 
-Observed on every instrumented FAIL-1 window with AMD trace (`resume=N`, `pm=system_resume`).
+Observed in **every instrumented FAIL-1 run to date** with AMD trace (`resume=N`, `pm=system_resume`).
 
 Runs: 0004–0006, 0008–0010, 0012.
 
 ---
 
-## FACT 2 — `irq_enabled` always runs after `manager_reset` (post-0004)
+## FACT 2 — `irq_enabled` after `manager_reset` (post-0004)
 
-`amd_enable_sdw_interrupts()` completes; log `fn=irq_enabled` appears immediately after reset.
+Observed in **every instrumented FAIL-1 run to date** with patch 0004+: `amd_enable_sdw_interrupts()` completes; log `fn=irq_enabled` appears immediately after reset.
 
 Runs: **0010**, **0012** (reproducible clean-boot FAIL-1).
 
@@ -47,7 +47,9 @@ After `irq_enabled`, for matching `resume=N`:
 | bus `UNATTACHED → ATTACHED` | **No** |
 | `completion()` | **No** |
 
-Runs: 0010, 0012 (and pre-0004 FAILs consistent with same gap).
+Runs: 0010, 0012 (and pre-0004 FAILs consistent with the same gap).
+
+**No evidence of any transition from the ACP manager into the SoundWire enumeration path was observed after `irq_enabled`.**
 
 ---
 
@@ -55,13 +57,15 @@ Runs: 0010, 0012 (and pre-0004 FAILs consistent with same gap).
 
 FAIL-1: `wait_init_start` → kernel `t=+~5000ms` → `wait_init_timeout` → `ret=-110`.
 
-RT721 waits for `initialization_complete()` that never arrives because FACT 3.
+RT721 **blocks waiting** for `initialization_complete()` that never arrives because FACT 3.
 
 ---
 
-## FACT 5 — TAS2783 / FW is never the first failure
+## FACT 5 — TAS2783 / FW is not the first failure
 
-No FW reload path matters if bus never completes enumeration. TAS2783 `playback without fw` appears **after** link is already broken.
+No FW reload path matters if bus never completes enumeration. TAS2783 `playback without fw` appears **after** the link is already broken.
+
+**No evidence currently places TAS2783 before the missing enumeration event.**
 
 **Frozen:** TAS2783 FW patches, machine driver, `soc_sdw_utils` for root-cause work.
 
@@ -69,7 +73,7 @@ No FW reload path matters if bus never completes enumeration. TAS2783 `playback 
 
 ## FACT 6 — `IO_PAGE_FAULT` is not necessary for FAIL
 
-Run **0010** and **0012**: FAIL-1 with **no** `IO_PAGE_FAULT` in resume window.
+Runs **0010** and **0012**: FAIL-1 with **no** `IO_PAGE_FAULT` in the resume window.
 
 Some other FAILs show correlation — track as **observation**, not cause.
 
@@ -81,7 +85,7 @@ Some other FAILs show correlation — track as **observation**, not cause.
 irq_enabled
       │
       ├──────────────  ← first reproducible gap (0010, 0012)
-      │  (no ACP IRQ activity in log)
+      │  (no observed ACP IRQ activity)
       ├──────────────
       │
       ▼
@@ -90,15 +94,15 @@ irq_enabled
 RT721 timeout (-110)
 ```
 
-**Not yet proven:** whether hardware never asserts the interrupt (S1) vs interrupt exists but never reaches the handler (S2). That requires patch **0005** (`intr_stat_post_enable` + `irq_handler_enter`).
+**Not yet proven:** whether hardware never asserts the interrupt (S1) vs an interrupt exists but never reaches the handler (S2). Patch **0005** (`intr_stat_post_enable` + `irq_handler_enter`) is intended to separate these.
 
-**Conservative wording:** we have *no log evidence of IRQ activity* — not a proof that hardware never asserted until 0005 runs.
+**Conservative wording:** *no observed / instrumented IRQ activity* — not a proof that hardware never asserted until 0005 runs.
 
 ---
 
 ## FACT 8 — FAIL-2 is a distinct witness class
 
-`resume_early_exit reason=first_hw_init` — RT721 **does not wait**. Often cascade after prior FAIL in same boot (`resume=2+`).
+`resume_early_exit reason=first_hw_init` — RT721 **does not wait**. Often a cascade after a prior FAIL in the same boot (`resume=2+`).
 
 Runs: 0007, 0011. Do not confuse with PASS.
 
@@ -106,7 +110,17 @@ Runs: 0007, 0011. Do not confuse with PASS.
 
 ## FACT 9 — Userspace `OK/WARN` ≠ audio PASS
 
-Chronology composite can show OK while sink is Dummy / no FW. Kernel witness path is authoritative.
+Chronology composite can show OK while the sink is Dummy / no FW. The kernel witness path is authoritative.
+
+---
+
+## FACT 10 — Investigation scope
+
+The current root-cause investigation is limited to the **ACP interrupt and re-enumeration path**.
+
+Further instrumentation below the codec layer is **intentionally frozen** until the first missing transition between `irq_enabled` and SoundWire re-enumeration is identified.
+
+Do not propose RT721 or TAS2783 trace changes without new evidence that breaks FACT 3–5.
 
 ---
 
@@ -124,11 +138,14 @@ Chronology composite can show OK while sink is Dummy / no FW. Kernel witness pat
 
 ## Upstream one-liner (FAIL)
 
-> After s2idle resume on AMD ACP70, `manager_reset` and interrupt re-enable succeed. Re-enumeration IRQ/work activity does not appear in the log window; slaves never return to ATTACHED; RT721 `-110` is downstream.
+> After s2idle resume on AMD ACP70, `manager_reset` and interrupt re-enable succeed. No observed transition from the ACP manager into SoundWire re-enumeration occurs in the log window; slaves never return to ATTACHED; RT721 `-110` is downstream.
 
 **Gold contrast (when captured):**
 
 ```text
-FAIL:  reset → irq_enabled → (silence) → timeout
-PASS:  reset → irq_enabled → handler → … → ATTACHED → completion
+FAIL:  reset → irq_enabled → (no observed IRQ activity) → timeout
+
+PASS:  reset → irq_enabled → ACP IRQ → ping → queue_work → ATTACHED → completion
 ```
+
+Until PASS is captured, 0005 S1/S2 bisect remains the next step — not a return to codec-layer instrumentation.
