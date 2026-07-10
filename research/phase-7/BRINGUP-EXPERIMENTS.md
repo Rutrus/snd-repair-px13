@@ -69,27 +69,28 @@ Start with **0005** (lowest risk, highest frequency class for suspend/resume bug
 
 ---
 
-## Experiment C — STAT poll / manual process (IRQ bypass test)
+## Experiment C — Manager mask + STAT decode (IRQ path)
 
-**Question:** Does hardware **ever** set STATUS bits if we wait longer or poll, even when IRQ does not fire?
+**Split into three one-question experiments** (post-0005):
 
-Not a fix — tests H4 vs H1/H3.
+| Patch | Doc | Question |
+|-------|-----|----------|
+| 0006a | [experiments/0006a-validate-manager-mask.md](../experiments/0006a-validate-manager-mask.md) | Does `stat & AMD_SDW*_EXT_INTR_MASK` ever hit? Does manual `schedule_work` on mask hit progress? |
+| 0006b | [experiments/0006b-stat-decode.md](../experiments/0006b-stat-decode.md) | What is `STAT=0x4` vs `INTR_CNTL=0x400004`? Per-instance decode. |
+| 0006c | [experiments/0006c-force-schedule-stat4.md](../experiments/0006c-force-schedule-stat4.md) | Falsification: force thread on `stat==0x4` only |
 
-Sketch (observation + minimal intervention):
+**Do not** trigger 0006a on `0x4` alone — that is 0006c and risks false conclusions.
+
+Legacy sketch (superseded):
 
 ```text
 after D0:
   for i in 0..200ms step 10ms:
     read ACP_EXTERNAL_INTR_STAT
-    read ACP_SW_STATE_CHANGE_STATUS_*
-    if any non-zero → log once, optionally schedule amd_sdw_irq_thread work
+    ...
 ```
 
-**Binary question:** Does STAT or STATE_CHANGE become non-zero within 200 ms on FAIL when IRQ never fired?
-
-- **Yes, STAT only** → S2-like routing or mask (revisit IRQ enable path).
-- **Yes, STATE_CHANGE only** → external INTR mapping issue.
-- **No** → hardware not generating activity in that window (H1/H2).
+0005 delay experiment showed STAT change by 20–50 ms without handler — use manager mask from `amd_manager.h`, not raw hex equality.
 
 ---
 

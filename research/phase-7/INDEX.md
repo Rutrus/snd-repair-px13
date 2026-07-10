@@ -18,32 +18,43 @@ English (canonical). Phase 6 **observation** is complete. Phase 7 asks: **what c
 
 ---
 
-## First experiment (ready)
+## Experiment status
 
-**0005-delay-after-d0** — falsification. See [experiments/0005-delay-after-d0.md](experiments/0005-delay-after-d0.md).
-
-```bash
-/home/rutrus/snd_repair/scripts/build-phase7.sh --experiment delay-after-d0
-sudo reboot
-
-# one sweep point (repeat per MS: 0 5 10 20 50 100):
-/home/rutrus/snd_repair/scripts/phase7-sweep-pre.sh 20
-# --- reboot; after login: ---
-/home/rutrus/snd_repair/scripts/phase7-sweep-post.sh --verify-only
-/home/rutrus/snd_repair/scripts/phase7-sweep-post.sh
-systemctl suspend
-/home/rutrus/snd_repair/scripts/phase7-sweep-post.sh --after-suspend
-```
-
-**Do not** loop `reboot` with steps after it — use pre/post scripts.
-
-**Status (2026-07-10):** d20 logged — STAT 0→4 at 20 ms, no handler; run invalid (`resume=3`). See [runs table](experiments/0005-delay-after-d0.md#runs). Next: clean-boot points 0, 5, 10, 50, 100.
+| Id | Doc | Status |
+|----|-----|--------|
+| **0005** delay-after-D0 | [experiments/0005-delay-after-d0.md](experiments/0005-delay-after-d0.md) | **Closed (negative)** — STAT 0→4, no handler; not `ACP_SDW0_STAT` |
+| **0006b** STAT decode | [experiments/0006b-stat-decode.md](experiments/0006b-stat-decode.md) | **Next (commit 1)** — observation only; CNTL/STAT decode |
+| **0006a** validate manager mask | [experiments/0006a-validate-manager-mask.md](experiments/0006a-validate-manager-mask.md) | **After 0006b (commit 2)** — `stat & manager_mask` → `schedule_work` |
+| **0006c** force stat 0x4 | [experiments/0006c-force-schedule-stat4.md](experiments/0006c-force-schedule-stat4.md) | Optional falsification after 0006a/b |
 
 ---
 
-## Ad-hoc (same boot)
+## Current question (post-0005)
 
-For one-off tests without modprobe.d sweep, use `phase6-hunt.sh` directly — see experiment doc. **Formal sweep** uses `phase7-sweep-pre/post.sh` only.
+> A bit appears in `ACP_EXTERNAL_INTR_STAT(instance)` after delay (`0x4`), but `acp63_irq_handler` waits for `ACP_SDW0_STAT` (`0x200000`). **Does the driver-expected manager mask bit ever assert? If so, does manual `schedule_work` progress enumeration?**
+
+---
+
+## Run protocol (0006a, when patch exists)
+
+```bash
+./scripts/build-phase7.sh --experiment validate-manager-mask   # TBD
+sudo reboot
+./scripts/phase7-sweep-pre.sh 50
+# login:
+./scripts/phase7-sweep-post.sh --verify-only
+./scripts/phase7-sweep-post.sh
+systemctl suspend
+./scripts/phase7-sweep-post.sh --after-suspend
+```
+
+Same witness as Phase 6 (`resume_n=1`, hunt log, state machine).
+
+When Phase 7 sweep complete:
+
+```bash
+./scripts/phase7-sweep-clear.sh && sudo reboot
+```
 
 ---
 
@@ -52,4 +63,7 @@ For one-off tests without modprobe.d sweep, use `phase6-hunt.sh` directly — se
 | Doc | Content |
 |-----|---------|
 | [BRINGUP-EXPERIMENTS.md](BRINGUP-EXPERIMENTS.md) | Experiments A–D, patch ids, rules |
-| [experiments/0005-delay-after-d0.md](experiments/0005-delay-after-d0.md) | **Falsification** — hypothesis, sweep, stop criteria |
+| [experiments/0005-delay-after-d0.md](experiments/0005-delay-after-d0.md) | Timing falsification (archived) |
+| [experiments/0006a-validate-manager-mask.md](experiments/0006a-validate-manager-mask.md) | Manager mask + manual schedule |
+| [experiments/0006b-stat-decode.md](experiments/0006b-stat-decode.md) | INTR_STAT/CNTL decode |
+| [experiments/0006c-force-schedule-stat4.md](experiments/0006c-force-schedule-stat4.md) | Deliberate 0x4 hack (optional) |

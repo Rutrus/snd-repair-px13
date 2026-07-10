@@ -48,6 +48,8 @@ If verify fails, **do not suspend** — the run would be invalid.
 5    10   20   50   100
 ```
 
+**Status (2026-07-10):** Sweep **stopped** after d50 — delay reveals STAT evolution but not handler/attach. See [runs](#runs). Next: [0006a validate manager mask](0006a-validate-manager-mask.md) + [0006b stat decode](0006b-stat-decode.md).
+
 **Stop early:** STAT≠0, handler, or ATTACHED → stop sweep, investigate band.
 
 **Stop criterion (full sweep):** all six identical to control → **archive 0005 as negative experiment** → re-kick (0006).
@@ -154,6 +156,9 @@ Use `build-phase7.sh`, not `build-phase6-amd-trace.sh`, while this experiment is
 
 | Run | delay_ms | resume_n | intr_stat_post_D0 | intr_stat_post_delay | handler | witness | Valid sweep? | Notes |
 |-----|----------|----------|-------------------|----------------------|---------|---------|--------------|-------|
-| p7-0005-d20 | 20 | 3 | 0x0 | **0x4** | NO | PARTIAL | **No** — `resume≠1`; repeat on clean boot | STAT changed without handler; log: `validation/phase6-runs/hunt-p7-0005-d20/` |
+| p7-0005-d20 | 20 | 3 | 0x0 | **0x4** | NO | PARTIAL | **No** — `resume≠1` | STAT 0→4; log: `hunt-p7-0005-d20/` |
+| p7-0005-d50 | 50 | 1 | 0x0 | **0x4** | NO | FAIL-1 | **Yes** | Same STAT pattern; `intr_cntl=0x400004`; log: `hunt-p7-0005-d50/` |
 
-**d20 takeaway:** timing **does** affect the post-D0 STAT read (0→4 at 20 ms) but does **not** produce the first HW event path (handler / attach). Not a fix; narrows “pure settling” vs “STAT without delivery.”
+**0005 conclusion:** Delay **does** change post-D0 STAT read (`0→0x4` by ~20 ms, stable at 50 ms) but **does not** produce `irq_handler_enter`, ATTACHED, or RT721 OK. **`0x4` ≠ `ACP_SDW0_STAT` (`0x200000`)** — see [0006b-stat-decode.md](0006b-stat-decode.md). Timing hypothesis rejected as unblock mechanism; STAT async evolution confirmed.
+
+**d20 takeaway:** timing affects post-D0 STAT read but not the expected manager IRQ bit or attach path.
