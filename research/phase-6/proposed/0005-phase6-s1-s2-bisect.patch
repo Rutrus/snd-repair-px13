@@ -1,0 +1,44 @@
+From: snd-repair phase6 <snd-repair@local>
+Date: Fri, 10 Jul 2026 13:05:00 +0200
+Subject: [PATCH phase6 5/5] ACP: S1/S2 bisect — intr_stat, handler, thread (0005)
+
+Applies on 0004. Three existence probes only — distinguish hardware
+event (S1) vs IRQ routing (S2). No ping_status.
+
+Signed-off-by: snd-repair phase6 <snd-repair@local>
+---
+--- a/drivers/soundwire/amd_manager.c
++++ b/drivers/soundwire/amd_manager.c
+@@ -1031,6 +1031,10 @@ static void amd_sdw_irq_thread(struct work_struct *work)
+ {
+ 	struct amd_sdw_manager *amd_manager =
+ 			container_of(work, struct amd_sdw_manager, amd_sdw_irq_thread);
++	dev_info(amd_manager->dev,
++		 "PHASE6 ctx=amd fn=irq_thread_enter link=%d resume=%d t=+%lldms\n",
++		 amd_manager->instance, amd_phase6_resume_id(amd_manager),
++		 (long long)amd_phase6_since_reset_ms(amd_manager));
+ 	u32 status_change_8to11;
+ 	u32 status_change_0to7;
+ 
+@@ -1493,6 +1497,11 @@ static int __maybe_unused amd_resume_runtime(struct device *dev)
+ 		amd_enable_sdw_interrupts(amd_manager);
+ 		dev_info(dev, "PHASE6 ctx=amd fn=irq_enabled link=%d resume=%d\n",
+ 			 bus->link_id, amd_phase6_resume_id(amd_manager));
++		dev_info(dev,
++			 "PHASE6 ctx=amd fn=intr_stat_post_enable link=%d resume=%d stat=0x%x\n",
++			 bus->link_id, amd_phase6_resume_id(amd_manager),
++			 readl(amd_manager->acp_mmio +
++			       ACP_EXTERNAL_INTR_STAT(amd_manager->instance)));
+ 		ret = amd_enable_sdw_manager(amd_manager);
+ 		if (ret)
+ 			return ret;
+--- a/sound/soc/amd/ps/pci-ps.c
++++ b/sound/soc/amd/ps/pci-ps.c
+@@ -207,6 +207,7 @@ static irqreturn_t acp63_irq_handler(int irq, void *dev_id)
+ 	 * Bit by bit checking of IRQ field is implemented.
+ 	 */
+ 	ext_intr_stat = readl(adata->acp63_base + ACP_EXTERNAL_INTR_STAT);
++	pr_info("PHASE6 ctx=acp fn=irq_handler_enter stat=0x%x\n", ext_intr_stat);
+ 	if (ext_intr_stat & ACP_SDW0_STAT) {
+ 		pr_info("PHASE6 ctx=acp fn=sdw0_irq link=0 stat=0x%x\n", ext_intr_stat);
+ 		writel(ACP_SDW0_STAT, adata->acp63_base + ACP_EXTERNAL_INTR_STAT);

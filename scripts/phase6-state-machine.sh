@@ -63,6 +63,10 @@ normalize_machine() {
 			fn="$(echo "$line" | sed -n 's/.*fn=\([^ ]*\).*/\1/p')"
 			rest="$(echo "$line" | sed 's/.*PHASE6 ctx=amd //')"
 			echo "  amd  ${fn}  ${rest}"
+		elif echo "$line" | grep -qE 'ctx=acp fn='; then
+			fn="$(echo "$line" | sed -n 's/.*fn=\([^ ]*\).*/\1/p')"
+			rest="$(echo "$line" | sed 's/.*PHASE6 ctx=acp //')"
+			echo "  acp  ${fn}  ${rest}"
 		elif echo "$line" | grep -q 'fn=wait_init_start'; then
 			echo "  rt721  wait_init_start"
 		elif echo "$line" | grep -q 'fn=wait_init_ok'; then

@@ -4,7 +4,7 @@
 phase6_resume_path_summary() {
 	local rid="${1:-}"
 	local raw post anchor_rid
-	local mr=0 irq=0 ping_irq=0 ping=0 qw=0 hs=0 att=0 comp=0 wit=0 wiok=0 ret="" early=0 iof=0 sys=0 acp_irq=0
+	local mr=0 irq=0 istat="" istat_nz=0 h_enter=0 th_enter=0 ping_irq=0 ping=0 qw=0 hs=0 att=0 comp=0 wit=0 wiok=0 ret="" early=0 iof=0 sys=0 acp_irq=0
 
 	raw="$(phase6_lines_for_run "$rid" "resume_window")"
 	[[ -n "$raw" ]] || {
@@ -33,6 +33,10 @@ phase6_resume_path_summary() {
 	echo "$raw" | grep -q 'ctx=amd fn=resume_enter.*pm=system_resume' && sys=1
 
 	if echo "$post" | grep -q 'fn=irq_enabled'; then irq=1; fi
+	istat="$(echo "$post" | grep 'fn=intr_stat_post_enable' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p')"
+	[[ -n "$istat" && "$istat" != "0" ]] && istat_nz=1
+	echo "$post" | grep -q 'fn=irq_handler_enter' && h_enter=1
+	echo "$post" | grep -q 'fn=irq_thread_enter' && th_enter=1
 	if echo "$post" | grep -q 'fn=ping_irq'; then ping_irq=1; fi
 	if echo "$post" | grep -q 'fn=ping_status'; then ping=1; fi
 	if echo "$post" | grep -q 'fn=queue_work'; then qw=1; fi
@@ -68,6 +72,9 @@ phase6_resume_path_summary() {
 	echo "  system_resume_enter   $(yn "$sys")"
 	echo "  manager_reset         $(yn "$mr")"
 	echo "  irq_enabled           $(yn "$irq")"
+	[[ -n "$istat" ]] && echo "  intr_stat_post_enable 0x${istat}" || echo "  intr_stat_post_enable (log) NO"
+	echo "  irq_handler_enter     $(yn "$h_enter")"
+	echo "  irq_thread_enter      $(yn "$th_enter")"
 	echo "  acp sdw0_irq (log)    $(yn "$acp_irq")"
 	echo "  ping_irq (log)        $(yn "$ping_irq")"
 	echo "  ping_status (log)     $(yn "$ping")"
@@ -88,9 +95,21 @@ phase6_resume_path_summary() {
 		echo "  fail_class: FAIL-2 (RT721 resume_early_exit, no wait_init)"
 	fi
 
-	# Case / scenario sketch (IRQ-aware)
-	if [[ "$mr" -eq 1 && "$irq" -eq 1 && "$ping_irq" -eq 0 && "$acp_irq" -eq 0 ]]; then
-		echo "  → S1/S2? (irq_enabled, no ACP IRQ — HW assert or routing)"
+	# S1/S2 matrix (0005)
+	if [[ "$irq" -eq 1 && -n "$istat" ]]; then
+		if [[ "$istat_nz" -eq 0 && "$h_enter" -eq 0 ]]; then
+			echo "  → S1 (stat=0, no handler — no hardware event)"
+		elif [[ "$istat_nz" -eq 1 && "$h_enter" -eq 0 ]]; then
+			echo "  → S2 (stat≠0, no handler — IRQ routing/mask)"
+		elif [[ "$istat_nz" -eq 1 && "$h_enter" -eq 1 && "$th_enter" -eq 0 ]]; then
+			echo "  → post-ISR? (handler ran, irq_thread never)"
+		elif [[ "$h_enter" -eq 1 && "$th_enter" -eq 1 ]]; then
+			echo "  → past thread entry (bisect SDW path)"
+		elif [[ "$istat_nz" -eq 0 && "$h_enter" -eq 1 ]]; then
+			echo "  → check instrumentation (stat=0 but handler ran)"
+		fi
+	elif [[ "$mr" -eq 1 && "$irq" -eq 1 && "$ping_irq" -eq 0 && "$acp_irq" -eq 0 ]]; then
+		echo "  → S1/S2? (pre-0005 — rebuild for intr_stat/handler probes)"
 	elif [[ "$mr" -eq 1 && "$acp_irq" -eq 1 && "$ping_irq" -eq 0 ]]; then
 		echo "  → S3? (ACP IRQ/handler, irq_thread never ran)"
 	elif [[ "$mr" -eq 1 && "$ping_irq" -eq 1 && "$qw" -eq 0 ]]; then

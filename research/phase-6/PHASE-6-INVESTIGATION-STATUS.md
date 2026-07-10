@@ -162,7 +162,7 @@ FAIL:  manager_reset → irq_enabled → (nothing) → timeout
 |-------|--------|--------|
 | 0003 | verbose amd + resume=N | Installed |
 | 0004 | irq_enabled, sdw0_irq, ping_irq, queue_work | Installed (0010) |
-| **0005** | intr_stat_post_enable, acp_irq_handler_enter | **Proposed** |
+| **0005** | `intr_stat_post_enable`, `irq_handler_enter`, `irq_thread_enter` | **Ready** — [0005-phase6-s1-s2-bisect.patch](proposed/0005-phase6-s1-s2-bisect.patch) |
 
 ---
 
@@ -171,7 +171,7 @@ FAIL:  manager_reset → irq_enabled → (nothing) → timeout
 - [x] `irq_enabled` proves enable path runs
 - [x] First missing step identified on FAIL-1 (0010)
 - [x] IO_PAGE_FAULT demoted to observation
-- [ ] 0005 hardware/routing bisect (S1–S4)
+- [ ] 0005 S1/S2 bisect on ≥1 clean-boot FAIL (`run-13+`)
 - [ ] ≥1 **clean-boot PASS** with same trace (Case D)
 - [ ] PASS vs FAIL first-divergence table for upstream
 
