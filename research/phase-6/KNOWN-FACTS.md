@@ -8,6 +8,19 @@ Status / runs: [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md
 
 ---
 
+## Phase boundary (objective shift)
+
+| Iteration | First unknown transition |
+|-----------|--------------------------|
+| Early Phase 6 | `manager_reset` → **?** → `wait_init_timeout` |
+| Run **0013** (0005) | `irq_enabled` → **`ACP_EXTERNAL_INTR_STAT = 0`** → (no IRQ) |
+
+We no longer infer the break from missing `completion()` alone. Run 0013 found the **first observable state** that differs from expected PASS behaviour.
+
+**Investigation goal now:** explain why the ACP block does not present the expected post-reset state — not *where* the sequence breaks.
+
+---
+
 ## Precise problem statement
 
 > The first observable failure occurs **after** `amd_resume_runtime()` runs `manager_reset` and re-enables interrupts. From that point, **no log evidence** of SoundWire re-enumeration activity appears until RT721 exhausts `wait_for_completion_timeout()` (~5 s, `-110`).
@@ -95,7 +108,11 @@ ACP_EXTERNAL_INTR_STAT = 0x0     ← 0013, read immediately post-enable
 RT721 timeout (-110)
 ```
 
-**Run 0013 (`run-13-s1s2`, resume=1):** `intr_stat_post_enable stat=0x0`; no `irq_handler_enter` or `irq_thread_enter` before `wait_init_timeout` at kernel t=+5131ms. **`sm` verdict: S1.**
+**Run 0013 (`run-13-s1s2`, resume=1) — irrefutable wording:**
+
+> On the instrumented read immediately after `irq_enabled`, `ACP_EXTERNAL_INTR_STAT` is **0x0**, and **no IRQ handler activity** was observed during the RT721 wait window (`irq_handler_enter` / `irq_thread_enter` absent; `wait_init_timeout` at kernel t=+5131ms).
+
+**Do not equate** `STAT=0` with *"hardware never generates the event."* That is a hypothesis compatible with the observation, not the observation itself.
 
 **Ruled out on 0013 (maintainer-safe):** **S2** — not *stat≠0 with no handler*; observed *stat=0* and no handler.
 
@@ -153,12 +170,17 @@ Do not propose RT721 or TAS2783 trace changes without evidence that breaks FACT 
 
 > After s2idle resume on AMD ACP70, `manager_reset` and interrupt re-enable succeed, but `ACP_EXTERNAL_INTR_STAT` reads **0** immediately after enable and no IRQ reaches the handler; re-enumeration never starts; RT721 `-110` is downstream.
 
-**Gold contrast (when captured):**
+**Gold contrast (same instrumentation — highest upstream value):**
+
+| | FAIL (0013) | PASS (target) |
+|--|-------------|---------------|
+| `irq_enabled` | yes | yes |
+| `ACP_EXTERNAL_INTR_STAT` | **0** | **≠0** |
+| IRQ handler | no | yes |
+| `completion()` | no | yes |
+| RT721 | `-110` | OK |
 
 ```text
-FAIL:  reset → irq_enabled → STAT=0 → (no handler) → timeout
-
-PASS:  reset → irq_enabled → STAT≠0 → handler → … → ATTACHED → completion
+FAIL:  irq_enabled → STAT=0 → (no handler) → timeout
+PASS:  irq_enabled → STAT≠0 → handler → … → completion
 ```
-
-PASS remains high value for upstream; S1/S2 bisect on 0013 is complete for FAIL path.

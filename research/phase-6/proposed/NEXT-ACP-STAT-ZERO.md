@@ -1,44 +1,72 @@
-# Next ACP trace — why STAT stays 0 (proposed 0006)
+# Proposed 0006 — ACP block state snapshot (not scattered trace)
 
-English (canonical). After run **0013** (S1; S2 ruled out on that run).
+English (canonical). After run **0013**. Replaces ad-hoc probe list in earlier draft.
 
-**Do not add SoundWire / codec trace.** All value is in ACP70.
+**Single question:**
 
----
+> **Is the hardware actually prepared to generate the first post-reset event?**
 
-## Question
-
-> Why does `ACP_EXTERNAL_INTR_STAT` read **0** immediately after `manager_reset` + `irq_enabled` on FAIL?
-
-`STAT=0` does not name the mechanism — only that no pending interrupt is visible at the probe point.
+**Do not instrument:** RT721, TAS2783, SoundWire bus, userspace. Those layers have served their role.
 
 ---
 
-## Candidate probes (minimal, existence or single register read)
+## Structured read sequence (one resume, one log block)
 
-| # | Question | Suggested probe |
-|---|----------|-----------------|
-| 1 | Was `ACP_EXTERNAL_INTR_CNTL` written correctly? | Log mask written in `amd_enable_sdw_interrupts()` |
-| 2 | Is the SDW manager block enabled after resume? | `ACP_SW_EN` / enable status reg post-`amd_enable_sdw_manager()` |
-| 3 | Does HW expect a kick (first PING / clock / frameshape) before STAT can rise? | Log whether `amd_enable_sdw_manager` / frameshape ran before STAT read |
-| 4 | Power / clock gating | `AMD_SDW_DEVICE_STATE` or clk resume bits already on path — log final state |
-
-Pick **one or two** per iteration; avoid register dumps every resume.
-
----
-
-## What we are not doing
-
-- More `bus.c`, `ping_status`, RT721, TAS2783
-- Behavior-changing “fix” patches until PASS/FAIL mechanism differs
-
----
-
-## PASS value
+Log once per system resume (`resume=N`), immediately after existing `irq_enabled` / `intr_stat_post_enable` (0005), **after** `amd_enable_sdw_manager()` and frameshape if they run on this path:
 
 ```text
-FAIL 0013:  irq_enabled → STAT=0 → no handler
-PASS (goal): irq_enabled → STAT≠0 → irq_handler_enter → … → completion
+resume_enter          (0003)
+    ↓
+manager_reset         (0003)
+    ↓
+irq_enabled           (0004)
+    ↓
+intr_cntl_post_enable read ACP_EXTERNAL_INTR_CNTL(instance)
+    ↓
+intr_stat_post_enable read ACP_EXTERNAL_INTR_STAT(instance)   (0005)
+    ↓
+sdw_en_post_resume    read ACP_SW_EN / ACP_SW_EN_STATUS (or equivalent)
+    ↓
+(optional) clk_frame   clock resume + frameshape status if already on path
 ```
 
-That diff is sufficient for an upstream report once PASS is captured with 0005 instrumentation.
+Uniform log line:
+
+```text
+PHASE6 ctx=amd fn=<name> link=%d resume=%d val=0x%x
+```
+
+**Not** a register dump — one `val=` per named probe.
+
+---
+
+## Interpretation (FAIL vs PASS)
+
+Compare the **same snapshot** on PASS when captured:
+
+| Field | FAIL (0013) | PASS (expected) |
+|-------|-------------|-----------------|
+| CNTL mask | TBD | likely non-zero / enabled bits |
+| STAT | **0** | **≠0** (or rises before handler) |
+| SDW enable | TBD | block enabled |
+
+If PASS shows identical CNTL + enable but STAT≠0 only on PASS → timing/kick hypothesis. If FAIL shows enable=0 or CNTL wrong → sequencing bug in driver resume path.
+
+---
+
+## Scope rules
+
+- ACP / `amd_manager.c` only for 0006 (reads already use `acp_mmio` / manager `mmio`).
+- No new `bus.c`, `ping_status`, codec PM.
+- No behaviour-changing fixes until FAIL vs PASS snapshot differs.
+
+Patch file: create `0006-phase6-acp-block-state.patch` when implementing (applies on 0005).
+
+Build: extend `scripts/build-phase6-amd-trace.sh`.
+
+---
+
+## Remaining work (~5% of investigation)
+
+1. **0006** — why STAT=0 on FAIL (block prepared or not).
+2. **PASS** — clean-boot capture with 0003–0005 (0006 optional) for maintainer table above.

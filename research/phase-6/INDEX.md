@@ -1,8 +1,9 @@
 # Phase 6 — State transition analysis (suspend → resume)
 
 > **Branch:** `research/suspend-lifecycle`  
-> **Facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md) · **Status:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md)  
-> **0013:** S1 — `STAT=0` after enable · **Next:** [why STAT=0](proposed/NEXT-ACP-STAT-ZERO.md)
+> **Facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md) — phase boundary + irrefutable STAT wording  
+> **Status:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) (~95% delimitation)  
+> **0006:** [ACP block state snapshot](proposed/NEXT-ACP-STAT-ZERO.md) (not more SDW trace)
 
 English (canonical). Phase 5 delivered playback/FW/stereo. Phase 6 explains **intermittent s2idle resume** on ACP70 SoundWire.
 

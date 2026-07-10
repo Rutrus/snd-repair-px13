@@ -2,71 +2,61 @@
 
 English (canonical). Last updated: 2026-07-10 (run **0013**).
 
-**Progress:** ~95%. **Phase shift:** from locating the first break → explaining why ACP produces **no first event** after `manager_reset`.
+**Delimitation:** ~**95%** — *where* the sequence breaks is identified; ~**5%** remains (*why* STAT=0 on FAIL + PASS contrast).
 
-**Facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md) · **Next ACP-only:** [proposed/NEXT-ACP-STAT-ZERO.md](proposed/NEXT-ACP-STAT-ZERO.md)
+**Facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md) · **0006 plan:** [proposed/NEXT-ACP-STAT-ZERO.md](proposed/NEXT-ACP-STAT-ZERO.md)
 
 ---
 
-## Break chain (run 0013)
+## Objective shift (not a percentage game)
+
+| Stage | First unknown |
+|-------|----------------|
+| Early Phase 6 | `manager_reset` → **?** → timeout |
+| **Now (0013)** | `irq_enabled` → **`STAT=0`** → no IRQ |
+
+The project no longer searches *where* it fails. It explains **why the first expected hardware-visible state does not appear** after `manager_reset` + `irq_enabled`.
+
+---
+
+## Observable break (run 0013)
 
 ```text
-manager_reset
-      ↓
-irq_enabled
-      ↓
-ACP_EXTERNAL_INTR_STAT = 0x0
-      ↓
-(no irq_handler_enter / irq_thread_enter)
-      ↓
-no completion
-      ↓
-RT721 timeout (-110)
+manager_reset → irq_enabled → ACP_EXTERNAL_INTR_STAT=0 → (no handler) → no completion → -110
 ```
 
-SDW protocol layer **never starts** on this path.
+**Maintainer-safe fact:** on the instrumented read immediately after `irq_enabled`, STAT is 0 and no IRQ handler activity occurs during the wait window. **Not** equivalent to proving HW never fires.
 
 ---
 
-## Ruled out / open (maintainer-safe)
+## PASS contrast (gold)
 
-| Item | Run 0013 |
-|------|----------|
-| S2 (stat≠0, no handler) | **Ruled out** |
-| IRQ routing as sole story | **Unlikely** on 0013 |
-| Codec / TAS2783 first | **Ruled out** (FACT 5) |
-| Why STAT=0 | **Open** — HW never fired vs late event vs missing kick |
+| | FAIL | PASS |
+|--|------|------|
+| `irq_enabled` | ✓ | ✓ |
+| STAT | 0 | ≠0 |
+| handler | ✗ | ✓ |
+| completion | ✗ | ✓ |
+| RT721 | -110 | OK |
 
----
-
-## Hypotheses (post-0013)
-
-| ID | ~% | Scope |
-|----|---:|-------|
-| **H-ACP-SEQ** | **85** | ACP manager / HW sequencing after `manager_reset` |
-| **H-SDW** | 10 | SDW path after IRQ (not reached on FAIL) |
-| **H-codec** | 5 | Witness only |
+Same instrumentation (0003–0005; 0006 optional). More convincing than extra log volume.
 
 ---
 
-## Instrumentation
+## Next: 0006 (ACP block state only)
 
-| Patch | Role | Status |
-|-------|------|--------|
-| 0003–0004 | resume=N, irq chain witnesses | Done |
-| **0005** | S1/S2 bisect | Done — **S1 on 0013** |
-| **0006** | Why STAT=0 (ACP regs / enable / kick) | Proposed |
+Structured snapshot after enable — CNTL, STAT, SDW enable, optional clock/frame — answering *is the block prepared to generate the first event?*
 
-**No more SoundWire instrumentation** until ACP first-event mechanism differs on PASS.
+**Frozen:** RT721, TAS2783, bus.c, userspace, PipeWire, px13 rebind.
 
 ---
 
 ## Runs
 
-| Run | Result |
-|-----|--------|
+| Run | Note |
+|-----|------|
 | 0010, 0012 | Gap after `irq_enabled` |
-| **0013** | **S1:** `stat=0x0`, no handler |
+| **0013** | STAT=0, S2 ruled out |
 
 ```bash
 ./scripts/phase6-experiment.sh sm 0013
@@ -76,11 +66,10 @@ SDW protocol layer **never starts** on this path.
 
 ## Exit criteria
 
-- [x] S1/S2 bisect (0013)
-- [x] FACT 7 chain documented
-- [ ] Optional: second 0005 FAIL for reproducibility
-- [ ] PASS: `STAT≠0` → handler → completion (upstream gold)
-- [ ] 0006: why STAT=0 on FAIL vs PASS
+- [x] First **observable** break identified (STAT=0, 0013)
+- [x] S2 ruled out on 0013
+- [ ] 0006 block-state snapshot on FAIL (+ PASS compare)
+- [ ] Clean-boot PASS with 0003–0005
 
 ---
 
@@ -89,5 +78,4 @@ SDW protocol layer **never starts** on this path.
 ```bash
 ./scripts/build-phase6-amd-trace.sh
 ./scripts/phase6-experiment.sh sm 0013
-./scripts/phase6-experiment.sh tl 0013
 ```
