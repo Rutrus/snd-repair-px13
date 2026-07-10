@@ -53,8 +53,7 @@ Signed-off-by: snd-repair phase6 <snd-repair@local>
  	 */
  	ext_intr_stat = readl(adata->acp63_base + ACP_EXTERNAL_INTR_STAT);
  	if (ext_intr_stat & ACP_SDW0_STAT) {
-+		dev_info(&adata->pci->dev,
-+			 "PHASE6 ctx=acp fn=sdw0_irq link=0 stat=0x%x\n", ext_intr_stat);
++		pr_info("PHASE6 ctx=acp fn=sdw0_irq link=0 stat=0x%x\n", ext_intr_stat);
  		writel(ACP_SDW0_STAT, adata->acp63_base + ACP_EXTERNAL_INTR_STAT);
  		amd_manager = dev_get_drvdata(&adata->sdw->pdev[0]->dev);
  		if (amd_manager)
