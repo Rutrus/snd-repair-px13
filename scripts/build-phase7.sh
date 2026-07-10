@@ -25,7 +25,9 @@ Usage:
   $0 --experiment NAME [--delay MS]
 
 Experiments:
-  delay-after-d0   module param phase7_delay_ms (0=control; try 5,10,20,50,100)
+  delay-after-d0   module param phase7_delay_ms (0=control; archived 0005)
+  stat-decode              INTR decode post-D0 + optional post_delay (0006b / 0006b.1)
+  validate-manager-mask    0006b + manual schedule_work if STAT&mask (0006a)
 
 Environment:
   PHASE7_EXPERIMENT   same as --experiment
@@ -56,6 +58,12 @@ phase7_patch_for() {
 	delay-after-d0)
 		echo "$REPO_ROOT/research/phase-7/proposed/0005-delay-after-d0.patch"
 		;;
+	stat-decode)
+		echo "$REPO_ROOT/research/phase-7/proposed/0006b-stat-decode.patch"
+		;;
+	validate-manager-mask)
+		echo "$REPO_ROOT/research/phase-7/proposed/0006a-validate-manager-mask.patch"
+		;;
 	*)
 		echo "Unknown experiment: $1" >&2
 		exit 1
@@ -63,22 +71,58 @@ phase7_patch_for() {
 	esac
 }
 
+phase7_stat_decode_partial() {
+	grep -q 'SND_REPAIR_INTR_DECODE_INSTANCES' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null &&
+		grep -q 'snd_repair_phase7_intr_decode' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null &&
+		! grep -q 'snd_repair_phase7_intr_decode(dev' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
+}
+
+phase7_0006b_present() {
+	grep -q 'SND_REPAIR_INTR_DECODE_INSTANCES' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null &&
+		grep -q 'fn=intr_decode' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null &&
+		grep -q 'snd_repair_phase7_intr_decode(dev, amd_manager, bus, "post_D0")' \
+			"$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null &&
+		grep -q 'snd_repair_phase7_intr_decode(dev, amd_manager, bus, "post_delay")' \
+			"$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null &&
+		grep -q 'phase7_delay_ms' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
+}
+
 phase7_present() {
 	case "$1" in
 	delay-after-d0)
 		grep -q 'fn=delay_after_D0' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
 		;;
+	stat-decode)
+		phase7_0006b_present && \
+			! grep -q 'fn=manual_irq_schedule' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
+		;;
+	validate-manager-mask)
+		phase7_0006b_present &&
+			grep -q 'snd_repair_phase7_try_manual_irq' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null &&
+			grep -q 'fn=manual_irq_schedule' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
+		;;
 	*) return 1 ;;
 	esac
+}
+
+apply_phase7_patch() {
+	local patch="$1"
+	local label="$2"
+	rm -f "$SRC/drivers/soundwire/amd_manager.c.rej"
+	echo "==> Applying Phase 7: $label"
+	if patch -p1 --forward -d "$SRC" <"$patch"; then
+		return 0
+	fi
+	rm -f "$SRC/drivers/soundwire/amd_manager.c.rej"
+	return 1
 }
 
 PATCH_P7="$(phase7_patch_for "$EXPERIMENT")"
 [[ -f "$PATCH_P7" ]] || { echo "Missing $PATCH_P7" >&2; exit 1; }
 
-if [[ -f "$STAMP_P7" ]] && [[ "$(cat "$STAMP_P7")" != "$EXPERIMENT" ]]; then
-	echo "==> Phase 7 experiment switch: $(cat "$STAMP_P7") → $EXPERIMENT (reset tree)"
-	"$SCRIPT_DIR/reset-kernel-tree.sh"
-	"$SCRIPT_DIR/apply-upstream-patches.sh"
+if [[ -f "$STAMP_P7" ]] && [[ "$(head -1 "$STAMP_P7")" != "$EXPERIMENT" ]]; then
+	echo "==> Phase 7 experiment switch: $(head -1 "$STAMP_P7") → $EXPERIMENT (reset amd_manager)"
+	"$SCRIPT_DIR/reset-phase6-amd-manager.sh"
 	rm -f "$SRC"/.snd-repair-phase6-*
 fi
 
@@ -89,13 +133,48 @@ cd "$SRC"
 if phase7_present "$EXPERIMENT"; then
 	echo "==> Phase 7 $EXPERIMENT already present — skip patch"
 else
-	echo "==> Applying Phase 7: $EXPERIMENT"
-	if patch -p1 --forward -d "$SRC" <"$PATCH_P7"; then
-		:
-	elif phase7_present "$EXPERIMENT"; then
-		echo "==> Patch reported already applied"
-	else
-		echo "ERROR: Phase 7 patch failed" >&2
+	case "$EXPERIMENT" in
+	validate-manager-mask)
+		PATCH_0006B="$REPO_ROOT/research/phase-7/proposed/0006b-stat-decode.patch"
+		if ! phase7_0006b_present; then
+			apply_phase7_patch "$PATCH_0006B" "stat-decode (0006b base)" || {
+				phase7_0006b_present || { echo "ERROR: 0006b base failed" >&2; exit 1; }
+			}
+		fi
+		if ! phase7_present "$EXPERIMENT"; then
+			apply_phase7_patch "$PATCH_P7" "validate-manager-mask (0006a)" || {
+				phase7_present "$EXPERIMENT" || {
+					echo "ERROR: 0006a patch failed" >&2
+					[[ -f "$SRC/drivers/soundwire/amd_manager.c.rej" ]] && \
+						cat "$SRC/drivers/soundwire/amd_manager.c.rej" >&2
+					exit 1
+				}
+			}
+		fi
+		;;
+	stat-decode|delay-after-d0)
+		if ! apply_phase7_patch "$PATCH_P7" "$EXPERIMENT"; then
+			if phase7_present "$EXPERIMENT"; then
+				echo "==> Phase 7 $EXPERIMENT already present — skip patch"
+			elif [[ "$EXPERIMENT" == stat-decode ]] && phase7_stat_decode_partial; then
+				echo "ERROR: Phase 7 0006b partially applied" >&2
+				echo "  Fix: ./scripts/regenerate-phase7-0006b.sh" >&2
+				exit 1
+			else
+				echo "ERROR: Phase 7 patch failed" >&2
+				[[ -f "$SRC/drivers/soundwire/amd_manager.c.rej" ]] && \
+					cat "$SRC/drivers/soundwire/amd_manager.c.rej" >&2
+				exit 1
+			fi
+		fi
+		;;
+	esac
+	if [[ -f "$SRC/drivers/soundwire/amd_manager.c.rej" ]]; then
+		echo "ERROR: Phase 7 patch left .rej (partial apply)" >&2
+		exit 1
+	fi
+	if ! phase7_present "$EXPERIMENT"; then
+		echo "ERROR: Phase 7 $EXPERIMENT incomplete after patch" >&2
 		exit 1
 	fi
 fi
@@ -114,10 +193,14 @@ dest="/lib/modules/$KVER/kernel/drivers/soundwire/${name}.zst"
 
 [[ -f "$ko" ]] || { echo "Missing $ko" >&2; exit 1; }
 
-if strings "$ko" | grep -q 'phase7_delay_ms'; then
+if strings "$ko" | grep -q 'fn=manual_irq_schedule'; then
+	echo "OK: phase7 0006a manual_irq_schedule present"
+elif strings "$ko" | grep -q 'phase7_delay_ms'; then
 	echo "OK: phase7_delay_ms module param present"
+elif strings "$ko" | grep -q 'fn=intr_decode'; then
+	echo "OK: phase7 0006b intr_decode present"
 else
-	echo "WARN: phase7_delay_ms not in module" >&2
+	echo "WARN: no phase7 experiment strings in module" >&2
 fi
 
 zstd -19 -f "$ko" -o "/tmp/$name.zst"
@@ -151,10 +234,36 @@ else
 fi
 echo ""
 echo "Reboot required after install (mandatory if module was already loaded)."
-echo ""
-echo "Before suspend (0 = control baseline):"
-echo "  echo ${DELAY_MS:-0} | sudo tee /sys/module/soundwire_amd/parameters/phase7_delay_ms"
-echo ""
-echo "Sweep: see research/phase-7/experiments/0005-delay-after-d0.md"
-echo "  ${SCRIPT_DIR}/phase7-sweep-pre.sh MS   # before reboot"
-echo "  ${SCRIPT_DIR}/phase7-sweep-post.sh     # after login"
+case "$EXPERIMENT" in
+delay-after-d0)
+	echo ""
+	echo "Before suspend (0 = control baseline):"
+	echo "  echo ${DELAY_MS:-0} | sudo tee /sys/module/soundwire_amd/parameters/phase7_delay_ms"
+	echo ""
+	echo "Sweep: see research/phase-7/experiments/0005-delay-after-d0.md"
+	echo "  ${SCRIPT_DIR}/phase7-sweep-pre.sh MS   # before reboot"
+	echo "  ${SCRIPT_DIR}/phase7-sweep-post.sh     # after login"
+	;;
+stat-decode)
+	echo ""
+	echo "Run: see research/phase-7/experiments/0006b-stat-decode.md"
+	echo "  ${SCRIPT_DIR}/phase7-sweep-pre.sh 50   # delay before post_delay snapshot"
+	echo "  sudo reboot"
+	echo "  ${SCRIPT_DIR}/phase6-hunt.sh post-reboot --notes p7-0006b-d50"
+	echo "  systemctl suspend"
+	echo "  ${SCRIPT_DIR}/phase6-hunt.sh post-suspend --save-window"
+	echo "  journalctl -k -b 0 | grep 'PHASE7 ctx=amd fn=intr_decode'"
+	echo ""
+	echo "Control (post_D0 only): ${SCRIPT_DIR}/phase7-sweep-pre.sh 0 && reboot"
+	;;
+validate-manager-mask)
+	echo ""
+	echo "Run: see research/phase-7/experiments/0006a-validate-manager-mask.md"
+	echo "  ${SCRIPT_DIR}/phase7-sweep-pre.sh 50"
+	echo "  sudo reboot"
+	echo "  ${SCRIPT_DIR}/phase6-hunt.sh post-reboot --notes p7-0006a-d50"
+	echo "  systemctl suspend"
+	echo "  ${SCRIPT_DIR}/phase6-hunt.sh post-suspend --save-window"
+	echo "  journalctl -k -b 0 | grep -E 'manual_irq_schedule|irq_thread_enter|fn=completion'"
+	;;
+esac

@@ -34,7 +34,7 @@ done
 set -- "${ARGS[@]}"
 
 normalize_machine() {
-	grep -E 'PHASE[67] ctx=(sdw|pm|init|amd)|PM: suspend (entry|exit)' | while IFS= read -r line; do
+	grep -E 'PHASE[67] ctx=(sdw|pm|init|amd)|PM: suspend (entry|exit)|manager_mask=0x|STAT0=0x.*STAT1=0x' | while IFS= read -r line; do
 		if echo "$line" | grep -q 'PM: suspend entry'; then
 			echo "  pm  suspend_entry"
 		elif echo "$line" | grep -q 'PM: suspend exit'; then
@@ -59,6 +59,35 @@ normalize_machine() {
 			dev="$(echo "$line" | sed -n 's/.*dev=\([0-9]*\).*/\1/p')"
 			reason="$(echo "$line" | sed -n 's/.*reason=\([^ ]*\).*/\1/p')"
 			echo "  sdw dev=${dev}  SKIP  (${reason})"
+		elif echo "$line" | grep -qE 'manager_mask=0x.*STAT&mask=0x' && \
+			! echo "$line" | grep -q 'fn=intr_decode'; then
+			rest="$(echo "$line" | sed 's/^.*amd_sdw_manager[^:]*: *//')"
+			echo "  p7  decode_detail  ${rest}"
+		elif echo "$line" | grep -qE 'ctx=amd fn=manual_irq_schedule'; then
+			fn="$(echo "$line" | sed -n 's/.*fn=\([^ ]*\).*/\1/p')"
+			when="$(echo "$line" | sed -n 's/.*when=\([^ ]*\).*/\1/p')"
+			stat="$(echo "$line" | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p')"
+			mask="$(echo "$line" | sed -n 's/.*mask=0x\([0-9a-fA-F]*\).*/\1/p')"
+			hit="$(echo "$line" | sed -n 's/.*hit=0x\([0-9a-fA-F]*\).*/\1/p')"
+			if echo "$line" | grep -q ' skipped'; then
+				echo "  p7  manual_irq_schedule  SKIPPED when=${when:-?} stat=0x${stat:-?} mask=0x${mask:-?}"
+			else
+				echo "  p7  manual_irq_schedule  FIRED when=${when:-?} stat=0x${stat:-?} mask=0x${mask:-?} hit=0x${hit:-?}"
+			fi
+		elif echo "$line" | grep -qE 'ctx=amd fn=intr_decode'; then
+			when="$(echo "$line" | sed -n 's/.*when=\([^ ]*\).*/\1/p')"
+			mask="$(echo "$line" | sed -n 's/.*manager_mask=0x\([0-9a-fA-F]*\).*/\1/p')"
+			stat0="$(echo "$line" | sed -n 's/.*STAT0=0x\([0-9a-fA-F]*\).*/\1/p')"
+			stat1="$(echo "$line" | sed -n 's/.*STAT1=0x\([0-9a-fA-F]*\).*/\1/p')"
+			statm="$(echo "$line" | sed -n 's/.*STAT&mask=0x\([0-9a-fA-F]*\).*/\1/p')"
+			t0="$(echo "$line" | sed -n 's/.*t_since_post_D0_ms=\(-*[0-9]*\).*/\1/p')"
+			if [[ -n "$stat0" || -n "$stat1" ]]; then
+				echo "  p7  intr_decode  when=${when:-?} t=${t0:-?}ms mask=0x${mask:-?} STAT0=0x${stat0:-?} STAT1=0x${stat1:-?} STAT&mask=0x${statm:-?}"
+			else
+				fn="$(echo "$line" | sed -n 's/.*fn=\([^ ]*\).*/\1/p')"
+				rest="$(echo "$line" | sed 's/.*PHASE7 ctx=amd //')"
+				echo "  p7  ${fn}  ${rest}"
+			fi
 		elif echo "$line" | grep -qE 'ctx=amd fn='; then
 			fn="$(echo "$line" | sed -n 's/.*fn=\([^ ]*\).*/\1/p')"
 			rest="$(echo "$line" | sed 's/.*PHASE6 ctx=amd //; s/.*PHASE7 ctx=amd //')"

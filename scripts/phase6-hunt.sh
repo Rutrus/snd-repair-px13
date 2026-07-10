@@ -68,7 +68,7 @@ phase6_hunt_init_log() {
 
 phase6_hunt_classify_window() {
 	local raw="$1"
-	local witness="UNKNOWN" fail_class="" resume_n="" istat_d0="" h=0 comp=0 wit=0 rt721=""
+	local witness="UNKNOWN" fail_class="" resume_n="" istat_d0="" h=0 comp=0 wit=0 rt721="" p7_manual=0
 
 	raw="$(printf '%s' "$raw")"
 	echo "$raw" | grep -q 'fn=wait_init_timeout' && wit=1
@@ -76,6 +76,7 @@ phase6_hunt_classify_window() {
 	[[ -z "$fail_class" && "$wit" -eq 1 ]] && fail_class="FAIL-1"
 	echo "$raw" | grep -q 'fn=irq_handler_enter' && h=1
 	echo "$raw" | grep -q 'fn=completion' && comp=1
+	echo "$raw" | grep -q 'fn=manual_irq_schedule reason=STAT&mask' && p7_manual=1
 	# grep no-match + pipefail aborts under set -e inside $(…).
 	set +o pipefail
 	resume_n="$(echo "$raw" | grep 'fn=manager_reset' | tail -1 | sed -n 's/.*resume=\([0-9]*\).*/\1/p' || true)"
@@ -85,6 +86,8 @@ phase6_hunt_classify_window() {
 
 	if [[ "$h" -eq 1 && "$comp" -eq 1 && "$wit" -eq 0 ]]; then
 		witness="PASS"
+	elif [[ "$p7_manual" -eq 1 && "$comp" -eq 1 && "$wit" -eq 0 && "${rt721:-}" == "0" ]]; then
+		witness="PASS-0006a"
 	elif [[ "$fail_class" == "FAIL-1" ]]; then
 		witness="FAIL-1"
 	elif [[ "$fail_class" == "FAIL-2" ]]; then
@@ -203,7 +206,17 @@ post-suspend)
 		phase6_hunt_read_classify "$raw"
 	)
 	set +o pipefail
-	p7_delay_stat="$(echo "$raw" | grep 'fn=intr_stat_post_delay' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	p7_d0_statm="$(echo "$raw" | grep 'fn=intr_decode when=post_D0' | tail -1 | sed -n 's/.*STAT&mask=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	p7_delay_statm="$(echo "$raw" | grep 'fn=intr_decode when=post_delay' | tail -1 | sed -n 's/.*STAT&mask=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	p7_delay_stat1="$(echo "$raw" | grep 'fn=intr_decode when=post_delay' | tail -1 | sed -n 's/.*STAT1=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	if [[ -z "$p7_d0_statm" ]]; then
+		p7_d0_statm="$(echo "$raw" | awk '/fn=intr_decode when=post_D0/{show=1;next} /fn=intr_decode when=post_delay/{show=0} show && /STAT&mask=/{print;exit}' | sed -n 's/.*STAT&mask=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	fi
+	if [[ -z "$p7_delay_statm" ]]; then
+		p7_delay_block="$(echo "$raw" | awk '/fn=intr_decode when=post_delay/{show=1;next} show && /fn=/{exit} show{print}')"
+		p7_delay_statm="$(echo "$p7_delay_block" | grep 'STAT&mask=' | tail -1 | sed -n 's/.*STAT&mask=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+		p7_delay_stat1="$(echo "$p7_delay_block" | grep 'STAT1=' | tail -1 | sed -n 's/.*STAT1=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	fi
 	set -o pipefail
 
 	echo "=== Phase 6 post-suspend $(date -Is) ==="
@@ -213,7 +226,8 @@ post-suspend)
 	[[ -n "$fail_class" ]] && echo "  fail_class: $fail_class"
 	[[ -n "$resume_n" ]] && echo "  resume_n: $resume_n"
 	[[ -n "$istat_d0" ]] && echo "  intr_stat_post_D0: 0x${istat_d0}"
-	[[ -n "$p7_delay_stat" ]] && echo "  intr_stat_post_delay: 0x${p7_delay_stat}"
+	[[ -n "$p7_d0_statm" ]] && echo "  p7 post_D0 STAT&mask: 0x${p7_d0_statm}"
+	[[ -n "$p7_delay_statm" ]] && echo "  p7 post_delay STAT1: 0x${p7_delay_stat1:-?} STAT&mask: 0x${p7_delay_statm}"
 	echo "  irq_handler: $([[ "$h" -eq 1 ]] && echo YES || echo NO)"
 	echo "  completion:  $([[ "$comp" -eq 1 ]] && echo YES || echo NO)"
 	echo "  wait_init_timeout: $([[ "$wit" -eq 1 ]] && echo YES || echo NO)"
