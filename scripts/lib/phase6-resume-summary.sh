@@ -46,7 +46,7 @@ phase6_resume_path_summary() {
 	ret="$(echo "$post" | grep 'fn=resume_exit' | tail -1 | sed -n 's/.*ret=\(-*[0-9]*\).*/\1/p')"
 
 	# IO_PAGE_FAULT in same resume window (full kmsg, not only PHASE6)
-	local bounds since until resume_ts
+	local bounds since until resume_ts=""
 	if [[ -n "$rid" ]]; then
 		resume_ts="$(phase6_run_resume_ts "$rid" 2>/dev/null || true)"
 	fi
