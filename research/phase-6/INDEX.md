@@ -1,59 +1,42 @@
 # Phase 6 — State transition analysis (suspend → resume)
 
-> **Branch:** `research/suspend-lifecycle` (or `research/state-transitions`)  
-> **Started:** 2026-07-10  
-> **Rule:** **No kernel driver patches** until PASS/FAIL bifurcation is explained.
+> **Branch:** `research/suspend-lifecycle`  
+> **Status doc:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) ← **canonical snapshot** (~80–85% delimited)  
+> **Rule:** No behavior-changing kernel patches until post-reset AMD IRQ chain bisect is complete.  
+> **Next:** Minimal AMD trace — [proposed/NEXT-AMD-IRQ-TRACE.md](proposed/NEXT-AMD-IRQ-TRACE.md).
 
-English (canonical). Phase 5 traced TAS2783 lifecycle; Phase 6 shifts to **horizontal** analysis: two stable outcomes after resume, one diverging transition.
+English (canonical). Phase 5 delivered playback/FW/stereo. Phase 6 explains **intermittent s2idle resume** on ACP70 SoundWire.
 
 ---
 
-## Two stable states
+## Current finding
 
+After `manager_reset`, FAIL runs show **no log evidence** of PING/work/handle/ATTACHED. The gap is **after** `amd_resume_runtime()`. Binary question: does the first IRQ/ping post-reset run?
+
+Two FAIL classes:
+
+| Class | RT721 path | Runs |
+|-------|------------|------|
+| **FAIL-1** | `wait_init` → timeout `-110` | 0004–0006 |
+| **FAIL-2** | `resume_early_exit` (no wait) | 0007 |
+
+```bash
+./scripts/phase6-experiment.sh sm 0005   # FAIL-1
+./scripts/phase6-experiment.sh sm 0007   # FAIL-2
 ```
-Resume
-   │
-   ├── PASS branch          └── FAIL branch
-       rt721 OK                 rt721 timeout → PM -110
-       Attached                 Unattached (stuck)
-       FW reload                No FW path
-       Speaker (wpctl)          Dummy Output
-       Audio                    No audio
-```
-
-**Question:** not *which patch?* but *which event selects PASS vs FAIL?*
 
 ---
 
-## Objective
+## Documents
 
-Find the **first temporal divergence** between a good and bad resume — millisecond-relative chronology from `PM: suspend exit`.
-
----
-
-## Hypotheses (Phase 6)
-
-| ID | Statement | Test |
-|----|-----------|------|
-| **H1** | RT721 resume never completes → everything downstream fails | RT721 chronology + first `-110` offset_ms |
-| **H2** | SDW master leaves bus in state where slaves never re-ATTACH | sysfs `status` timeline; post-PCI attach retry? |
-| **H3** | Race: PM resume vs PipeWire stream vs FW reload | Compare pw stream open offset vs attach/fw |
-| **H4** | ACP70 timing window — fail only at certain resume latency | load1, suspend depth, offset variance across N runs |
-
-Details: [HYPOTHESES.md](HYPOTHESES.md)
-
----
-
-## Method
-
-1. **Freeze kernel code** (TAS2783 / 0003 on hold).
-2. **High-resolution capture** on healthy boot (#41+): userspace + sysfs every 0–60s.
-3. **Kernel event chronology** — parse kmsg with `offset_ms` from resume (no new `dev_err` yet).
-4. **Repeat** until one PASS and one FAIL run with identical schema.
-5. **`phase6-chronology-diff`** — first differing transition.
-6. **Then** decide patch target: RT721, SoundWire core, AMD ACP, PM framework, or TAS2783.
-
-Full protocol: [STATE-TRANSITION-ANALYSIS.md](STATE-TRANSITION-ANALYSIS.md)
+| Doc | Content |
+|-----|---------|
+| [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) | Runs, H1–H4, gap diagram, IO_PAGE_FAULT notes, exit criteria |
+| [SOUNDWIRE-RESUME-STATE-MACHINE.md](SOUNDWIRE-RESUME-STATE-MACHINE.md) | State diagram, Case A–D |
+| [LINK-REENUMERATION-FAILURE.md](LINK-REENUMERATION-FAILURE.md) | Upstream wording |
+| [SDW-INITIALIZATION-COMPLETE-MAP.md](SDW-INITIALIZATION-COMPLETE-MAP.md) | wait/complete map |
+| [AMD-RESUME-PATHS.md](AMD-RESUME-PATHS.md) | Static call graph |
+| [HYPOTHESES.md](HYPOTHESES.md) | Legacy H1–H4 (see status doc for revised IRQ hypotheses) |
 
 ---
 
@@ -61,11 +44,12 @@ Full protocol: [STATE-TRANSITION-ANALYSIS.md](STATE-TRANSITION-ANALYSIS.md)
 
 | Script | Role |
 |--------|------|
-| [`scripts/phase6-experiment.sh`](../../scripts/phase6-experiment.sh) | `baseline` · `arm` · `status` · `diff` |
-| [`scripts/phase6-chronology-capture.sh`](../../scripts/phase6-chronology-capture.sh) | Samples 0, 0.5, 1, 2, 3, 5, 10, 20, 30, 60s + kmsg parse |
-| [`scripts/phase6-chronology-diff.sh`](../../scripts/phase6-chronology-diff.sh) | First divergence between two runs |
-| [`scripts/phase6-trace-probe.sh`](../../scripts/phase6-trace-probe.sh) | tracefs / dynamic_debug availability (read-only) |
-| [`scripts/lib/validation-metrics.sh`](../../scripts/lib/validation-metrics.sh) | Composite PASS metrics |
+| [`scripts/phase6-experiment.sh`](../../scripts/phase6-experiment.sh) | `arm` · `disarm` · `arm --force` · `sm` · `tl` · `matrix` · `status` |
+| [`scripts/phase6-state-machine.sh`](../../scripts/phase6-state-machine.sh) | State sequence + **Resume path** block |
+| [`scripts/phase6-resume-timeline.sh`](../../scripts/phase6-resume-timeline.sh) | Δt timeline (kernel clock for waits) |
+| [`scripts/build-phase6-amd-trace.sh`](../../scripts/build-phase6-amd-trace.sh) | AMD PHASE6 0003+0004 (IRQ chain + snd-pci-ps) |
+| [`scripts/build-phase6-sdw-trace.sh`](../../scripts/build-phase6-sdw-trace.sh) | Bus PHASE6 trace |
+| [`scripts/build-phase6-rt721-trace.sh`](../../scripts/build-phase6-rt721-trace.sh) | RT721 PHASE6 trace |
 
 ---
 
@@ -73,29 +57,20 @@ Full protocol: [STATE-TRANSITION-ANALYSIS.md](STATE-TRANSITION-ANALYSIS.md)
 
 | Path | Content |
 |------|---------|
-| `validation/phase6-chronology.csv` | Userspace/sysfs samples (`offset_s`, attach, fw, wpctl, …) |
-| `validation/phase6-kmsg-events.csv` | Kernel events with `offset_ms` |
-| `validation/phase6-state-graph.csv` | State nodes + transitions + evidence |
-| `validation/resume-matrix.csv` | One composite row per run (PASS/WARN) |
-| `validation/phase6-runs/run-NNNN/` | Verbose dumps per offset |
+| `validation/phase6-runs/run-NNNN/` | Per-run dumps + `kmsg-phase6-window.log` |
+| `validation/phase6-chronology.csv` | Userspace samples |
+| `validation/resume-matrix.csv` | Composite row per run |
 
 ---
 
 ## Relation to Phase 5
 
-| Phase 5 | Phase 6 |
-|---------|---------|
-| TAS2783 `hw_init` / FW reload (0003) | **Frozen** — recovery only works if Attached |
-| Bifurcation question identified | **Primary** — measure and diff |
-| PHASE5 trace in driver | Keep for parse; **no new trace patches** until diff |
+Phase 5 patches (TAS2783 FW, etc.) **frozen** until re-enumeration path is understood. RT721/TAS2783 are witnesses only.
 
-Prior work: [`../phase-5/BIFURCATION-EXPERIMENT.md`](../phase-5/BIFURCATION-EXPERIMENT.md)
+Prior: [`../phase-5/BIFURCATION-EXPERIMENT.md`](../phase-5/BIFURCATION-EXPERIMENT.md)
 
 ---
 
-## Exit criteria (before any kernel patch)
+## Exit criteria
 
-- [ ] ≥1 PASS and ≥1 FAIL run, full chronology
-- [ ] First diverging event documented with `offset_ms`
-- [ ] State graph updated with evidence lines
-- [ ] Patch target layer chosen (RT721 / SDW / ACP / PM / TAS2783)
+See [PHASE-6-INVESTIGATION-STATUS.md#exit-criteria-updated](PHASE-6-INVESTIGATION-STATUS.md#exit-criteria-updated).

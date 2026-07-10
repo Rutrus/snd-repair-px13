@@ -75,8 +75,34 @@ vm_attach_label() {
 	case "$st" in
 	Attached) echo "YES" ;;
 	Unattached) echo "NO" ;;
+	MISSING) echo "NO" ;;
 	*) echo "UNK" ;;
 	esac
+}
+
+vm_attach_kmsg_uid() {
+	local uid="$1"
+	local since="${2:-}"
+	local line
+	line="$(vm_kmsg_since "$since" | grep "update_status_.*uid=0x${uid}" | tail -1)"
+	if echo "$line" | grep -q 'update_status_attached'; then
+		echo "YES"
+	elif echo "$line" | grep -q 'update_status_unattached'; then
+		echo "NO"
+	else
+		echo "UNK"
+	fi
+}
+
+vm_attach_uid() {
+	local sysfs="$1" uid="$2" since="${3:-}"
+	local s
+	s="$(vm_attach_label "$sysfs")"
+	if [[ "$s" == "UNK" ]]; then
+		vm_attach_kmsg_uid "$uid" "$since"
+	else
+		echo "$s"
+	fi
 }
 
 vm_pipewire_active() {
@@ -90,8 +116,8 @@ vm_pipewire_active() {
 
 vm_default_sink() {
 	local out
-	out="$(XDG_RUNTIME_DIR="${VM_XDG}" wpctl status 2>/dev/null \
-		| awk '/Sinks:/{s=1;next} /Sources:/{s=0} s && /\*/{print; exit}')"
+	out="$(timeout 3 env XDG_RUNTIME_DIR="${VM_XDG}" wpctl status 2>/dev/null \
+		| awk '/Sinks:/{s=1;next} /Sources:/{s=0} s && /\*/{print; exit}')" || true
 	if [[ -z "$out" ]]; then
 		echo "NONE"
 		return
@@ -142,11 +168,47 @@ vm_speaker_test_ok() {
 	fi
 }
 
+vm_pcm_stream_state() {
+	local since="${1:-}"
+	local card="${ALSA_CARD:-1}" pcm="${ALSA_PCM:-0}"
+	local st p
+
+	if vm_kmsg_since "$since" | grep -qE '0102:0000:01:8.*playback without fw'; then
+		echo "NO"
+		return
+	fi
+	p="/proc/asound/card${card}/pcm${pcm}p/sub0/status"
+	if [[ -r "$p" ]]; then
+		st="$(tr -d '[:space:]' <"$p")"
+		case "$st" in
+		*RUNNING*) echo "RUNNING" ;;
+		*PREPARED*|*prepare*) echo "PREPARED" ;;
+		*OPEN*|*open*) echo "OPEN" ;;
+		closed) echo "CLOSED" ;;
+		*) echo "UNK" ;;
+		esac
+		return
+	fi
+	if vm_kmsg_since "$since" | grep -qE 'ENZOPLAY.*trigger|snd_pcm_start'; then
+		echo "RUNNING"
+		return
+	fi
+	echo "UNK"
+}
+
+vm_pcm_stream_ready() {
+	local s
+	s="$(vm_pcm_stream_state "$1")"
+	[[ "$s" == "RUNNING" ]] && echo "YES" || echo "NO"
+}
+
 vm_composite_result() {
-	local pm="$1" attach8="$2" fw8="$3" speaker="$4" audio="$5"
-	if [[ "$pm" == "OK" && "$attach8" == "YES" && "$fw8" == "YES" \
-		&& "$speaker" == "YES" && "$audio" == "YES" ]]; then
+	local pm="$1" attach8="$2" fw8="$3" speaker="$4" pcm="$5" audio="$6"
+	if [[ "$attach8" == "YES" && "$fw8" == "YES" && "$speaker" == "YES" \
+		&& "$pcm" == "YES" && "$audio" == "YES" ]]; then
 		echo "PASS"
+	elif [[ "$pm" == "FAIL" && "$attach8" == "NO" ]]; then
+		echo "FAIL"
 	else
 		echo "WARN"
 	fi
@@ -154,12 +216,13 @@ vm_composite_result() {
 
 vm_collect_snapshot() {
 	local offset_s="$1" since_resume="$2"
+	local do_audio="${3:-1}"
 	validation_metrics_init
-	local pm attach8 attachb attach721 fw8 fwb pw sink speaker pb rt8 rtb rt721 audio result
+	local pm attach8 attachb attach721 fw8 fwb pw sink speaker pb rt8 rtb rt721 pcm pcm_ready audio result
 	pm="$(vm_pm_since_resume "$since_resume")"
-	attach8="$(vm_attach_label "$VM_SDW_UID8")"
-	attachb="$(vm_attach_label "$VM_SDW_UIDB")"
-	attach721="$(vm_attach_label "$VM_SDW_RT721")"
+	attach8="$(vm_attach_uid "$VM_SDW_UID8" 8 "$since_resume")"
+	attachb="$(vm_attach_uid "$VM_SDW_UIDB" b "$since_resume")"
+	attach721="$(vm_attach_uid "$VM_SDW_RT721" 721 "$since_resume")"
 	fw8="$(vm_uid_fw_from_kmsg 8 "$since_resume")"
 	fwb="$(vm_uid_fw_from_kmsg b "$since_resume")"
 	pw="$(vm_pipewire_active)"
@@ -169,11 +232,18 @@ vm_collect_snapshot() {
 	rt8="$(vm_runtime_status 'sdw:0:1:0102:0000:01:8')"
 	rtb="$(vm_runtime_status 'sdw:0:1:0102:0000:01:b')"
 	rt721="$(vm_runtime_status 'sdw:0:1:025d:0721:01')"
-	audio="$(vm_speaker_test_ok)"
-	result="$(vm_composite_result "$pm" "$attach8" "$fw8" "$speaker" "$audio")"
-	printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+	pcm="$(vm_pcm_stream_state "$since_resume")"
+	pcm_ready="$(vm_pcm_stream_ready "$since_resume")"
+	if [[ "$do_audio" == "1" ]]; then
+		audio="$(vm_speaker_test_ok)"
+	else
+		audio="SKIP"
+	fi
+	result="$(vm_composite_result "$pm" "$attach8" "$fw8" "$speaker" "$pcm_ready" "$audio")"
+	printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
 		"$offset_s" "$pm" "$attach8" "$attachb" "$attach721" \
-		"$fw8" "$fwb" "$pw" "$sink" "$speaker" "$pb" "$rt8" "$rtb" "$rt721" "$audio" "$result"
+		"$fw8" "$fwb" "$pw" "$sink" "$speaker" "$pcm" "$pcm_ready" "$pb" \
+		"$rt8" "$rtb" "$rt721" "$audio" "$result"
 }
 
 vm_dump_snapshot_verbose() {
@@ -183,9 +253,9 @@ vm_dump_snapshot_verbose() {
 	{
 		echo "=== offset=${offset_s}s since_resume=${since_resume} $(date -Is) ==="
 		echo "--- wpctl status ---"
-		XDG_RUNTIME_DIR="${VM_XDG}" wpctl status 2>&1 || true
+		timeout 3 env XDG_RUNTIME_DIR="${VM_XDG}" wpctl status 2>&1 || echo "(wpctl timeout)"
 		echo "--- pw-cli ls Node ---"
-		XDG_RUNTIME_DIR="${VM_XDG}" pw-cli ls Node 2>&1 | head -40 || true
+		timeout 3 env XDG_RUNTIME_DIR="${VM_XDG}" pw-cli ls Node 2>&1 | head -40 || echo "(pw-cli timeout)"
 		echo "--- aplay -l ---"
 		aplay -l 2>&1 || true
 		echo "--- SDW sysfs status ---"

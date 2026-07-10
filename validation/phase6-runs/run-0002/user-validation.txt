@@ -1,0 +1,9 @@
+run_id=0002
+resume_ts=2026-07-10T00:51:34
+paired_fail_run=0001
+user_audio_confirmed=2026-07-10T00:56:00+02:00
+user_report=device_correct sound_test_ok
+kernel_branch=PASS
+composite_capture=WARN
+reason_capture_warn=px13_stopped_pw_during_60s_window;pcm_closed_in_probe
+first_divergence_vs_0001=rt721_init_timeout@0ms absent in 0002

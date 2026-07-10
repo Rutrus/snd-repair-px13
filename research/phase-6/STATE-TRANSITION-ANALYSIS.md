@@ -1,155 +1,114 @@
 # State transition analysis — protocol
 
-## Goal
+## Three chronologies (not one)
 
-Build two **millisecond-relative chronologies** (PASS and FAIL) from the same resume anchor:
+Capture and compare **separately**, then merge by `offset_ms` for diff.
+
+### 1. Hardware (inferred from kmsg + sysfs)
 
 ```
-PM: suspend exit  →  offset_ms = 0
+resume → PCI/ACP → SDW master → RT721 → TAS2783 → Attached/Unattached
 ```
 
-Find the **first line that differs** between them. That transition is the bug.
+Layer tag: `hardware` in `validation/phase6-events.csv`
+
+### 2. Kernel (PM + driver)
+
+```
+PM callbacks → runtime PM → attach → fw reload → hw_params → trigger
+```
+
+Layer tag: `kernel`
+
+### 3. Userspace
+
+```
+resume → udev → PipeWire → WirePlumber → px13 → ALSA open → speaker-test
+```
+
+Layer tag: `userspace`
+
+**Critical:** kernel PASS + userspace FAIL is a valid outcome (run 0001 @0–1s: Speaker visible, bus already dead).
 
 ---
 
-## Example (illustrative)
+## STREAM READY (`pcm_running`)
 
-### FAIL (boot #40 pattern)
+Fourth metric beyond attach / fw / speaker:
 
-| offset_ms | layer | event |
-|-----------|-------|-------|
-| 0 | PM | suspend exit |
-| ~0 | kernel | rt721 init timeout |
-| ~0 | kernel | PM -110 rt721, :8, :b |
-| ~0 | SDW | unattached :8 :b |
-| 14000 | userspace | playback without fw (:8) |
-| 33000 | px13 | PCI reset |
-| 35000 | SDW | probe, still unattached |
-| 60000 | userspace | Dummy Output |
+```
+PCM open → hw_params → prepare → trigger → RUNNING
+```
 
-### PASS (target pattern)
+Detection (no kernel patches):
 
-| offset_ms | layer | event |
-|-----------|-------|-------|
-| 0 | PM | suspend exit |
-| ~0 | kernel | rt721 resume OK (or -110 then recovery) |
-| 64 | SDW | attached :8 |
-| 212 | kernel | fw_ready_done :8 |
-| 3000 | userspace | PipeWire stream OK |
-| 60000 | composite | PASS |
+| Signal | Source |
+|--------|--------|
+| `RUNNING` | `/proc/asound/card1/pcm0p/sub0/status` |
+| `playback without fw` | kmsg → **not** ready |
+| `ENZOPLAY trigger` / `snd_pcm_start` | kmsg → likely running |
 
-**First divergence** in this sketch: rt721 outcome at ~0–60ms.
+Formal PASS requires `pcm_ready=YES` (RUNNING), not merely Speaker in wpctl.
 
 ---
 
-## Capture protocol
+## Composite severity
 
-### Prerequisites
+```
+PASS  — all five YES at t=60s sample
+FAIL  — pm=FAIL and attach=NO (hard branch)
+WARN  — partial (e.g. Speaker UI but pcm not running)
+```
 
-- Healthy boot: `:8` Attached, `fw_ok=1`, Speaker in wpctl.
-- **No kernel patches** during Phase 6 collection window.
+---
 
-### Steps
+## Protocol
 
 ```bash
-./scripts/phase6-experiment.sh baseline --notes boot41-pre
-./scripts/phase6-experiment.sh arm --notes boot41-pass-candidate
+./scripts/phase6-experiment.sh baseline
+./scripts/phase6-experiment.sh arm --notes run-N
 systemctl suspend
-# wait ~65s
+# wait ≥65s
 ./scripts/phase6-experiment.sh status
+./scripts/phase6-experiment.sh diagram 0001
 ```
 
-Repeat until `validation/resume-matrix.csv` shows at least one **PASS** and one **WARN** composite row.
-
-### Sample offsets (seconds)
-
-`0 · 0.5 · 1 · 2 · 3 · 5 · 10 · 20 · 30 · 60`
-
-Per sample: attach (sysfs), fw (kmsg since resume), wpctl, pipewire, runtime PM, optional speaker-test.
-
-### Kernel chronology (automatic)
-
-After each run, `phase6-chronology-capture.sh` parses kmsg since resume into `validation/phase6-kmsg-events.csv` with patterns:
-
-| Pattern | component |
-|---------|-----------|
-| `PM: suspend exit` | PM |
-| `rt721.*Initialization not complete` | rt721 |
-| `failed to resume: error -110` | PM |
-| `update_status_attached\|unattached` | tas2783 |
-| `tas_io_init\|fw_ready` | tas2783 |
-| `px13-audio-fix:` | px13 |
-| `playback without fw` | tas2783 |
-| `binding PCI` | px13 |
-
----
-
-## State graph
-
-Maintain `validation/phase6-state-graph.csv`:
-
-```csv
-node,description
-BOOT,Clean boot
-ATTACHED,SDW slave Attached
-FW_READY,fw_ok=1
-SPEAKER,wpctl Speaker sink
-DUMMY,Dummy Output
-```
-
-Transitions (`validation/phase6-state-transitions.csv`):
-
-```csv
-from,to,trigger,offset_ms,run_id,evidence
-RESUME,PM110,rt721 timeout,0,0040,journal:...
-PM110,UNATTACHED,bus drop,61,0040,sysfs+PHASE5
-...
-```
-
-Populate from chronology — not by hand-waving.
-
----
-
-## PASS composite (unchanged from Phase 5 bifurcation)
-
-```
-PASS = pm_ok ∧ uid8_attach ∧ uid8_fw ∧ speaker_present ∧ speaker_test_ok
-```
-
-kmsg-clean alone → **WARN**.
-
----
-
-## Compare two runs
+After PASS + FAIL runs:
 
 ```bash
-./scripts/phase6-chronology-diff.sh run-0001 run-0002
+./scripts/phase6-experiment.sh diff PASS_RUN FAIL_RUN
 ```
 
-Reports:
-
-1. First offset where `uid8_attach` differs
-2. First kmsg event present in one run only (by `offset_ms` bucket)
-3. Suggested hypothesis (H1–H4)
+**Rule:** first diverging event ends investigation for that pair — do not over-interpret downstream noise.
 
 ---
 
-## Framework instrumentation (later, optional)
+## Auto diagram
 
-On this kernel (`7.0.0-27`), `tracefs/events/soundwire/` is **empty**. Options:
+Each run generates `validation/phase6-runs/run-NNNN/diagram.txt`:
 
-1. `dynamic_debug` on `soundwire/*`, `snd_*`, `regmap*` (requires root)
-2. **Minimal** RT721 PHASE6-style trace patch — **only after** kmsg diff pinpoints rt721 window
-3. ftrace function graph on `sdw_*` — high overhead, one-shot captures
-
-Run `./scripts/phase6-trace-probe.sh` before planning trace patches.
+```
+resume (anchor 0 ms)
+ │
+ ├──── +    0 ms  [hardware  ] rt721 init timeout
+ ├──── +    0 ms  [kernel    ] RT721 PM -110
+ ├──── + 3000 ms  [kernel    ] playback without fw
+ ...
+```
 
 ---
 
-## Upstream narrative
+## Maintainer narrative template
 
-Phase 6 output should read as a **state machine with evidence**, not a log dump:
+> After s2idle suspend, ProArt PX13 audio resume bifurcates into two stable states. The first observable divergence occurs at **+N ms** (**event**). Downstream TAS2783 FW errors are unreachable when slaves remain Unattached. Proposed fix belongs in **layer X**, not amplifier FW reload.
 
-> After system suspend, ACP70 SoundWire resume has two stable outcomes. The first diverging transition occurs at X ms (rt721 init). Subsequent TAS2783 FW failures are unreachable when slaves remain Unattached.
+---
 
-That framing is maintainer-ready once backed by two full chronologies.
+## Artifacts
+
+| File | Content |
+|------|---------|
+| `phase6-chronology.csv` | Sampled metrics per offset |
+| `phase6-events.csv` | Three-layer event stream |
+| `phase6-runs/run-*/diagram.txt` | ASCII timeline |
+| `resume-matrix.csv` | One composite row per run |

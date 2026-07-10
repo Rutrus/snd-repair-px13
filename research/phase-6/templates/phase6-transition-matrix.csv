@@ -1,0 +1,13 @@
+run_id,transition,dev,pass,fail,notes
+,attached_to_unattached,3,,
+,unattached_to_attached,3,,
+,attached_to_alert,3,,
+,completion,3,,
+,state_skip_already_attached,3,,
+,state_skip_from_alert,3,,
+,rt721_wait_init_ok,rt721,,
+,rt721_branch_fast_path,rt721,,
+,rt721_wait_init_timeout,rt721,,
+,manager_reset,all,,
+,any_unattached_to_attached,1-3,,
+,any_completion,1-3,,

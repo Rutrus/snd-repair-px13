@@ -1,26 +1,26 @@
 # FW validation summary
 
-Generado: 2026-07-10T00:21:16
+Generado: 2026-07-10T03:02:59
 Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 
-## Boots analizados: **41**
+## Boots analizados: **55**
 
 ### Éxito global FW (ambos UIDs OK)
 
-- **24/41** (58.5%)
+- **31/55** (56.4%)
 
 ### UID `:8` (tas2783-1 / Left)
 
-- `OK`: 24
-- `WARN`: 17
+- `OK`: 31
+- `WARN`: 24
 
 ### UID `:b` (tas2783-2 / Right)
 
-- `OK`: 41
+- `OK`: 55
 
 ### Regresión capture (Problema A)
 
-- `REGRESSION_CAPTURE=YES`: **0/41**
+- `REGRESSION_CAPTURE=YES`: **0/55**
 
 ### Audio L+R (entradas con --audio)
 
@@ -28,16 +28,16 @@ Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 
 ### Por contexto (`suspend_resume`)
 
-- **boot**: 14/15 OK global
-- **suspend_resume**: 10/26 OK global
+- **boot**: 20/21 OK global
+- **suspend_resume**: 11/34 OK global
 
 ### Por frecuencia (`rate`)
 
-- **48000 Hz**: 24/41 OK global
+- **48000 Hz**: 31/55 OK global
 
 ### Kernels
 
-- `7.0.0-27-generic`: 41 boots
+- `7.0.0-27-generic`: 55 boots
 
 ## Tabla completa
 
@@ -84,6 +84,20 @@ Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 | 39 | 2026-07-10T00:08 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
 | 40 | 2026-07-10T00:15 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
 | 41 | 2026-07-10T00:21 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 42 | 2026-07-10T00:38 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 43 | 2026-07-10T00:45 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 44 | 2026-07-10T00:53 | OK | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 45 | 2026-07-10T01:05 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 46 | 2026-07-10T01:09 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 47 | 2026-07-10T01:52 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 48 | 2026-07-10T01:56 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 49 | 2026-07-10T02:11 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 50 | 2026-07-10T02:15 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 51 | 2026-07-10T02:30 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 52 | 2026-07-10T02:34 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 53 | 2026-07-10T02:37 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 54 | 2026-07-10T02:58 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 55 | 2026-07-10T03:02 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
 
 ## Criterio RFC Serie B (objetivo)
 

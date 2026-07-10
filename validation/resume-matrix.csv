@@ -1,2 +1,8 @@
 boot_id,run_id,resume_ts,pm,attach,fw,speaker,audio,composite,uid8_attach_t60,post_pci_attach,notes
 40,,2026-07-10T00:13:21,FAIL,NO,NO,NO,NO,WARN,NO,NO,manual-from-journal-boot40-user-fail
+43,0002,2026-07-10T00:51:34,OK,YES,YES,YES,YES,PASS-kernel,YES,N/A,boot41-pass-run1;user_audio_ok=2026-07-10
+45,0003,2026-07-10T01:07:14,FAIL,NO,NO,NO,NO,FAIL,NO,N/A,run-0003
+49,0004,2026-07-10T02:12:44,FAIL,NO,NO,NO,NO,FAIL,NO,N/A,run-0004
+51,0005,2026-07-10T02:31:15,FAIL,NO,NO,NO,NO,FAIL,NO,N/A,run-N
+53,0006,2026-07-10T02:55:08,FAIL,NO,NO,NO,NO,FAIL,NO,N/A,run-6
+54,0007,2026-07-10T03:01:15,OK,NO,NO,NO,NO,WARN,NO,N/A,run-7

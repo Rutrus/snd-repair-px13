@@ -24,8 +24,14 @@ ROW="$(awk -F, -v rid="$RUN_ID" '$1 == rid && $5 == 60 { print; found=1 } END { 
 ROW="$(awk -F, -v rid="$RUN_ID" '$1 == rid { last=$0 } END { print last }' "$CHRONO")"
 [[ -n "$ROW" ]] || exit 0
 
-# run_id,boot_id,proc_boot_id,resume_ts,offset_s,offset_ms,pm,uid8_attach,...
-IFS=',' read -r _rid _boot _pb _rts _offs _offms pm a8 _ab _a721 fw8 _fwb pw sink sp pb _rt8 _rtb _rt721 audio composite _notes <<<"$ROW"
+# run_id,boot_id,proc_boot_id,resume_ts,offset_s,offset_ms,pm,uid8_attach,uidb_attach,rt721_attach,
+# uid8_fw,uidb_fw,pipewire,default_sink,speaker_present,pcm_stream,pcm_ready,pb_without_fw,
+# rt_status_8,rt_status_b,rt_status_rt721,audio_test,composite,notes
+ROW="$(awk -F, -v rid="$RUN_ID" '$1 == rid && $5 == 60 { print; found=1 } END { if (!found) exit 1 }' "$CHRONO" 2>/dev/null)" || \
+ROW="$(awk -F, -v rid="$RUN_ID" '$1 == rid { last=$0 } END { print last }' "$CHRONO")"
+[[ -n "$ROW" ]] || exit 0
+
+IFS=',' read -r _rid _boot _pb _rts _offs _offms pm a8 _ab _a721 fw8 _fwb pw sink sp _pcm _pcm_ready _pb _rt8 _rtb _rt721 audio composite _notes <<<"$ROW"
 
 post_pci="UNK"
 resume_journal="$(date -d "${RESUME_TS}" '+%b %d %H:%M:%S' 2>/dev/null || true)"

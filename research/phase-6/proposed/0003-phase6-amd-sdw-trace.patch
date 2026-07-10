@@ -1,0 +1,270 @@
+From: snd-repair phase6 <snd-repair@local>
+Date: Fri, 10 Jul 2026 02:55:00 +0200
+Subject: [PATCH phase6 3/3] soundwire: amd: PHASE6 resume trace + resume_id
+
+Observation-only: resume_enter, manager_reset, ping_status, queue_work,
+handle_status — each with resume=N (0=runtime PM), t=+ms since reset.
+
+Signed-off-by: snd-repair phase6 <snd-repair@local>
+---
+--- a/drivers/soundwire/amd_manager.c	2026-04-12 22:48:06.000000000 +0200
++++ b/drivers/soundwire/amd_manager.c	2026-07-10 02:34:23.612789479 +0200
+@@ -6,11 +6,13 @@
+  */
+ 
+ #include <linux/completion.h>
++#include <linux/atomic.h>
+ #include <linux/cleanup.h>
+ #include <linux/device.h>
+ #include <linux/io.h>
+ #include <linux/jiffies.h>
+ #include <linux/kernel.h>
++#include <linux/ktime.h>
+ #include <linux/module.h>
+ #include <linux/slab.h>
+ #include <linux/soundwire/sdw.h>
+@@ -23,6 +25,65 @@
+ #include "amd_init.h"
+ #include "amd_manager.h"
+ 
++static atomic_t amd_phase6_system_sleep;
++static atomic_t amd_phase6_resume_seq;
++#define AMD_PHASE6_MAX_LINKS 2
++static ktime_t amd_phase6_reset_ts[AMD_PHASE6_MAX_LINKS];
++static int amd_phase6_link_resume_id[AMD_PHASE6_MAX_LINKS];
++
++static int amd_phase6_resume_id(struct amd_sdw_manager *amd_manager)
++{
++	int li = amd_manager->instance;
++
++	if (li >= 0 && li < AMD_PHASE6_MAX_LINKS)
++		return amd_phase6_link_resume_id[li];
++	return 0;
++}
++
++static s64 amd_phase6_since_reset_ms(struct amd_sdw_manager *amd_manager)
++{
++	int li = amd_manager->instance;
++
++	if (li < 0 || li >= AMD_PHASE6_MAX_LINKS ||
++	    !ktime_to_ns(amd_phase6_reset_ts[li]))
++		return -1;
++	return ktime_to_ms(ktime_sub(ktime_get_boottime(), amd_phase6_reset_ts[li]));
++}
++
++static void amd_phase6_mark_reset(struct amd_sdw_manager *amd_manager)
++{
++	int li = amd_manager->instance;
++
++	if (li >= 0 && li < AMD_PHASE6_MAX_LINKS)
++		amd_phase6_reset_ts[li] = ktime_get_boottime();
++}
++
++static const char *amd_phase6_status_name(enum sdw_slave_status status)
++{
++	switch (status) {
++	case SDW_SLAVE_UNATTACHED:
++		return "UNATTACHED";
++	case SDW_SLAVE_ATTACHED:
++		return "ATTACHED";
++	case SDW_SLAVE_ALERT:
++		return "ALERT";
++	default:
++		return "OTHER";
++	}
++}
++
++static u32 amd_phase6_attached_mask(struct amd_sdw_manager *amd_manager)
++{
++	u32 mask = 0;
++	int i;
++
++	for (i = 1; i <= SDW_MAX_DEVICES; i++) {
++		if (amd_manager->status[i] == SDW_SLAVE_ATTACHED)
++			mask |= BIT(i);
++	}
++	return mask;
++}
++
+ #define DRV_NAME "amd_sdw_manager"
+ 
+ #define to_amd_sdw(b)	container_of(b, struct amd_sdw_manager, bus)
+@@ -418,6 +479,10 @@
+ 	mutex_lock(&amd_manager->bus.msg_lock);
+ 	response = amd_sdw_send_cmd_get_resp(amd_manager, 0, 0);
+ 	mutex_unlock(&amd_manager->bus.msg_lock);
++	dev_info(amd_manager->dev,
++		 "PHASE6 ctx=amd fn=ping_status link=%d resume=%d t=+%lldms resp=0x%llx\n",
++		 amd_manager->instance, amd_phase6_resume_id(amd_manager),
++		 (long long)amd_phase6_since_reset_ms(amd_manager), response);
+ 	amd_sdw_process_ping_status(response, amd_manager);
+ }
+ 
+@@ -483,6 +548,10 @@
+ 	struct amd_sdw_manager *amd_manager = to_amd_sdw(bus);
+ 	u32 frame_fmt_reg, dpn_frame_fmt;
+ 
++	dev_err(amd_manager->dev,
++		"ENZODBG[5] amd_port ENTER link=%d port=%d bps=%d flow=%d data=%d\n",
++		bus->link_id, p_params->num, p_params->bps,
++		p_params->flow_mode, p_params->data_mode);
+ 	dev_dbg(amd_manager->dev, "p_params->num:0x%x\n", p_params->num);
+ 	switch (amd_manager->acp_rev) {
+ 	case ACP63_PCI_REV_ID:
+@@ -494,6 +563,9 @@
+ 			frame_fmt_reg = acp63_sdw1_dp_reg[p_params->num].frame_fmt_reg;
+ 			break;
+ 		default:
++			dev_err(amd_manager->dev,
++				"ENZODBG[5] amd_port FAIL link=%d ret=-EINVAL bad instance\n",
++				bus->link_id);
+ 			return -EINVAL;
+ 		}
+ 		break;
+@@ -503,6 +575,9 @@
+ 		frame_fmt_reg = acp70_sdw_dp_reg[p_params->num].frame_fmt_reg;
+ 		break;
+ 	default:
++		dev_err(amd_manager->dev,
++			"ENZODBG[5] amd_port FAIL link=%d ret=-EINVAL bad acp_rev=0x%x\n",
++			bus->link_id, amd_manager->acp_rev);
+ 		return -EINVAL;
+ 	}
+ 
+@@ -511,6 +586,9 @@
+ 	u32p_replace_bits(&dpn_frame_fmt, p_params->data_mode, AMD_DPN_FRAME_FMT_PDM);
+ 	u32p_replace_bits(&dpn_frame_fmt, p_params->bps - 1, AMD_DPN_FRAME_FMT_WORD_LEN);
+ 	writel(dpn_frame_fmt, amd_manager->mmio + frame_fmt_reg);
++	dev_err(amd_manager->dev,
++		"ENZODBG[5] amd_port OK link=%d port=%d ret=0\n",
++		bus->link_id, p_params->num);
+ 	return 0;
+ }
+ 
+@@ -519,6 +597,14 @@
+ 				    enum sdw_reg_bank bank)
+ {
+ 	struct amd_sdw_manager *amd_manager = to_amd_sdw(bus);
++
++	dev_err(amd_manager->dev,
++		"ENZODBG[4] amd_xport ENTER link=%d rev=0x%x port=%d bank=%d "
++		"hstart=%d hstop=%d lane=%d off1=%d off2=%d samp=%d\n",
++		bus->link_id, amd_manager->acp_rev, params->port_num, bank,
++		params->hstart, params->hstop, params->lane_ctrl,
++		params->offset1, params->offset2, params->sample_interval);
++
+ 	u32 dpn_frame_fmt;
+ 	u32 dpn_sampleinterval;
+ 	u32 dpn_hctrl;
+@@ -547,6 +633,9 @@
+ 					acp63_sdw1_dp_reg[params->port_num].lane_ctrl_ch_en_reg;
+ 			break;
+ 		default:
++			dev_err(amd_manager->dev,
++				"ENZODBG[4] amd_xport FAIL link=%d ret=-EINVAL instance=%d\n",
++				bus->link_id, amd_manager->instance);
+ 			return -EINVAL;
+ 		}
+ 		break;
+@@ -560,6 +649,9 @@
+ 		lane_ctrl_ch_en_reg = acp70_sdw_dp_reg[params->port_num].lane_ctrl_ch_en_reg;
+ 		break;
+ 	default:
++		dev_err(amd_manager->dev,
++			"ENZODBG[4] amd_xport FAIL link=%d ret=-EINVAL acp_rev=0x%x\n",
++			bus->link_id, amd_manager->acp_rev);
+ 		return -EINVAL;
+ 	}
+ 	writel(AMD_SDW_SSP_COUNTER_VAL, amd_manager->mmio + ACP_SW_SSP_COUNTER);
+@@ -588,6 +680,11 @@
+ 	dpn_lanectrl = readl(amd_manager->mmio + lane_ctrl_ch_en_reg);
+ 	u32p_replace_bits(&dpn_lanectrl, params->lane_ctrl, AMD_DPN_CH_EN_LCTRL);
+ 	writel(dpn_lanectrl, amd_manager->mmio + lane_ctrl_ch_en_reg);
++
++	dev_err(amd_manager->dev,
++		"ENZODBG[4] amd_xport OK link=%d port=%d hstart=%d hstop=%d lane=%d ret=0\n",
++		bus->link_id, params->port_num, params->hstart, params->hstop,
++		params->lane_ctrl);
+ 	return 0;
+ }
+ 
+@@ -868,6 +965,14 @@
+ 	}
+ 
+ update_status:
++	dev_info(amd_manager->dev,
++		 "PHASE6 ctx=amd fn=handle_status link=%d resume=%d t=+%lldms st0=%s st1=%s st2=%s st3=%s retry=%d\n",
++		 amd_manager->instance, amd_phase6_resume_id(amd_manager),
++		 (long long)amd_phase6_since_reset_ms(amd_manager),
++		 amd_phase6_status_name(amd_manager->status[0]),
++		 amd_phase6_status_name(amd_manager->status[1]),
++		 amd_phase6_status_name(amd_manager->status[2]),
++		 amd_phase6_status_name(amd_manager->status[3]), retry_count);
+ 	sdw_handle_slave_status(&amd_manager->bus, amd_manager->status);
+ 	/*
+ 	 * During the peripheral enumeration sequence, the SoundWire manager interrupts
+@@ -947,8 +1052,15 @@
+ 		/* Check for the updated status on peripheral device */
+ 		amd_sdw_update_slave_status(status_change_0to7, status_change_8to11, amd_manager);
+ 	}
+-	if (status_change_8to11 || status_change_0to7)
++	if (status_change_8to11 || status_change_0to7) {
++		dev_info(amd_manager->dev,
++			 "PHASE6 ctx=amd fn=queue_work link=%d resume=%d t=+%lldms devmask=0x%x sc_0to7=0x%x sc_8to11=0x%x\n",
++			 amd_manager->instance, amd_phase6_resume_id(amd_manager),
++			 (long long)amd_phase6_since_reset_ms(amd_manager),
++			 amd_phase6_attached_mask(amd_manager),
++			 status_change_0to7, status_change_8to11);
+ 		schedule_work(&amd_manager->amd_sdw_work);
++	}
+ 	writel(0x00, amd_manager->mmio + ACP_SW_STATE_CHANGE_STATUS_8TO11);
+ 	writel(0x00, amd_manager->mmio + ACP_SW_STATE_CHANGE_STATUS_0TO7);
+ }
+@@ -1209,6 +1321,7 @@
+ 	struct sdw_bus *bus = &amd_manager->bus;
+ 	int ret;
+ 
++	atomic_set(&amd_phase6_system_sleep, 1);
+ 	if (bus->prop.hw_disabled) {
+ 		dev_dbg(bus->dev, "SoundWire manager %d is disabled, ignoring\n",
+ 			bus->link_id);
+@@ -1318,6 +1431,29 @@
+ 		return 0;
+ 	}
+ 
++	{
++		bool system = atomic_xchg(&amd_phase6_system_sleep, 0) != 0;
++		int rid = 0;
++
++		if (system) {
++			rid = atomic_inc_return(&amd_phase6_resume_seq);
++			if (amd_manager->instance >= 0 &&
++			    amd_manager->instance < AMD_PHASE6_MAX_LINKS)
++				amd_phase6_link_resume_id[amd_manager->instance] = rid;
++		} else if (amd_manager->instance >= 0 &&
++			   amd_manager->instance < AMD_PHASE6_MAX_LINKS) {
++			amd_phase6_link_resume_id[amd_manager->instance] = 0;
++		}
++
++		dev_info(dev,
++			 "PHASE6 ctx=amd fn=resume_enter link=%d resume=%d pm=%s mode=%s\n",
++			 bus->link_id, rid,
++			 system ? "system_resume" : "runtime_resume",
++			 (amd_manager->power_mode_mask & AMD_SDW_CLK_STOP_MODE) ? "clk_stop" :
++			 (amd_manager->power_mode_mask & AMD_SDW_POWER_OFF_MODE) ? "power_off" :
++			 "other");
++	}
++
+ 	if (amd_manager->power_mode_mask & AMD_SDW_CLK_STOP_MODE) {
+ 		ret = amd_sdw_clock_stop_exit(amd_manager);
+ 		if (ret)
+@@ -1346,6 +1482,9 @@
+ 				amd_manager->clk_stopped = false;
+ 			}
+ 		}
++		amd_phase6_mark_reset(amd_manager);
++		dev_info(dev, "PHASE6 ctx=amd fn=manager_reset link=%d resume=%d t=+0ms\n",
++			 bus->link_id, amd_phase6_resume_id(amd_manager));
+ 		sdw_clear_slave_status(bus, SDW_UNATTACH_REQUEST_MASTER_RESET);
+ 		amd_init_sdw_manager(amd_manager);
+ 		amd_enable_sdw_interrupts(amd_manager);

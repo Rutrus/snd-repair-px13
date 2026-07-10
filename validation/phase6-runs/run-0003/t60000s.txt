@@ -1,0 +1,59 @@
+=== offset=60000s since_resume=jul 10 01:07:14 2026-07-10T01:08:17+02:00 ===
+--- wpctl status ---
+Could not connect to PipeWire
+(wpctl timeout)
+--- pw-cli ls Node ---
+Error: "failed to connect: El «host» no está operativo"
+(pw-cli timeout)
+--- aplay -l ---
+**** Lista de PLAYBACK dispositivos hardware ****
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 3: HDMI 0 [HDMI 0]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 7: HDMI 1 [HDMI 1]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 8: HDMI 2 [HDMI 2]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 9: HDMI 3 [HDMI 3]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 1: amdsoundwire [amd-soundwire], dispositivo 0: SDW1-PIN0-PLAYBACK-SimpleJack rt721-sdca-aif1-0 []
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 1: amdsoundwire [amd-soundwire], dispositivo 2: SDW1-PIN1-PLAYBACK-SmartAmp multicodec-2 []
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+--- SDW sysfs status ---
+/sys/bus/soundwire/devices/sdw:0:1:0102:0000:01:8/status: UNATTACHED/sys/bus/soundwire/devices/sdw:0:1:0102:0000:01:b/status: UNATTACHED/sys/bus/soundwire/devices/sdw:0:1:025d:0721:01/status: UNATTACHED--- dmesg since resume (tail) ---
+jul 10 01:07:48 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 2 failed:-5 write addr 8608 count 0
+jul 10 01:07:48 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 1 failed:-5 write addr 8608 count 0
+jul 10 01:07:48 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=probe fn=tas_sdw_remove uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+jul 10 01:07:48 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=probe fn=tas_sdw_remove uid=0xb hw_init=0 fw_done=0 fw_ok=0
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: acpi device:24: SDCA function UAJ (type 6) at 0x1
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: acpi device:26: function type only supported as DisCo constant
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=probe fn=tas_sdw_probe uid=0x8
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: acpi device:28: function type only supported as DisCo constant
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=probe fn=tas_sdw_probe uid=0xb
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=pm fn=system_resume uid=0xb hw_init=0 fw_done=0 fw_ok=0
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=pm fn=system_resume uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: input: amd-soundwire Headset Jack as /devices/pci0000:00/0000:00:08.1/0000:c4:00.5/amd_sdw/sound/card1/input51
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: Failed to get value: 6100000 => 0000 ret=-16
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: Failed to get value: 6100000 => 0000 ret=-16
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: Failed to get value: 6100000 => 0000 ret=-16
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: Failed to get value: 6100000 => 0000 ret=-16
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: Failed to get value: 6100000 => 0000 ret=-16
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: Failed to get value: 6100000 => 0000 ret=-16
+jul 10 01:07:50 Colosal3-ProArt-PX13-HN7306EAC kernel: Failed to get value: 6100000 => 0000 ret=-16
+jul 10 01:08:17 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: fw download wait timeout in hw_params
+jul 10 01:08:17 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+jul 10 01:08:17 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ASoC error (-22): at snd_soc_dai_hw_params() on tas2783-codec
+jul 10 01:08:17 Colosal3-ProArt-PX13-HN7306EAC kernel: sdw_deprepare_stream: subdevice #0-Playback: inconsistent state state 0
+jul 10 01:08:17 Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-22): at __soc_pcm_hw_params() on SDW1-PIN1-PLAYBACK-SmartAmp
+jul 10 01:08:17 Colosal3-ProArt-PX13-HN7306EAC kernel: sdw_deprepare_stream: subdevice #0-Playback: inconsistent state state 0
+jul 10 01:08:17 Colosal3-ProArt-PX13-HN7306EAC kernel: SDW: Invalid device for paging :0
+jul 10 01:08:17 Colosal3-ProArt-PX13-HN7306EAC kernel: SDW: Invalid device for paging :0

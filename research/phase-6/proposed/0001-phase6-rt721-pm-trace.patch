@@ -1,0 +1,223 @@
+From: snd-repair phase6 <snd-repair@local>
+Date: Fri, 10 Jul 2026 01:00:00 +0200
+Subject: [PATCH phase6 1/1] ASoC: rt721: PHASE6 PM resume chronology trace
+
+Observation-only instrumentation for Phase 6 RT721 suspend/resume investigation.
+Logs resume path, wait_for_completion_timeout, regmap_sync, and SDW attach
+callbacks with millisecond deltas from resume enter. No behavior change.
+
+Signed-off-by: snd-repair phase6 <snd-repair@local>
+---
+ sound/soc/codecs/rt721-sdca-sdw.c | 103 +++++++++++++++++++++++++++++++
+ sound/soc/codecs/rt721-sdca.c       |  14 +++++
+ sound/soc/codecs/rt721-sdca.h       |   4 ++
+ 3 files changed, 121 insertions(+)
+
+--- /usr/src/linux-source-7.0.0/sound/soc/codecs/rt721-sdca-sdw.c	2026-04-12 22:48:06.000000000 +0200
++++ b/sound/soc/codecs/rt721-sdca-sdw.c
+@@ -8,6 +8,7 @@
+ 
+ #include <linux/delay.h>
+ #include <linux/device.h>
++#include <linux/ktime.h>
+ #include <linux/module.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/pm_runtime.h>
+@@ -17,6 +18,40 @@
+ #include "rt721-sdca-sdw.h"
+ #include "rt-sdw-common.h"
+ 
++
++static ktime_t rt721_phase6_resume_anchor;
++
++void rt721_phase6_anchor_set(void)
++{
++	rt721_phase6_resume_anchor = ktime_get_boottime();
++}
++
++void rt721_phase6_anchor_clear(void)
++{
++	rt721_phase6_resume_anchor = ktime_set(0, 0);
++}
++
++s64 rt721_phase6_elapsed_ms(void)
++{
++	if (!ktime_to_ns(rt721_phase6_resume_anchor))
++		return -1;
++
++	return ktime_to_ms(ktime_sub(ktime_get_boottime(),
++				     rt721_phase6_resume_anchor));
++}
++
++static void rt721_phase6_pm_trace(struct device *dev, const char *fn,
++				  const char *detail)
++{
++	s64 ms = rt721_phase6_elapsed_ms();
++
++	if (ms < 0)
++		dev_info(dev, "PHASE6 ctx=pm fn=%s %s\n", fn, detail);
++	else
++		dev_info(dev, "PHASE6 ctx=pm fn=%s t=+%lldms %s\n",
++			 fn, (long long)ms, detail);
++}
++
+ static bool rt721_sdca_readable_register(struct device *dev, unsigned int reg)
+ {
+ 	switch (reg) {
+@@ -192,6 +227,16 @@
+ 				enum sdw_slave_status status)
+ {
+ 	struct rt721_sdca_priv *rt721 = dev_get_drvdata(&slave->dev);
++	char detail[64];
++
++	snprintf(detail, sizeof(detail), "hw_init=%d status=%d",
++		 rt721->hw_init, status);
++	if (status == SDW_SLAVE_ATTACHED)
++		rt721_phase6_pm_trace(&slave->dev, "update_status_attached", detail);
++	else if (status == SDW_SLAVE_UNATTACHED)
++		rt721_phase6_pm_trace(&slave->dev, "update_status_unattached", detail);
++	else
++		rt721_phase6_pm_trace(&slave->dev, "update_status_alert", detail);
+ 
+ 	if (status == SDW_SLAVE_UNATTACHED)
+ 		rt721->hw_init = false;
+@@ -218,6 +263,8 @@
+ 	if (rt721->hw_init || status != SDW_SLAVE_ATTACHED)
+ 		return 0;
+ 
++	rt721_phase6_pm_trace(&slave->dev, "io_init_call", "from=update_status");
++
+ 	/* perform I/O transfers required for Slave initialization */
+ 	return rt721_sdca_io_init(&slave->dev, slave);
+ }
+@@ -459,6 +506,9 @@
+ 	struct sdw_slave *slave = dev_to_sdw_dev(dev);
+ 	int ret1, ret2;
+ 
++	rt721_phase6_pm_trace(dev, "system_suspend_enter",
++			      rt721_sdca->hw_init ? "hw_init=1" : "hw_init=0");
++
+ 	if (!rt721_sdca->hw_init)
+ 		return 0;
+ 
+@@ -480,6 +530,8 @@
+ 		dev_dbg(&slave->dev, "%s: could not disable SDCA interrupts\n:", __func__);
+ 	}
+ 
++	rt721_phase6_pm_trace(dev, "system_suspend_exit", "");
++
+ 	return rt721_sdca_dev_suspend(dev);
+ }
+ 
+@@ -490,13 +542,28 @@
+ 	struct sdw_slave *slave = dev_to_sdw_dev(dev);
+ 	struct rt721_sdca_priv *rt721 = dev_get_drvdata(dev);
+ 	unsigned long time;
++	int ret = 0;
++	char detail[96];
+ 
+-	if (!rt721->first_hw_init)
++	rt721_phase6_anchor_set();
++	snprintf(detail, sizeof(detail),
++		 "first_hw_init=%d unattach_req=%d disable_irq=%d hw_init=%d",
++		 rt721->first_hw_init, slave->unattach_request,
++		 rt721->disable_irq, rt721->hw_init);
++	rt721_phase6_pm_trace(dev, "resume_enter", detail);
++
++	if (!rt721->first_hw_init) {
++		rt721_phase6_pm_trace(dev, "resume_early_exit", "reason=first_hw_init");
++		rt721_phase6_anchor_clear();
+ 		return 0;
++	}
+ 
+ 	if (!slave->unattach_request) {
++		rt721_phase6_pm_trace(dev, "branch_fast_path",
++				      "skip_wait=1 restore_irq=1");
+ 		mutex_lock(&rt721->disable_irq_lock);
+ 		if (rt721->disable_irq == true) {
++			rt721_phase6_pm_trace(dev, "sdw_write", "target=INTMASK1/2");
+ 			sdw_write_no_pm(slave, SDW_SCP_SDCA_INTMASK1, SDW_SCP_SDCA_INTMASK_SDCA_0);
+ 			sdw_write_no_pm(slave, SDW_SCP_SDCA_INTMASK2, SDW_SCP_SDCA_INTMASK_SDCA_8);
+ 			rt721->disable_irq = false;
+@@ -505,22 +572,37 @@
+ 		goto regmap_sync;
+ 	}
+ 
++	rt721_phase6_pm_trace(dev, "wait_init_start",
++			      "timeout_ms=" __stringify(RT721_PROBE_TIMEOUT));
+ 	time = wait_for_completion_timeout(&slave->initialization_complete,
+ 				msecs_to_jiffies(RT721_PROBE_TIMEOUT));
+ 	if (!time) {
++		rt721_phase6_pm_trace(dev, "wait_init_timeout", "remaining_ms=0");
+ 		dev_err(&slave->dev, "Initialization not complete, timed out\n");
+ 		sdw_show_ping_status(slave->bus, true);
+ 
+-		return -ETIMEDOUT;
++		ret = -ETIMEDOUT;
++		goto resume_out;
+ 	}
+ 
++	snprintf(detail, sizeof(detail), "remaining_ms=%u",
++		 jiffies_to_msecs(time));
++	rt721_phase6_pm_trace(dev, "wait_init_ok", detail);
++
+ regmap_sync:
++	rt721_phase6_pm_trace(dev, "regmap_sync_start", "");
+ 	slave->unattach_request = 0;
+ 	regcache_cache_only(rt721->regmap, false);
+ 	regcache_sync(rt721->regmap);
+ 	regcache_cache_only(rt721->mbq_regmap, false);
+ 	regcache_sync(rt721->mbq_regmap);
+-	return 0;
++	rt721_phase6_pm_trace(dev, "regmap_sync_done", "");
++
++resume_out:
++	snprintf(detail, sizeof(detail), "ret=%d", ret);
++	rt721_phase6_pm_trace(dev, "resume_exit", detail);
++	rt721_phase6_anchor_clear();
++	return ret;
+ }
+ 
+ static const struct dev_pm_ops rt721_sdca_pm = {
+--- /usr/src/linux-source-7.0.0/sound/soc/codecs/rt721-sdca.c	2026-04-12 22:48:06.000000000 +0200
++++ b/sound/soc/codecs/rt721-sdca.c
+@@ -1507,10 +1507,17 @@
+ {
+ 	struct rt721_sdca_priv *rt721 = dev_get_drvdata(dev);
+ 
++	dev_info(dev, "PHASE6 ctx=init fn=io_init_enter t=+%lldms hw_init=%d first=%d\n",
++		 (long long)rt721_phase6_elapsed_ms(), rt721->hw_init,
++		 rt721->first_hw_init);
++
+ 	rt721->disable_irq = false;
+ 
+-	if (rt721->hw_init)
++	if (rt721->hw_init) {
++		dev_info(dev, "PHASE6 ctx=init fn=io_init_skip t=+%lldms hw_init=1\n",
++			 (long long)rt721_phase6_elapsed_ms());
+ 		return 0;
++	}
+ 
+ 	regcache_cache_only(rt721->regmap, false);
+ 	regcache_cache_only(rt721->mbq_regmap, false);
+@@ -1552,6 +1559,9 @@
+ 
+ 	pm_runtime_put_autosuspend(&slave->dev);
+ 
++	dev_info(dev, "PHASE6 ctx=init fn=io_init_done t=+%lldms hw_init=%d\n",
++		 (long long)rt721_phase6_elapsed_ms(), rt721->hw_init);
++
+ 	dev_dbg(&slave->dev, "%s hw_init complete\n", __func__);
+ 	return 0;
+ }
+--- /usr/src/linux-source-7.0.0/sound/soc/codecs/rt721-sdca.h	2026-04-12 22:48:06.000000000 +0200
++++ b/sound/soc/codecs/rt721-sdca.h
+@@ -271,4 +271,8 @@
+ int rt721_sdca_io_init(struct device *dev, struct sdw_slave *slave);
+ int rt721_sdca_init(struct device *dev, struct regmap *regmap,
+ 			struct regmap *mbq_regmap, struct sdw_slave *slave);
++
++void rt721_phase6_anchor_set(void);
++void rt721_phase6_anchor_clear(void);
++s64 rt721_phase6_elapsed_ms(void);
+ #endif /* __RT721_H__ */

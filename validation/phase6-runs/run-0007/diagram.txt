@@ -1,0 +1,13 @@
+=== Phase 6 timeline diagram — run 0007 ===
+resume (anchor 0 ms)
+ │
+ ├─ +    0 ms  [kernel    ] PM suspend exit
+ ├─ +    0 ms  [kernel    ] RT721 resume enter
+ ├──────────────────── +11000 ms  [userspace ] px13
+ ├──────────────────── +12000 ms  [userspace ] PipeWire
+ ├──────────────────── +13000 ms  [kernel    ] playback without fw
+ ├──────────────────── +13000 ms  [kernel    ] PCM hw_params
+ │
+ └──── end of captured events
+
+Total events: 22  (full log: validation/phase6-events.csv)

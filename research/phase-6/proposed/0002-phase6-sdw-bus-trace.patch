@@ -1,0 +1,179 @@
+From: snd-repair phase6 <snd-repair@local>
+Date: Fri, 10 Jul 2026 02:15:00 +0200
+Subject: [PATCH phase6 2/2] soundwire: bus: PHASE6 state machine trace
+
+Observation-only: state_change (with detach reason), completion
+(elapsed_ms since UNATTACHED), state_skip (Case B). No behavior change.
+
+Detach reasons: manager_reset | hw_status_check1 | hw_status_report
+
+Signed-off-by: snd-repair phase6 <snd-repair@local>
+---
+ drivers/soundwire/bus.c | 83 ++++++++++++++++++++++++++++++++
+ 1 file changed, 83 insertions(+)
+
+--- a/drivers/soundwire/bus.c	2026-07-10 02:04:11.501173398 +0200
++++ b/drivers/soundwire/bus.c
+@@ -3,6 +3,7 @@
+ 
+ #include <linux/acpi.h>
+ #include <linux/delay.h>
++#include <linux/ktime.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/soundwire/sdw_registers.h>
+@@ -15,6 +16,77 @@
+ 
+ static DEFINE_IDA(sdw_bus_ida);
+ 
++#define SDW_PHASE6_TS_SLOTS (SDW_MAX_DEVICES + 1)
++static ktime_t sdw_phase6_reinit_ts[SDW_PHASE6_TS_SLOTS];
++static const char *sdw_phase6_detach_reason = "unknown";
++
++static void sdw_phase6_set_detach_reason(const char *reason)
++{
++	sdw_phase6_detach_reason = reason;
++}
++
++static const char *sdw_phase6_status_name(enum sdw_slave_status status)
++{
++	switch (status) {
++	case SDW_SLAVE_UNATTACHED:
++		return "UNATTACHED";
++	case SDW_SLAVE_ATTACHED:
++		return "ATTACHED";
++	case SDW_SLAVE_ALERT:
++		return "ALERT";
++	default:
++		return "OTHER";
++	}
++}
++
++static void sdw_phase6_state_change(struct sdw_slave *slave,
++				    enum sdw_slave_status old,
++				    enum sdw_slave_status new)
++{
++	struct sdw_bus *bus = slave->bus;
++	int dn = slave->dev_num;
++
++	if (old == new)
++		return;
++
++	dev_info(&slave->dev,
++		 "PHASE6 ctx=sdw fn=state_change master=%d link=%d dev=%d uid=0x%x old=%s new=%s reason=%s\n",
++		 bus->controller_id, bus->link_id, dn, slave->id.unique_id,
++		 sdw_phase6_status_name(old), sdw_phase6_status_name(new),
++		 new == SDW_SLAVE_UNATTACHED ? sdw_phase6_detach_reason : "-");
++
++	if (new == SDW_SLAVE_UNATTACHED && dn > 0 && dn < SDW_PHASE6_TS_SLOTS)
++		sdw_phase6_reinit_ts[dn] = ktime_get_boottime();
++	else if (old == SDW_SLAVE_UNATTACHED && new == SDW_SLAVE_ATTACHED &&
++		 dn > 0 && dn < SDW_PHASE6_TS_SLOTS &&
++		 !ktime_to_ns(sdw_phase6_reinit_ts[dn]))
++		sdw_phase6_reinit_ts[dn] = ktime_get_boottime();
++}
++
++static void sdw_phase6_completion(struct sdw_slave *slave)
++{
++	struct sdw_bus *bus = slave->bus;
++	int dn = slave->dev_num;
++	s64 elapsed_ms = -1;
++	const char *phase = "resume";
++
++	if (dn > 0 && dn < SDW_PHASE6_TS_SLOTS &&
++	    ktime_to_ns(sdw_phase6_reinit_ts[dn]))
++		elapsed_ms = ktime_to_ms(ktime_sub(ktime_get_boottime(),
++						   sdw_phase6_reinit_ts[dn]));
++	else
++		phase = "boot";
++
++	dev_info(&slave->dev,
++		 "PHASE6 ctx=sdw fn=completion master=%d link=%d dev=%d uid=0x%x elapsed_ms=%lld phase=%s\n",
++		 bus->controller_id, bus->link_id, dn, slave->id.unique_id,
++		 (long long)elapsed_ms, phase);
++}
++
++static void sdw_phase6_state_skip(struct sdw_slave *slave, const char *reason)
++{
++	struct sdw_bus *bus = slave->bus;
++
++	dev_info(&slave->dev,
++		 "PHASE6 ctx=sdw fn=state_skip master=%d link=%d dev=%d uid=0x%x reason=%s sw=%s\n",
++		 bus->controller_id, bus->link_id, slave->dev_num,
++		 slave->id.unique_id, reason, sdw_phase6_status_name(slave->status));
++}
++
++
+ static int sdw_get_id(struct sdw_bus *bus)
+ {
+ 	int rc = ida_alloc(&sdw_bus_ida, GFP_KERNEL);
+@@ -929,6 +1001,7 @@
+ 				    enum sdw_slave_status status)
+ {
+ 	struct sdw_bus *bus = slave->bus;
++	enum sdw_slave_status old_status = slave->status;
+ 
+ 	mutex_lock(&bus->bus_lock);
+ 
+@@ -952,6 +1025,7 @@
+ 
+ 		complete_all(&slave->enumeration_complete);
+ 	}
++	sdw_phase6_state_change(slave, old_status, status);
+ 	slave->status = status;
+ 	mutex_unlock(&bus->bus_lock);
+ }
+@@ -1901,6 +1975,7 @@
+ 		    slave->status != SDW_SLAVE_UNATTACHED) {
+ 			dev_warn(&slave->dev, "Slave %d state check1: UNATTACHED, status was %d\n",
+ 				 i, slave->status);
++			sdw_phase6_set_detach_reason("hw_status_check1");
+ 			sdw_modify_slave_status(slave, SDW_SLAVE_UNATTACHED);
+ 
+ 			/* Ensure driver knows that peripheral unattached */
+@@ -1954,6 +2029,7 @@
+ 			dev_warn(&slave->dev, "Slave %d state check2: UNATTACHED, status was %d\n",
+ 				 i, slave->status);
+ 
++			sdw_phase6_set_detach_reason("hw_status_report");
+ 			sdw_modify_slave_status(slave, SDW_SLAVE_UNATTACHED);
+ 			break;
+ 
+@@ -1966,14 +2042,18 @@
+ 			break;
+ 
+ 		case SDW_SLAVE_ATTACHED:
+-			if (slave->status == SDW_SLAVE_ATTACHED)
++			if (slave->status == SDW_SLAVE_ATTACHED) {
++				sdw_phase6_state_skip(slave, "already_attached");
+ 				break;
++			}
+ 
+ 			prev_status = slave->status;
+ 			sdw_modify_slave_status(slave, SDW_SLAVE_ATTACHED);
+ 
+-			if (prev_status == SDW_SLAVE_ALERT)
++			if (prev_status == SDW_SLAVE_ALERT) {
++				sdw_phase6_state_skip(slave, "from_alert");
+ 				break;
++			}
+ 
+ 			attached_initializing = true;
+ 
+@@ -2000,6 +2080,7 @@
+ 				"signaling initialization completion for Slave %d\n",
+ 				slave->dev_num);
+ 
++			sdw_phase6_completion(slave);
+ 			complete_all(&slave->initialization_complete);
+ 
+ 			/*
+@@ -2025,6 +2106,8 @@
+ 	struct sdw_slave *slave;
+ 	int i;
+ 
++	sdw_phase6_set_detach_reason("manager_reset");
++
+ 	/* Check all non-zero devices */
+ 	for (i = 1; i <= SDW_MAX_DEVICES; i++) {
+ 		mutex_lock(&bus->bus_lock);

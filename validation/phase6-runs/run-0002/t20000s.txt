@@ -1,0 +1,59 @@
+=== offset=20000s since_resume=jul 10 00:51:34 2026-07-10T00:51:56+02:00 ===
+--- wpctl status ---
+Could not connect to PipeWire
+(wpctl timeout)
+--- pw-cli ls Node ---
+Error: "failed to connect: El «host» no está operativo"
+(pw-cli timeout)
+--- aplay -l ---
+**** Lista de PLAYBACK dispositivos hardware ****
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 3: HDMI 0 [HDMI 0]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 7: HDMI 1 [HDMI 1]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 8: HDMI 2 [HDMI 2]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 9: HDMI 3 [HDMI 3]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 1: amdsoundwire [amd-soundwire], dispositivo 0: SDW1-PIN0-PLAYBACK-SimpleJack rt721-sdca-aif1-0 []
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 1: amdsoundwire [amd-soundwire], dispositivo 2: SDW1-PIN1-PLAYBACK-SmartAmp multicodec-2 []
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+--- SDW sysfs status ---
+/sys/bus/soundwire/devices/sdw:0:1:0102:0000:01:8/status: Attached/sys/bus/soundwire/devices/sdw:0:1:0102:0000:01:b/status: Attached/sys/bus/soundwire/devices/sdw:0:1:025d:0721:01/status: Attached--- dmesg since resume (tail) ---
+jul 10 00:51:54 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_attached uid=0xb hw_init=1 fw_done=1 fw_ok=1
+jul 10 00:51:54 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_attached uid=0x8 hw_init=1 fw_done=1 fw_ok=1
+jul 10 00:51:54 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_attached uid=0xb hw_init=1 fw_done=1 fw_ok=1
+jul 10 00:51:54 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_attached uid=0x8 hw_init=1 fw_done=1 fw_ok=1
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ENZODBG[3] slave_port ENTER slave=sdw:0:1:0102:0000:01:8 devnum=2 port=1 dir=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ENZODBG[3] slave_port OK slave=sdw:0:1:0102:0000:01:8 devnum=2 port=1 dir=0 ret=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: ENZODBG[3] slave_port ENTER slave=sdw:0:1:0102:0000:01:b devnum=1 port=1 dir=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: ENZODBG[3] slave_port OK slave=sdw:0:1:0102:0000:01:b devnum=1 port=1 dir=0 ret=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[4] amd_xport ENTER link=1 rev=0x70 port=1 bank=1 hstart=1 hstop=9 lane=0 off1=65 off2=0 samp=500
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[4] amd_xport OK link=1 port=1 hstart=1 hstop=9 lane=0 ret=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[5] amd_port ENTER link=1 port=1 bps=16 flow=0 data=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[5] amd_port OK link=1 port=1 ret=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[5] master_port OK link=1 port=1 ch_mask=0x3 ret=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[6] sdw_program_port_params OK stream=subdevice #0-Playback
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[6] sdw_program_params ret=0 stream=subdevice #0-Playback
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ENZODBG[3] slave_port ENTER slave=sdw:0:1:0102:0000:01:8 devnum=2 port=1 dir=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ENZODBG[3] slave_port OK slave=sdw:0:1:0102:0000:01:8 devnum=2 port=1 dir=0 ret=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: ENZODBG[3] slave_port ENTER slave=sdw:0:1:0102:0000:01:b devnum=1 port=1 dir=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: ENZODBG[3] slave_port OK slave=sdw:0:1:0102:0000:01:b devnum=1 port=1 dir=0 ret=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[4] amd_xport ENTER link=1 rev=0x70 port=1 bank=0 hstart=1 hstop=9 lane=0 off1=65 off2=0 samp=500
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[4] amd_xport OK link=1 port=1 hstart=1 hstop=9 lane=0 ret=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[5] amd_port ENTER link=1 port=1 bps=16 flow=0 data=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[5] amd_port OK link=1 port=1 ret=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[5] master_port OK link=1 port=1 ch_mask=0x3 ret=0
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[6] sdw_program_port_params OK stream=subdevice #0-Playback
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[6] sdw_program_params ret=0 stream=subdevice #0-Playback
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_attached uid=0xb hw_init=1 fw_done=1 fw_ok=1
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_attached uid=0x8 hw_init=1 fw_done=1 fw_ok=1
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_attached uid=0xb hw_init=1 fw_done=1 fw_ok=1
+jul 10 00:51:55 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_attached uid=0x8 hw_init=1 fw_done=1 fw_ok=1

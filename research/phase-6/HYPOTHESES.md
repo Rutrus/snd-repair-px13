@@ -1,113 +1,95 @@
 # Phase 6 hypotheses
 
-Reorganized for **state transition analysis** — not firmware-first.
+Reorganized for **state transition analysis** — maintainer-facing framing.
 
 ---
 
-## H1 — RT721 resume incomplete (primary suspect)
-
-**Chain:**
+## H1 — RT721 timeout triggers the cascade (strongest)
 
 ```
-rt721 system_resume
-  → "Initialization not complete, timed out"
-  → PM -110
-  → downstream slaves unattached / FW impossible
+rt721 resume → init timeout → PM -110 → bus/slaves broken
 ```
 
-**Evidence (confirmed):**
+**Evidence:** run 0001 @0ms — rt721 timeout before `:8` unattached; boot #40 same pattern.
 
-- Every FAIL resume in manual traces (#24, #30, #40) shows rt721 timeout **before** `:8` PM -110.
-- `:b` matrix 41/41 OK at kmsg level — asymmetry may be ordering, not separate `:b` bug.
-
-**Falsify:** PASS run where rt721 also hits -110 but attach recovers (would downgrade H1).
-
-**Next:** RT721 chronology at ms resolution (probe → resume → first xfer → timeout). **No kernel patch yet** — parse existing kmsg + optional dynamic_debug when sudo available.
+**Falsify:** PASS run where rt721 times out but attach still succeeds.
 
 ---
 
-## H2 — SDW master / bus state blocks re-attach
+## H2 — SDW framework abandons attach too early (strong)
 
-**Chain:**
+After PM resume failure, does the core **retry** enumeration or **stop**?
 
-```
-PM resume failed on slave(s)
-  → bus enumeration incomplete
-  → sysfs status = Unattached (permanent until reboot?)
-  → PCI rebind does not retry attach (boot #40)
-```
-
-**Evidence:**
-
-- Boot #40: post-PCI probe but **only** `update_status_unattached` — no later attach in kmsg.
-- Boot #30–38: post-PCI **attached** + `tas_io_init` — same -110 at wake, different recovery path.
-
-**Questions:**
-
-- Does SoundWire core retry attach after failed resume?
-- Or: `resume FAIL → abandon`?
-
-**Next:** Framework trace (`events/soundwire/` — **not present** on 7.0.0-27; see `phase6-trace-probe.sh`). Parse `soundwire/` dynamic_debug if enabled.
+**Evidence:** boot #40 post-PCI — probe but permanent `unattached`; no later attach in kmsg.
 
 ---
 
-## H3 — Userspace race (PM vs PipeWire vs FW)
+## H3 — Temporal races (split)
 
-**Chain:**
+### H3a — PM ↔ FW
 
-```
-PipeWire opens stream at T+3s
-  → hw_params before attach/fw ready
-  → playback without fw loop
-  → px13 / PW stop makes state worse
-```
+Kernel still resuming while FW reload path runs (or does not run because Unattached).
 
-**Evidence:**
+### H3b — FW ↔ PipeWire
 
-- Boot #40: first `playback without fw` at T+14s while px13 still stopping PW.
-- px13 false positive: declares done before WirePlumber opens stream (#24).
+Userspace opens PCM **before** attach/fw ready → `playback without fw` loop.
 
-**Falsify:** PASS run with PW active before attach at same offset — would implicate ordering not race.
+**Evidence run 0001:** Speaker in wpctl @0–1s while kernel already FAIL; `playback without fw` @+3s.
 
 ---
 
-## H4 — ACP70 timing / load sensitivity
+## H4 — ACP70 / platform timing sensitivity
 
-**Chain:**
+Variable ACP/SMU resume latency; IO_PAGE_FAULT on `snd_pci_ps` correlates (not proven causal).
 
-```
-Variable ACP/SMU resume latency
-  → rt721 init window missed
-  → FAIL branch
-```
-
-**Evidence (weak):**
-
-- `-110` not 100% on every suspend in early matrix (some OK kmsg rows).
-- IO_PAGE_FAULT on `snd_pci_ps` correlates with resume, not proven causal.
-
-**Next:** Record `load1`, suspend type (s2idle), `offset_ms` variance across N PASS/FAIL pairs.
+Record `load1` per run (run 0001: 1.12).
 
 ---
 
-## Deprioritized (Phase 5, on hold)
+## H5 — Aggressive fixed timeout (new)
 
-| Old focus | Status |
-|-----------|--------|
-| TAS2783 FW stale `hw_init` (H-L1) | Partial fix (0003); **insufficient** when Unattached |
-| TAS2783 asymmetric `:8` vs `:b` | Symptom of ordering / attach, not root |
-| px13 recovery | Userspace mitigation; **mask --runtime bug** fixed in repo |
+Hardware may be **slow** not **broken**:
+
+```
+timeout = 100 ms
+hardware = 103 ms  →  FAIL branch
+```
+
+Would explain ~38% PASS / ~62% FAIL without permanent hardware fault.
+
+**Test:** Compare rt721 init duration in PASS vs FAIL chronologies (ms from resume). Look for cluster just above threshold.
 
 ---
 
-## Decision tree (after chronology diff)
+## Formal composite (Phase 6)
 
 ```
-First divergence at rt721 timeout?
-  YES → instrument RT721 / ACPI SDCA path
-  NO  → first divergence at attach?
-          YES → SoundWire core / AMD manager
-          NO  → first divergence at PW stream?
-                  YES → userspace ordering / px13
-                  NO  → TAS2783 FW path (0003 scope)
+PASS :=
+  attached(:8)
+  ∧ fw_loaded(:8)
+  ∧ speaker_present
+  ∧ pcm_running      # STREAM READY — ALSA RUNNING or successful trigger
+  ∧ speaker_test_ok
+
+FAIL := pm_fail ∧ ¬attached   # hard kernel branch
+
+WARN := everything else
 ```
+
+---
+
+## Investigation order (first divergence only)
+
+1. Merge **hardware + kernel + userspace** event streams by `offset_ms`.
+2. Compare PASS vs FAIL with `phase6-first-divergence.sh`.
+3. **Stop at first diff** — later events may be consequences.
+4. Only then choose patch layer (RT721 / SDW / ACP / PM / userspace).
+
+---
+
+## On hold (Phase 5)
+
+| Item | Status |
+|------|--------|
+| TAS2783 0003 FW reload | Insufficient without Attached |
+| px13 recovery | Mitigation; not root cause |

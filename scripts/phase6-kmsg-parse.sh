@@ -38,6 +38,20 @@ classify_line() {
 		layer=PM; component=core; event=suspend_exit
 	elif echo "$body" | grep -q 'PM: suspend entry'; then
 		layer=PM; component=core; event=suspend_entry
+	elif echo "$body" | grep -q 'PHASE6 ctx=pm fn=wait_init_timeout'; then
+		layer=hardware; component=rt721; event=init_timeout
+	elif echo "$body" | grep -q 'PHASE6 ctx=pm fn=resume_enter'; then
+		layer=kernel; component=rt721; event=pm_resume_enter
+	elif echo "$body" | grep -q 'PHASE6 ctx=pm fn=wait_init_ok'; then
+		layer=kernel; component=rt721; event=pm_wait_ok
+	elif echo "$body" | grep -q 'PHASE6 ctx=pm fn=resume_exit'; then
+		layer=kernel; component=rt721; event=pm_resume_exit
+	elif echo "$body" | grep -q 'PHASE6 ctx=pm fn=update_status_attached'; then
+		layer=SDW; component=rt721; event=attached
+	elif echo "$body" | grep -q 'PHASE6 ctx=pm fn=update_status_unattached'; then
+		layer=SDW; component=rt721; event=unattached
+	elif echo "$body" | grep -q 'PHASE6 ctx=init fn=io_init_done'; then
+		layer=kernel; component=rt721; event=io_init_done
 	elif echo "$body" | grep -q 'rt721' && echo "$body" | grep -q 'Initialization not complete'; then
 		layer=kernel; component=rt721; event=init_timeout
 	elif echo "$body" | grep -q 'rt721' && echo "$body" | grep -q 'failed to resume: error -110'; then

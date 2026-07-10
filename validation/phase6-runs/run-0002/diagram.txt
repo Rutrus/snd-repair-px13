@@ -1,0 +1,13 @@
+=== Phase 6 timeline diagram — run 0002 ===
+resume (anchor 0 ms)
+ │
+ ├─ +    0 ms  [kernel    ] PM suspend exit
+ ├─ +    0 ms  [hardware  ] :8 Attached
+ ├─ +    0 ms  [hardware  ] :8 Unattached
+ ├─ +    0 ms  [kernel    ] FW ready :8
+ ├──────────────────── +12000 ms  [userspace ] px13
+ ├──────────────────── +12000 ms  [userspace ] PipeWire
+ │
+ └──── end of captured events
+
+Total events: 197  (full log: validation/phase6-events.csv)

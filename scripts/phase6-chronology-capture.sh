@@ -96,6 +96,12 @@ BOOT_ID="?"
 LOAD1="$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo "")"
 echo "phase6-chrono: run=${RUN_ID} resume=${RESUME_ISO} load1=${LOAD1} → ${RUN_DIR}"
 
+# Persist kernel PHASE6 window for offline sm/matrix (survives reboot).
+# shellcheck source=lib/phase6-journal.sh
+. "${SCRIPT_DIR}/lib/phase6-journal.sh"
+REPO_ROOT="$REPO"
+phase6_save_run_window_log "$RUN_ID" "$RESUME_TS" >/dev/null || true
+
 for off in "${OFFSETS[@]}"; do
 	# fractional sleep
 	now="$(date +%s.%N 2>/dev/null || date +%s)"
@@ -104,8 +110,11 @@ for off in "${OFFSETS[@]}"; do
 	[[ "$(awk -v w="$wait_s" 'BEGIN{print (w>0)?1:0}')" -eq 1 ]] && sleep "$wait_s"
 
 	off_ms="$(awk -v o="$off" 'BEGIN{printf "%d", o*1000}')"
-	snap="$(vm_collect_snapshot "$off" "$RESUME_TS")"
-	IFS=',' read -r _off pm a8 ab a721 fw8 fwb pw sink sp pb rt8 rtb rt721 audio result <<<"$snap"
+	do_audio=0
+	# speaker-test only when bus had time to settle; wpctl can hang during px13
+	awk -v o="$off" 'BEGIN{exit (o>=10)?0:1}' && do_audio=1
+	snap="$(vm_collect_snapshot "$off" "$RESUME_TS" "$do_audio")"
+	IFS=',' read -r _off pm a8 ab a721 fw8 fwb pw sink sp pcm pcm_ready pb rt8 rtb rt721 audio result <<<"$snap"
 	vm_dump_snapshot_verbose "$RUN_DIR" "${off_ms}" "$RESUME_TS"
 	{
 		printf '%s,' "$RUN_ID"
@@ -123,6 +132,8 @@ for off in "${OFFSETS[@]}"; do
 		printf '%s,' "$pw"
 		printf '%s,' "$sink"
 		printf '%s,' "$sp"
+		printf '%s,' "$pcm"
+		printf '%s,' "$pcm_ready"
 		printf '%s,' "$pb"
 		printf '%s,' "$rt8"
 		printf '%s,' "$rtb"
@@ -131,10 +142,12 @@ for off in "${OFFSETS[@]}"; do
 		printf '%s,' "$result"
 		printf '%s\n' "${NOTES:-}"
 	} >>"$CHRONO"
-	echo "  t=${off}s (${off_ms}ms) composite=${result} pm=${pm} :8=${a8} fw=${fw8} sink=${sink}"
+	echo "  t=${off}s (${off_ms}ms) ${result} pm=${pm} :8=${a8} fw=${fw8} pcm=${pcm} sink=${sink}"
 done
 
-"${SCRIPT_DIR}/phase6-kmsg-parse.sh" "$RUN_ID" "$RESUME_TS"
+"${SCRIPT_DIR}/phase6-events-parse.sh" "$RUN_ID" "$RESUME_TS"
+"${SCRIPT_DIR}/phase6-kmsg-parse.sh" "$RUN_ID" "$RESUME_TS" 2>/dev/null || true
+"${SCRIPT_DIR}/phase6-timeline-diagram.sh" "$RUN_ID" | tee "${RUN_DIR}/diagram.txt" >/dev/null || true
 "${SCRIPT_DIR}/phase6-resume-matrix-append.sh" \
 	--run-id "$RUN_ID" \
 	--boot-id "$BOOT_ID" \
@@ -146,4 +159,6 @@ done
 		--timeline "$CHRONO" --notes "${NOTES:-phase6-run-${RUN_ID}}" || true
 
 echo "load1=${LOAD1}" >>"${RUN_DIR}/meta.txt"
+[[ "${PHASE6_SKIP_PX13:-0}" == "1" ]] && echo "PHASE6_SKIP_PX13=1" >>"${RUN_DIR}/meta.txt"
 echo "phase6-chrono: done run=${RUN_ID}"
+rm -f "${STATE_DIR}/phase6-worker.pid"
