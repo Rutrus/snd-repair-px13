@@ -30,7 +30,7 @@ Or: `./scripts/phase6-experiment.sh sm` for last resume window only.
 | Doc | Content |
 |-----|---------|
 | [KNOWN-FACTS.md](KNOWN-FACTS.md) | Demonstrated vs not demonstrated |
-| [UPSTREAM-REPORT-DRAFT.md](UPSTREAM-REPORT-DRAFT.md) | **Submit-ready** — Observed / Not demonstrated / golden diff |
+| [UPSTREAM-REPORT-DRAFT.md](UPSTREAM-REPORT-DRAFT.md) | **Submittable** — Phase 7 0006a; facts / inferences / open question |
 | [UPSTREAM-CONTRAST.md](UPSTREAM-CONTRAST.md) | Golden diff table + submit checklist |
 | [UPSTREAM-STRATEGY.md](UPSTREAM-STRATEGY.md) | No-PASS strategy, deterministic FAIL, userspace contrast |
 | [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) | Runs, exit criteria |

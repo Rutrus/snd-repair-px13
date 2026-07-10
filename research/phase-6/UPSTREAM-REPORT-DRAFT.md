@@ -1,8 +1,10 @@
 # Upstream report draft — ACP70 SoundWire s2idle resume (PX13)
 
-English (canonical). **Submit-ready skeleton** — FAIL evidence complete; PASS column to fill when captured.
+English (canonical). **Submittable** — FAIL path delimited through Phase 7 experiment 0006a.
 
-Related: [KNOWN-FACTS.md](KNOWN-FACTS.md) · [UPSTREAM-CONTRAST.md](UPSTREAM-CONTRAST.md)
+Related: [KNOWN-FACTS.md](KNOWN-FACTS.md) · [UPSTREAM-CONTRAST.md](UPSTREAM-CONTRAST.md) · [../JOURNEY.md](../JOURNEY.md) · [../phase-7/experiments/0006a-run-p7-d50.md](../phase-7/experiments/0006a-run-p7-d50.md)
+
+**Reading guide:** maintainers can start at [Objective findings](#objective-findings-demonstrated) and [Remaining question](#remaining-question).
 
 ---
 
@@ -10,10 +12,10 @@ Related: [KNOWN-FACTS.md](KNOWN-FACTS.md) · [UPSTREAM-CONTRAST.md](UPSTREAM-CON
 
 | Phase | Status |
 |-------|--------|
-| **Delimitation** (where does it break?) | **Complete** — run 0015 |
-| **Explanation** (why does HW not present first event?) | **Open** — needs PASS contrast or AMD HW input |
+| **Delimitation** (where does it break?) | **Complete** — Phase 6 run 0015 + Phase 7 0006a |
+| **Explanation** (why does IRQ not reach handler?) | **Open** — pci-ps / MSI / resume restore |
 
-Delimitation and explanation are different deliverables. This report separates **observed facts** from **inference**.
+This report separates **demonstrated facts**, **supported inferences**, and **open questions**.
 
 ---
 
@@ -26,14 +28,35 @@ Delimitation and explanation are different deliverables. This report separates *
 | Kernel | `7.0.0-27-generic` (Ubuntu) |
 | Suspend | s2idle (`systemctl suspend`) |
 | Path | `amd_resume_runtime()` `POWER_OFF` / `manager_reset` |
-| Instrumentation | Phase 6 observation patches 0003–0007 (no behaviour changes) |
-| FAIL witness | Run **0015**, `resume=1` (clean boot) |
+| Observation instrumentation | Phase 6 patches 0003–0007 (no behaviour changes) |
+| Phase 7 instrumentation | 0006b decode + 0006a single intervention (see below) |
+| FAIL witness (vanilla) | Run **0015**, `resume=1` (clean boot) |
+| Intervention witness | Run **p7-0006a-d50**, `resume=1`, 0006a Outcome A |
 
 ---
 
-## Observed sequence (FAIL-1, repeated runs)
+## Initial symptom
 
-Not a hypothesis about RT721 — the log-supported chain:
+After s2idle resume, internal audio failed intermittently. Visible symptoms: RT721 `-ETIMEDOUT` (`-110`), TAS2783 `:8 done=0`, userspace often Dummy Output. Failure location was initially unknown.
+
+---
+
+## Progressive narrowing (summary)
+
+| Stage | Result |
+|-------|--------|
+| Phase 1–3 | FAIL-1 vs FAIL-2 classified; FAIL-1 reproducible on clean boot |
+| Phase 4–5 | TAS2783, RT721, PipeWire scripts, bus.c ruled out as **first** failure |
+| Phase 6 | Gap between `irq_enabled` and re-enumeration; full software kick `ret=0` |
+| Phase 7 | STAT pending at +50 ms; manual `schedule_work` restores full path |
+
+Full narrative: [../JOURNEY.md#investigation-summary](../JOURNEY.md#investigation-summary).
+
+---
+
+## Observed sequence (FAIL-1, vanilla, repeated runs)
+
+Log-supported chain (run 0015; refined by 0006b at +50 ms):
 
 ```text
 system_resume
@@ -46,9 +69,13 @@ clear_slave_status → init_sdw_manager (ret=0) → enable_sdw_manager (ret=0)
     ↓
 enable interrupts (irq_enabled)
     ↓
-program registers (INTR_CNTL, SDW_EN, FRAME, device_state D0 — all ret=0 on 0015)
+program registers (INTR_CNTL, SDW_EN, FRAME, device_state D0 — ret=0)
     ↓
-(no observable interrupt processing in ~5 s window)
+post_D0: STAT(instance=1) & mask = 0          [0006b]
+    ↓
++50 ms: STAT(instance=1) & mask = 0x4          [0006b]
+    ↓
+(no acp63_irq_handler / no irq_thread in vanilla FAIL window)
     ↓
 SoundWire slaves remain UNATTACHED
     ↓
@@ -59,53 +86,127 @@ RT721 wait_for_completion_timeout → -110
 
 ---
 
-## Observed (maintainer-safe)
+## Phase 7 experiments
 
-- `manager_reset` executes on system resume (FAIL-1).
-- Manager init/enable steps complete with `ret=0` (0015).
-- Interrupt enable executes (`irq_enabled` logged).
-- Register programming reads as expected on FAIL (`INTR_CNTL=0x400004`, `SDW_EN=1`, `FRAME=0xc`).
-- `ACP_EXTERNAL_INTR_STAT` reads **0** on instrumented snapshots after enable, bringup, and D0.
-- **No** `irq_handler_enter`, **no** `irq_thread_enter`, **no** `ping_irq`, **no** `queue_work` before RT721 timeout.
-- **No** bus `UNATTACHED→ATTACHED` or `completion()` in the wait window.
-- RT721 `-110` occurs **after** the above; it is not the first failure.
-- TAS2783, PipeWire, and userspace rebind are not required to reproduce the kernel witness path.
+### 0005 — delay after D0 (negative as fix)
+
+Adding `phase7_delay_ms=50` after D0 showed STAT evolves from 0 to `0x4` on instance 1. Enumeration still did not start; no handler. **Conclusion:** timing alone does not fix FAIL-1; delay exposes pending status.
+
+### 0006b — STAT decode (observation)
+
+On PX13 link 1 → manager instance **1** → mask **`0x4`** on **`ACP_EXTERNAL_INTR_STAT1`** (`ACP_SDW1_STAT`). Removed earlier STAT0/`0x200000` misread.
+
+### 0006a — validate manager mask (decisive)
+
+**Only behaviour change:**
+
+```c
+if (stat & manager_mask)
+    schedule_work(&amd_sdw_irq_thread);
+```
+
+**Observed (run p7-0006a-d50):**
+
+```text
+STAT(instance=1) & mask = 0x4 at post_delay
+    ↓
+manual schedule_work (0006a)
+    ↓
+irq_thread_enter (+51 ms)
+    ↓
+ping_irq → ping_status → queue_work → handle_status
+    ↓
+UNATTACHED → ATTACHED (dev 1, 2, 3)
+    ↓
+completion()
+    ↓
+RT721 resume_exit ret=0
+    ↓
+ALSA card / PCM devices present
+```
+
+Still **no** `irq_handler_enter` (PCI ISR path) in this run. The intervention injects the trigger the handler would normally provide.
 
 ---
 
-## Not yet demonstrated (do not over-claim)
+## Objective findings (demonstrated)
+
+Statements directly supported by repeated experiments and kernel logs.
+
+- `manager_reset` executes on system resume (FAIL-1).
+- Manager init/enable and D0 transition complete with `ret=0` (0015).
+- Interrupt enable executes (`irq_enabled` logged).
+- Register programming reads as expected on FAIL (`INTR_CNTL=0x400004`, `SDW_EN=1`, `FRAME=0xc`).
+- At `post_D0`, `STAT(instance=1) & manager_mask` reads **0** (0006b).
+- At **+50 ms** (`post_delay`), `STAT(instance=1) & manager_mask` reads **`0x4`** (0006b, p7-0006b-d50).
+- **`acp63_irq_handler` does not run** in vanilla FAIL-1 (`irq_handler_enter` absent).
+- **Manual `schedule_work(amd_sdw_irq_thread)` when `stat & manager_mask`** restores full SoundWire enumeration and RT721 success (0006a).
+- RT721 `-110` occurs **after** the above; it is not the first failure.
+- TAS2783, PipeWire, and userspace rebind are **not required** to reproduce the kernel witness path.
+
+---
+
+## Supported inferences (label as inference upstream)
+
+- The SoundWire pipeline after `amd_sdw_irq_thread` is **functional** when the worker runs (0006a single-variable test).
+- The defect is at **IRQ delivery** (STAT pending → handler missing), not manager resume programming or slave drivers.
+- Userspace Dummy Output may persist briefly after kernel recovery; **not demonstrated** as root cause (FACT 9).
+
+---
+
+## Not demonstrated (do not over-claim)
 
 | Statement | Why it is not proven |
 |-----------|----------------------|
-| Hardware never asserts the interrupt | Only point-in-time STAT reads + absence of handler in window |
-| Interrupt asserted later than observation window | No STAT polling; PASS trace may differ |
-| Missing prerequisite prevents first interrupt | Open box at HW boundary; needs PASS diff or programming guide |
-| Register values differ on PASS | FAIL reads look programmed; PASS not yet captured with same probes |
+| Hardware never asserts the interrupt | +50 ms decode shows pending bit on FAIL |
+| MSI routing is broken | Plausible; not yet traced register-by-register |
+| PipeWire causes kernel FAIL-1 | Kernel witness reproduces without userspace recovery |
+| WirePlumber leaves profile `off` | Not captured post-resume without reboot |
+| Exact silicon / firmware bug | Open |
+| Natural vanilla PASS with 0003–0007 only | Not observed (`PASS-0006a` requires intervention) |
 
 ---
 
-## Golden diff (primary experimental goal)
+## Remaining question
 
-Same machine, kernel, instrumentation. **First expected divergence:** `ACP_EXTERNAL_INTR_STAT` and IRQ handler.
+One kernel boundary:
 
-| Probe | PASS (target) | FAIL (0015) |
-|-------|---------------|-------------|
+```text
+ACP manager — STAT(instance=1) & mask pending
+        ↓
+        ?   ← open
+        ↓
+acp63_irq_handler()
+        ↓
+schedule_work(amd_sdw_irq_thread)
+```
+
+**Why does the normal interrupt path fail after s2idle resume when the manager STAT bit is pending?**
+
+Candidate areas (hypotheses, not conclusions):
+
+- MSI/MSI-X restore after s2idle
+- interrupt mask / routing in `sound/soc/amd/ps/pci-ps.c`
+- difference between cold boot and `POWER_OFF` resume
+- ACP70 platform-specific wake vs SDW1 STAT path
+
+---
+
+## Contrast table (vanilla FAIL vs 0006a intervention)
+
+| Probe | Vanilla FAIL (0015 / 0006b) | 0006a (p7-0006a-d50) |
+|-------|----------------------------|----------------------|
 | `manager_reset` | ✓ | ✓ |
-| `init_sdw_manager` | ✓ (`ret=0`) | ✓ (`ret=0`) |
-| `enable_sdw_manager` | ✓ (`ret=0`) | ✓ (`ret=0`) |
-| `irq_enabled` | ✓ | ✓ |
-| `intr_cntl_post_enable` | same | `0x400004` |
-| `sdw_en_post_resume` | same | `0x1` |
-| `clk_frame` | same | `0xc` |
-| `device_state_D0` | same | `ret=0` |
-| `ACP_EXTERNAL_INTR_STAT` | **≠0 (or changes)** | **0** |
-| `irq_handler_enter` | ✓ | ✗ |
-| `ping_irq` | ✓ | ✗ |
-| `queue_work` | ✓ | ✗ |
-| `completion()` | ✓ | ✗ |
-| RT721 | OK | timeout (`-110`) |
+| Full kick `ret=0` | ✓ | ✓ |
+| `post_D0` STAT&mask | 0 | 0 |
+| `post_delay` STAT&mask | **0x4** | **0x4** |
+| `irq_handler_enter` | ✗ | ✗ |
+| `manual_irq_schedule` | — | **FIRED** |
+| `irq_thread_enter` | ✗ | ✓ (+51 ms) |
+| `completion()` | ✗ | ✓ |
+| RT721 | timeout (`-110`) | **ret=0** |
 
-One PASS row filling the left column is worth more than additional FAIL traces.
+A natural PASS row (handler runs without 0006a) would still be valuable for golden diff; **0006a already proves sufficiency of the thread path**.
 
 ---
 
@@ -113,60 +214,69 @@ One PASS row filling the left column is worth more than additional FAIL traces.
 
 | Layer | Rationale |
 |-------|-----------|
-| RT721 codec PM | Waits on `initialization_complete()`; never woken |
+| RT721 codec PM | Waits on `initialization_complete()`; succeeds when enumeration runs (0006a) |
 | TAS2783 / FW | Downstream of missing enumeration |
-| SoundWire `bus.c` | Cannot ATTACH without manager notification |
-| Incomplete `amd_resume_runtime()` | Full sequence observed on 0015 |
+| SoundWire `bus.c` | ATTACH follows manager notification |
+| Incomplete `amd_resume_runtime()` | Full sequence observed (0015) |
+| PipeWire / WirePlumber | Not required for kernel witness; secondary UX layer |
 
 ---
 
-## Instrumentation policy (frozen)
+## Future work (recommended)
 
-> **Each new patch must answer exactly one binary question.**
+1. Trace `ACP_EXTERNAL_INTR_STAT1` in `pci-ps.c` at handler entry vs manager decode snapshots (same resume window).
+2. Compare MSI enable / mask state: cold boot vs first s2idle resume.
+3. Optional: second ACP70 machine for generality.
 
-Questions already answered — **no default 0008**:
+**Not recommended** unless new evidence: RT721, TAS2783, slave drivers, PipeWire policy.
 
-| Binary question | Answer | Patch / run |
-|-----------------|--------|-------------|
-| Does `manager_reset` run on resume? | Yes | 0003 |
-| Are IRQs re-enabled after reset? | Yes | 0004 |
-| Is `STAT=0` immediately after enable? | Yes | 0005 / 0013 |
-| Is S2 (STAT≠0, no handler)? | No on 0013 | 0005 |
-| Are block registers programmed on FAIL? | Yes | 0006 / 0014 |
-| Does full kick sequence run (`ret=0`)? | Yes | 0007 / 0015 |
-| Does IRQ handler run before timeout? | No on FAIL | 0004–0005 |
+Proposed probes: [proposed/NEXT-ACP-HW-IRQ-TRACE.md](proposed/NEXT-ACP-HW-IRQ-TRACE.md).
 
-If a proposed patch does not eliminate one concrete hypothesis, do not add it.
+---
+
+## Instrumentation policy (frozen for delimitation)
+
+> Each patch answers exactly one binary question.
+
+Phase 6 + Phase 7 questions now answered — do not add horizontal trace by default:
+
+| Question | Answer | Patch / run |
+|----------|--------|-------------|
+| Full kick `ret=0` on FAIL? | Yes | 0007 / 0015 |
+| STAT zero only at post_D0? | Yes; **non-zero at +50 ms** | 0006b |
+| Handler runs on vanilla FAIL? | No | 0004–0006b |
+| Manual thread restores enum? | **Yes** | **0006a / p7-d50** |
 
 ---
 
 ## Attachments (when submitting)
 
-1. `kmsg-phase6-window.log` — FAIL run 0015
-2. Same — PASS run (TBD)
-3. `./scripts/phase6-experiment.sh sm` output for both
-4. Optional: `./scripts/phase6-state-machine.sh RUN_FAIL RUN_PASS`
+1. `validation/phase6-runs/hunt-p7-0006a-d50/kmsg-phase6-window.log` (or equivalent)
+2. FAIL reference: run 0015 window log
+3. `./scripts/phase6-hunt.sh post-suspend` output (PASS-0006a classifier)
+4. `./scripts/phase6-state-machine.sh` for same boot
+5. This document + [0006a-run-p7-d50.md](../phase-7/experiments/0006a-run-p7-d50.md)
 
 ---
 
 ## Suggested upstream title
 
-> ACP70 SoundWire: s2idle resume completes manager re-init but no IRQ before RT721 timeout (ASUS PX13)
+> ACP70 SoundWire: s2idle resume — manager STAT pending but `acp63_irq_handler` not invoked (ASUS PX13)
 
 ## Suggested ask
 
-> Please advise whether a step is missing after `device_state_D0` on ACP70 `POWER_OFF` resume, or whether this matches a known HW/FW sequencing requirement. PASS kernel trace with identical instrumentation available on request / follow-up.
+> We have localized a FAIL-1 s2idle resume on ACP70 to the boundary between pending `ACP_SDW1_STAT` (instance 1, mask 0x4) and `acp63_irq_handler` entry. Manager re-init completes with `ret=0`; manually scheduling `amd_sdw_irq_thread` when `stat & manager_mask` fully restores enumeration (experiment 0006a, logs attached).
+>
+> Could you advise whether interrupt delivery after `POWER_OFF` resume is known to require additional steps in `pci-ps.c`, or whether this matches a known MSI/routing issue on ACP70? We can provide further pci-ps tracing on request.
 
 ---
 
-## While waiting for PASS
+## Scenario status
 
-This draft is valid **without PASS** (scenario 2). See [UPSTREAM-STRATEGY.md](UPSTREAM-STRATEGY.md):
+Per [UPSTREAM-STRATEGY.md](UPSTREAM-STRATEGY.md):
 
-- **Scenario 1:** PASS + FAIL golden diff (ideal)
-- **Scenario 2:** FAIL only, break localized — **submittable now**
-- **Scenario 3:** N/N FAIL — strengthens reproduction
+- **Scenario 1** (natural PASS + FAIL golden diff): still desirable; not required to submit delimitation.
+- **Scenario 2** (FAIL localized + intervention proves sufficiency): **met** via 0015 + 0006a.
+- **Scenario 3** (deterministic FAIL): supported by hunt log; strengthens reproduction.
 
-If no kernel PASS after ≥20 masked-rebind attempts, document scenario 3 and reframe the upstream ask (do not weaken the report).
-
-**PASS hunt:** [UPSTREAM-STRATEGY.md#pass-hunt-protocol-bounded-effort](UPSTREAM-STRATEGY.md#pass-hunt-protocol-bounded-effort)
+**PASS hunt** with vanilla 0003–0007 remains optional; primary upstream value is the 0006a causal test.
