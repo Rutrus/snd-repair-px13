@@ -1,9 +1,8 @@
 # Phase 6 — State transition analysis (suspend → resume)
 
 > **Branch:** `research/suspend-lifecycle`  
-> **Status doc:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) ← **H1 confirmed run 0010** (`irq_enabled` → no IRQ)  
-> **Rule:** No behavior-changing kernel patches until post-reset AMD IRQ chain bisect is complete.  
-> **Next:** Minimal AMD trace — [proposed/NEXT-AMD-IRQ-TRACE.md](proposed/NEXT-AMD-IRQ-TRACE.md).
+> **Status doc:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) ← **inflection run 0010** (`irq_enabled` → no IRQ)  
+> **Next trace:** [proposed/NEXT-ACP-HW-IRQ-TRACE.md](proposed/NEXT-ACP-HW-IRQ-TRACE.md) (0005: STAT → handler → thread)
 
 English (canonical). Phase 5 delivered playback/FW/stereo. Phase 6 explains **intermittent s2idle resume** on ACP70 SoundWire.
 
@@ -11,18 +10,11 @@ English (canonical). Phase 5 delivered playback/FW/stereo. Phase 6 explains **in
 
 ## Current finding
 
-After `manager_reset`, FAIL runs show **no log evidence** of PING/work/handle/ATTACHED. The gap is **after** `amd_resume_runtime()`. Binary question: does the first IRQ/ping post-reset run?
-
-Two FAIL classes:
-
-| Class | RT721 path | Runs |
-|-------|------------|------|
-| **FAIL-1** | `wait_init` → timeout `-110` | 0004–0006 |
-| **FAIL-2** | `resume_early_exit` (no wait) | 0007 |
+After `manager_reset`, FAIL-1 (0010) shows **`irq_enabled` then no IRQ** before timeout. FAIL-2 (0011) is cascade after prior FAIL — not PASS.
 
 ```bash
-./scripts/phase6-experiment.sh sm 0005   # FAIL-1
-./scripts/phase6-experiment.sh sm 0007   # FAIL-2
+./scripts/phase6-experiment.sh sm 0010   # FAIL-1 inflection
+./scripts/phase6-experiment.sh sm 0011   # FAIL-2 cascade
 ```
 
 ---

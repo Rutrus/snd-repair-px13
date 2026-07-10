@@ -1,0 +1,74 @@
+=== offset=60000s since_resume=jul 10 12:53:42 2026-07-10T12:54:48+02:00 ===
+--- wpctl status ---
+(wpctl timeout)
+--- pw-cli ls Node ---
+	id 30, type PipeWire:Interface:Node/3
+ 		object.serial = "30"
+ 		factory.id = "11"
+ 		priority.driver = "200000"
+ 		node.name = "Dummy-Driver"
+	id 31, type PipeWire:Interface:Node/3
+ 		object.serial = "31"
+ 		factory.id = "11"
+ 		priority.driver = "190000"
+ 		node.name = "Freewheel-Driver"
+	id 39, type PipeWire:Interface:Node/3
+ 		object.serial = "39"
+ 		factory.id = "19"
+ 		client.id = "37"
+ 		node.description = "Dummy Output"
+ 		node.name = "auto_null"
+ 		media.class = "Audio/Sink"
+(pw-cli timeout)
+--- aplay -l ---
+**** Lista de PLAYBACK dispositivos hardware ****
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 3: HDMI 0 [HDMI 0]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 7: HDMI 1 [HDMI 1]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 8: HDMI 2 [HDMI 2]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 9: HDMI 3 [HDMI 3]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 1: amdsoundwire [amd-soundwire], dispositivo 0: SDW1-PIN0-PLAYBACK-SimpleJack rt721-sdca-aif1-0 []
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 1: amdsoundwire [amd-soundwire], dispositivo 2: SDW1-PIN1-PLAYBACK-SmartAmp multicodec-2 []
+  Subdispositivos: 0/1
+  Subdispositivo #0: subdevice #0
+--- SDW sysfs status ---
+/sys/bus/soundwire/devices/sdw:0:1:0102:0000:01:8/status: UNATTACHED/sys/bus/soundwire/devices/sdw:0:1:0102:0000:01:b/status: UNATTACHED/sys/bus/soundwire/devices/sdw:0:1:025d:0721:01/status: UNATTACHED--- dmesg since resume (tail) ---
+jul 10 12:54:59 Colosal3-ProArt-PX13-HN7306EAC kernel: sdw_deprepare_stream: subdevice #0-Playback: inconsistent state state 0
+jul 10 12:54:59 Colosal3-ProArt-PX13-HN7306EAC kernel: SDW: Invalid device for paging :0
+jul 10 12:54:59 Colosal3-ProArt-PX13-HN7306EAC kernel: SDW: Invalid device for paging :0
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: kauditd_printk_skb: 36 callbacks suppressed
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: audit: type=1400 audit(1783680901.364:334): apparmor="DENIED" operation="signal" class="signal" profile="cursor_sandbox" pid=48049 comm="zsh" requested_mask="send" denied_mask="send" signal=exists peer="cursor_sandbox"
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: audit: type=1400 audit(1783680901.364:335): apparmor="DENIED" operation="signal" class="signal" profile="cursor_sandbox" pid=48049 comm="zsh" requested_mask="receive" denied_mask="receive" signal=exists peer="cursor_sandbox"
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: audit: type=1400 audit(1783680901.368:336): apparmor="DENIED" operation="signal" class="signal" profile="cursor_sandbox" pid=48049 comm="zsh" requested_mask="send" denied_mask="send" signal=exists peer="cursor_sandbox"
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: audit: type=1400 audit(1783680901.368:337): apparmor="DENIED" operation="signal" class="signal" profile="cursor_sandbox" pid=48049 comm="zsh" requested_mask="receive" denied_mask="receive" signal=exists peer="cursor_sandbox"
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: audit: type=1400 audit(1783680901.376:338): apparmor="DENIED" operation="signal" class="signal" profile="cursor_sandbox" pid=48049 comm="zsh" requested_mask="send" denied_mask="send" signal=exists peer="cursor_sandbox"
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: audit: type=1400 audit(1783680901.376:339): apparmor="DENIED" operation="signal" class="signal" profile="cursor_sandbox" pid=48049 comm="zsh" requested_mask="receive" denied_mask="receive" signal=exists peer="cursor_sandbox"
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: audit: type=1400 audit(1783680901.516:340): apparmor="DENIED" operation="signal" class="signal" profile="cursor_sandbox" pid=48049 comm="zsh" requested_mask="send" denied_mask="send" signal=exists peer="cursor_sandbox"
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: audit: type=1400 audit(1783680901.516:341): apparmor="DENIED" operation="signal" class="signal" profile="cursor_sandbox" pid=48049 comm="zsh" requested_mask="receive" denied_mask="receive" signal=exists peer="cursor_sandbox"
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: audit: type=1400 audit(1783680901.669:342): apparmor="DENIED" operation="signal" class="signal" profile="cursor_sandbox" pid=48335 comm="tail" requested_mask="send" denied_mask="send" signal=exists peer="cursor_sandbox"
+jul 10 12:55:01 Colosal3-ProArt-PX13-HN7306EAC kernel: audit: type=1400 audit(1783680901.669:343): apparmor="DENIED" operation="signal" class="signal" profile="cursor_sandbox" pid=48335 comm="tail" requested_mask="receive" denied_mask="receive" signal=exists peer="cursor_sandbox"
+jul 10 12:55:02 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: fw download wait timeout in hw_params
+jul 10 12:55:02 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+jul 10 12:55:02 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ASoC error (-22): at snd_soc_dai_hw_params() on tas2783-codec
+jul 10 12:55:02 Colosal3-ProArt-PX13-HN7306EAC kernel: sdw_deprepare_stream: subdevice #0-Playback: inconsistent state state 6
+jul 10 12:55:02 Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-22): at __soc_pcm_hw_params() on SDW1-PIN1-PLAYBACK-SmartAmp
+jul 10 12:55:02 Colosal3-ProArt-PX13-HN7306EAC kernel: sdw_deprepare_stream: subdevice #0-Playback: inconsistent state state 6
+jul 10 12:55:02 Colosal3-ProArt-PX13-HN7306EAC kernel: SDW: Invalid device for paging :0
+jul 10 12:55:02 Colosal3-ProArt-PX13-HN7306EAC kernel: SDW: Invalid device for paging :0
+jul 10 12:55:05 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: fw download wait timeout in hw_params
+jul 10 12:55:05 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+jul 10 12:55:05 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ASoC error (-22): at snd_soc_dai_hw_params() on tas2783-codec
+jul 10 12:55:05 Colosal3-ProArt-PX13-HN7306EAC kernel: sdw_deprepare_stream: subdevice #0-Playback: inconsistent state state 6
+jul 10 12:55:05 Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-22): at __soc_pcm_hw_params() on SDW1-PIN1-PLAYBACK-SmartAmp
+jul 10 12:55:05 Colosal3-ProArt-PX13-HN7306EAC kernel: sdw_deprepare_stream: subdevice #0-Playback: inconsistent state state 6
+jul 10 12:55:05 Colosal3-ProArt-PX13-HN7306EAC kernel: SDW: Invalid device for paging :0
+jul 10 12:55:05 Colosal3-ProArt-PX13-HN7306EAC kernel: SDW: Invalid device for paging :0

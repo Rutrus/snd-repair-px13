@@ -69,6 +69,9 @@ normalize_machine() {
 			echo "  rt721  wait_init_ok"
 		elif echo "$line" | grep -q 'fn=wait_init_timeout'; then
 			echo "  rt721  wait_init_timeout"
+		elif echo "$line" | grep -q 'fn=resume_early_exit'; then
+			reason="$(echo "$line" | sed -n 's/.*reason=\([^ ]*\).*/\1/p')"
+			echo "  rt721  resume_early_exit  reason=${reason:-?}"
 		elif echo "$line" | grep -q 'fn=branch_fast_path'; then
 			echo "  rt721  branch_fast_path"
 		elif echo "$line" | grep -q 'fn=resume_exit'; then

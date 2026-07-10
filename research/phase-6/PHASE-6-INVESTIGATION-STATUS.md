@@ -1,217 +1,192 @@
 # Phase 6 investigation status (ACP70 / PX13)
 
-English (canonical). Last updated: 2026-07-10 (runs 0005–0007).
+English (canonical). Last updated: 2026-07-10 (runs 0010–0011).
 
-**Progress estimate:** ~90% problem delimitation; **H1 (IRQ delivery)** strongly supported on run 0010 with full 0004 trace.
+**Progress estimate:** ~92% delimitation. **Inflection point (commit 507e789 / run 0010):** investigation is no longer about codecs or SoundWire core — it is why the **ACP70 IRQ chain stops after a correct `manager_reset` + interrupt enable**.
 
-**First missing transition (run 0010):** `irq_enabled` → *(no `sdw0_irq` / `ping_irq` within 5s)* → `wait_init_timeout`.
+**Filled link (run 0010):** `manager_reset` → **`irq_enabled`** → *(no SDW IRQ in log)* → `wait_init_timeout` (-110).
 
-See also: [SOUNDWIRE-RESUME-STATE-MACHINE.md](SOUNDWIRE-RESUME-STATE-MACHINE.md), [LINK-REENUMERATION-FAILURE.md](LINK-REENUMERATION-FAILURE.md)
-
----
-
-## Project shift
-
-| Phase | Goal | Status |
-|-------|------|--------|
-| 5 | Make laptop audio work (playback, FW, stereo) | Done |
-| **6** | Why **intermittent** s2idle resume fails | **In progress** — SoundWire/ACP70 architecture |
-
-RT721 and TAS2783 are **witnesses**, not root-cause candidates.
+See also: [SOUNDWIRE-RESUME-STATE-MACHINE.md](SOUNDWIRE-RESUME-STATE-MACHINE.md), [proposed/NEXT-ACP-HW-IRQ-TRACE.md](proposed/NEXT-ACP-HW-IRQ-TRACE.md)
 
 ---
 
-## Demonstrated causal chain
+## What is now solid
+
+### 1. `amd_enable_sdw_interrupts()` is not the problem
+
+Run 0010 logs `irq_enabled` immediately after `manager_reset`. Hypothesis *"AMD never re-enables interrupts"* is **ruled out**.
+
+### 2. Break is after enable — do not instrument earlier layers
+
+```text
+resume
+│
+├── enable IRQ          ✅ (irq_enabled)
+│
+├── hardware IRQ?       ← ACTIVE SEARCH
+├── IRQ routing?
+├── handler runs?
+├── irq_thread runs?
+├── ping_status?
+└── queue_work?
+```
+
+No further trace in PM resume entry, `manager_reset` setup, or bus.c until IRQ chain is bisected.
+
+### 3. Codecs are witnesses only
+
+RT721 `-110` and TAS2783 no-FW are **downstream** of missing `initialization_complete()`.
+
+---
+
+## Demonstrated causal chain (updated)
 
 ```text
 system_resume
         │
         ▼
-amd_resume_runtime()          ← runs (resume_enter pm=system_resume logged)
+amd_resume_runtime()          ✅ resume_enter
         │
         ▼
-manager_reset                 ← runs (one amd call; bus dev=1,2,3 → UNATTACHED)
+manager_reset                 ✅ t=+0ms
         │
         ▼
-        ???                     ← THE GAP (no log evidence of PING/work/handle/ATTACHED)
+irq_enabled                   ✅ run 0010/0011 (amd_enable_sdw_interrupts)
         │
-        ├── PASS (expected)
-        │      ping_irq / ping_status
-        │      queue_work
-        │      handle_status
-        │      bus UNATTACHED → ATTACHED
-        │      completion
-        │      RT721 OK
+        ▼
+        ???                     ← GAP: no sdw0_irq / ping_irq / queue_work (resume=N)
         │
-        └── FAIL (observed)
-               (silence in AMD+bus re-enumeration path)
-               RT721 Type-1 and/or Type-2 (below)
-               Dummy Output / no FW
+        ├── PASS (needed)
+        │      sdw0_irq → ping_irq → queue_work → ATTACHED → completion
+        │
+        └── FAIL (0010)
+               wait_init_timeout @ kernel t=+5358ms → -110
 ```
 
-**Conservative wording:** we observe **no log evidence** of post-reset re-enumeration activity in FAIL windows. That is compatible with “enumeration never starts” but must be confirmed with IRQ/`ping_irq` entry trace — not inferred from absence of `ping_status` alone.
+---
+
+## Hypotheses (revised post-0010)
+
+| ID | ~% | Statement |
+|----|---:|-----------|
+| **H-IRQ** | **80** | **ACP→SDW interrupt chain** (hardware assert, firmware, or PCI/routing) — STAT never fires or handler never sees it |
+| **H-SDW** | 15 | IRQ arrives but SDW protocol path empty (S4: `ping_irq` with sc=0) |
+| **H-other** | 5 | Unlikely: SDW core skip, codec, FW |
+
+Former H2–H4 collapse into H-SDW once hardware IRQ is proven.
+
+### Ruled out or deprioritized
+
+| Item | Status |
+|------|--------|
+| AMD never enables IRQs | **Ruled out** (0010) |
+| Codec root cause | **Witness** |
+| SoundWire bus core (pre-IRQ) | **Deprioritized** |
+| IO_PAGE_FAULT as necessary cause | **Demoted** — see observations |
 
 ---
 
-## What bus instrumentation already answered
+## Four scenarios (next bisect — 0005)
 
-`soundwire-bus.ko` PHASE6 trace is **sufficient** for its question:
+| # | Observation | Points to |
+|---|-------------|-----------|
+| **S1** | `ACP_EXTERNAL_INTR_STAT` SDW bit never set | HW / FW / ACP block |
+| **S2** | STAT bit set, no `acp_irq_handler` / `sdw0_irq` | IRQ routing, mask, IOMMU |
+| **S3** | handler runs, no `ping_irq` | workqueue / `schedule_work` |
+| **S4** | `ping_irq`, empty status, no `queue_work` | SDW protocol |
 
-- Did `state_change → ATTACHED` occur post-reset?
-- Did `completion` fire?
-
-Answer in FAIL runs: **NO** for all slaves (dev 1, 2, 3).
-
-**Do not add more bus.c trace** until AMD layer proves something reaches `sdw_handle_slave_status()`.
+Draft: [proposed/NEXT-ACP-HW-IRQ-TRACE.md](proposed/NEXT-ACP-HW-IRQ-TRACE.md)
 
 ---
 
-## Two FAIL classes (codec PM path)
+## FAIL classes (codec witness path)
 
-| Class | Runs | Post-reset kernel trace | RT721 PM |
-|-------|------|-------------------------|----------|
-| **FAIL-1** | 0004, 0005, 0006 | `manager_reset` → all UNATTACHED → **no** AMD ping/work/handle logs | `wait_init_start` → **kernel t=+5210ms** timeout → `ret=-110` |
-| **FAIL-2** | 0007 | `manager_reset` → **no** bus detach lines in narrow window; amd reset only | `resume_enter` → **`resume_early_exit reason=first_hw_init`** — **never** `wait_init_start` |
+| Class | Runs | RT721 |
+|-------|------|-------|
+| **FAIL-1** | 0004–0006, 0008–0010 | `wait_init` → timeout `-110` |
+| **FAIL-2** | 0007, **0011** | `resume_early_exit` (`first_hw_init`); no wait |
 
-FAIL-2 means RT721 **does not enter** `wait_for_completion_timeout()` at all (`first_hw_init=0`, `unattach_req=0` at early resume). Still consistent with broken link — codec skips wait when not fully initialized.
-
-Chronology run 0007: userspace `OK/WARN` with Dummy sink (audio broken); do not treat composite OK as PASS.
+Run **0011** (`resume=2`, same boot after 0010): same `irq_enabled` → silence, but FAIL-2 because `hw_init=0` from prior FAIL. Chronology `OK/WARN` + Dummy is **not** PASS. Use **clean reboot** before PASS capture.
 
 ---
 
 ## Run reference table
 
-| Run | Time | Resume path summary | Notes |
-|-----|------|---------------------|-------|
-| 0004 | 02:12:44 | reset → wait timeout -110 | First clean window capture |
-| 0005 | 02:31:15 | reset → no ping/work → timeout -110 | FAIL-1; `resume=1` (pre resume_id patch) |
-| 0006 | 02:55:08 | same as 0005 | FAIL-1, `run-6` |
-| 0007 | 03:01:15 | reset → early_exit only | FAIL-2; `resume=2`; no wait_init |
-| 0008 | 03:44:37 | reset → wait timeout -110 | FAIL-1; partial 0004 (no irq_enabled in ko) |
-| 0009 | 03:50:54 | reset → wait timeout -110 | FAIL-1; partial 0004; IO_PAGE_FAULT YES |
-| **0010** | 12:48:45 | **reset → irq_enabled → (silence) → timeout -110** | **FAIL-1; H1 signature; full 0004; IO_PAGE_FAULT NO |
+| Run | Time | AMD post-reset | Notes |
+|-----|------|----------------|-------|
+| 0010 | 12:48:45 | reset → **irq_enabled** → silence → -110 | **FAIL-1; inflection run**; IO_PAGE_FAULT **NO** |
+| 0011 | 12:53:42 | reset → irq_enabled → silence | FAIL-2 cascade; `resume=2`; IO_PAGE_FAULT YES |
 
-Tools:
+Earlier: 0004–0009 in git history; pre-`irq_enabled` runs useful but superseded by 0010.
 
 ```bash
-./scripts/phase6-experiment.sh sm RUN_ID   # includes Resume path block
-./scripts/phase6-experiment.sh tl RUN_ID
+./scripts/phase6-experiment.sh sm 0010
+./scripts/phase6-experiment.sh tl 0010
 ```
 
 ---
 
-## Revised hypotheses (post-reset chain)
+## Observations (not primary hypotheses)
 
-| ID | ~% | Break | Log signature (when AMD trace complete) |
-|----|---:|-------|----------------------------------------|
-| **H1** | **70** | ACP SDW **IRQ never arrives** after enable | `irq_enabled resume=N` → **no** `sdw0_irq` / `ping_irq` *(run 0010)* |
-| **H2** | 20 | IRQ but **empty status** / no work | `ping_irq` → no `queue_work` or bitmap=0 |
-| **H3** | 8 | `queue_work` but empty `handle_status` / no ATTACHED | work logs, no bus ATTACHED |
-| **H4** | 2 | SDW core skip | `handle_status` + ATTACHED in manager but bus skip — unlikely |
+### IO_PAGE_FAULT
 
-Previous codec/FW hypotheses: **deprioritized** (~5% combined).
+`snd_pci_ps` + `AMD-Vi: IO_PAGE_FAULT` appears in some FAIL windows (0004–0009, 0011) but **run 0010 FAILs without it**.
 
----
-
-## Binary question (answered on run 0010 — FAIL)
-
-> After `amd_resume_runtime()` and `manager_reset`, does the ACP controller **receive and process the first event** (IRQ / ping) that should start SoundWire re-enumeration?
-
-**Answer (run 0010, resume=1):** **NO.** `irq_enabled` logged at t=+~1ms post-reset; no `sdw0_irq`, `ping_irq`, or `queue_work` before RT721 `wait_init_timeout` at kernel t=+5358ms.
-
-Narrow to: **ACP hardware IRQ delivery / interrupt routing** (pci-ps → manager irq_thread), not codec or bus core.
-
----
-
-## Next instrumentation (H1 depth — proposed)
-
-**Not** more bus.c. **Reduce** AMD trace to existence probes only:
-
-| # | Location | Log |
-|---|----------|-----|
-| 1 | `amd_resume_runtime()` | `PHASE6 amd resume_enter resume=N` *(done)* |
-| 2 | After `amd_enable_sdw_interrupts()` | `PHASE6 amd irq_enabled resume=N` *(done — run 0010)* |
-| 3 | `pci-ps.c` `ACP_SDW0_STAT` → irq_thread **or** `amd_sdw_irq_thread` entry | `PHASE6 amd ping_irq resume=N` *(done — absent on resume=1)* |
-| 4 | Before `schedule_work(amd_sdw_work)` | `PHASE6 amd queue_work resume=N` *(done — absent on resume=1)* |
-
-**0004 complete.** Next probes (if H1 needs hardware proof):
-
-| # | Location | Question |
-|---|----------|----------|
-| 5 | `pci-ps.c` `acp63_irq_handler` entry | Does **any** ACP IRQ fire post-resume? |
-| 6 | `amd_enable_sdw_interrupts` | Log `ACP_EXTERNAL_INTR_CNTL` mask written |
-| 7 | `readl(ACP_EXTERNAL_INTR_STAT)` poll after enable | Status bit ever set without handler? |
-
-No masks, no slave states — only **did this step run** for `resume=N`.
-
-Draft: [proposed/NEXT-AMD-IRQ-TRACE.md](proposed/NEXT-AMD-IRQ-TRACE.md)
-
-Patch: [proposed/0004-phase6-amd-minimal-irq-trace.patch](proposed/0004-phase6-amd-minimal-irq-trace.patch) (applies on 0003; builds `soundwire-amd` + `snd-pci-ps`).
-
-Legacy verbose trace: [proposed/0003-phase6-amd-sdw-trace.patch](proposed/0003-phase6-amd-sdw-trace.patch).
-
----
-
-## IO_PAGE_FAULT correlation (open)
-
-`snd_pci_ps` + `AMD-Vi: IO_PAGE_FAULT` appears at **resume timestamp** in FAIL runs 0004–0007 (same second as `suspend_exit` / `manager_reset` in chronology dumps). Not yet correlated with a true PASS run.
-
-Track per run in Resume path block: `IO_PAGE_FAULT (window) YES/NO`.
-
-| Run | IO_PAGE_FAULT at resume |
-|-----|-------------------------|
-| 0004–0007, 0009 | YES |
+| Run | IO_PAGE_FAULT |
+|-----|---------------|
+| 0004–0009, 0011 | YES |
 | **0010** | **NO** |
-| PASS | *(none captured yet with AMD trace)* |
 
-IO_PAGE_FAULT is **not required** for FAIL (0010 fails without it). Track but do not treat as sole cause.
-
----
-
-## Upstream framing
-
-> After system sleep resume on AMD ACP70, `manager_reset` clears all SoundWire slaves. In FAIL run 0010, `irq_enabled` completes but **no log evidence** of `ACP_SDW0_STAT` / `ping_irq` occurs within the RT721 wait window; slaves never return to ATTACHED. Transition **`irq_enabled` → (no IRQ delivery)`** is the first broken step. RT721 `-110` is downstream.
-
-Still need ≥1 PASS with same trace for maintainer-ready contrast.
+**Conclusion:** temporal **correlation** only — not a necessary cause. Keep in Resume path block; do not drive patch target.
 
 ---
 
-## Do not touch (yet)
+## Upstream framing (maintainer-ready when PASS captured)
 
-- RT721 / TAS2783 behavior patches
-- `soc_sdw_utils`, machine driver
-- Additional `bus.c` instrumentation
-- `sdw_handle_slave_status()` until something calls it post-reset
+**FAIL (0010):**
+
+> After s2idle resume on ACP70, `manager_reset` and `amd_enable_sdw_interrupts()` complete (`irq_enabled`). No log evidence of `ACP_SDW0_STAT` / manager IRQ processing occurs before RT721 times out waiting for `initialization_complete()`. First broken transition: **`irq_enabled` → (no IRQ delivery)`**.
+
+**Contrast needed:**
+
+```text
+PASS:  manager_reset → irq_enabled → sdw0_irq → ping_irq → queue_work → ATTACHED → completion
+FAIL:  manager_reset → irq_enabled → (nothing) → timeout
+```
 
 ---
 
-## Exit criteria (updated)
+## Instrumentation status
 
-- [x] Bus model: post-reset no ATTACHED/completion (FAIL runs)
-- [x] FAIL-1 vs FAIL-2 taxonomy
-- [x] `sm` Resume path summary for quick run compare
-- [x] Minimal AMD IRQ trace installed (`irq_enabled`, `ping_irq`, `queue_work`) — run 0010
-- [x] ≥1 FAIL-1 with full chain bisect → **H1** (`irq_enabled` → silence)
-- [ ] ≥1 true PASS with same trace + Resume path Case D
-- [ ] IO_PAGE_FAULT correlation table (≥5 runs) — partial; not causal
+| Patch | Probes | Status |
+|-------|--------|--------|
+| 0003 | verbose amd + resume=N | Installed |
+| 0004 | irq_enabled, sdw0_irq, ping_irq, queue_work | Installed (0010) |
+| **0005** | intr_stat_post_enable, acp_irq_handler_enter | **Proposed** |
+
+---
+
+## Exit criteria
+
+- [x] `irq_enabled` proves enable path runs
+- [x] First missing step identified on FAIL-1 (0010)
+- [x] IO_PAGE_FAULT demoted to observation
+- [ ] 0005 hardware/routing bisect (S1–S4)
+- [ ] ≥1 **clean-boot PASS** with same trace (Case D)
+- [ ] PASS vs FAIL first-divergence table for upstream
 
 ---
 
 ## Commands
 
 ```bash
-./scripts/build-phase6-sdw-trace.sh
-./scripts/build-phase6-amd-trace.sh
-./scripts/build-phase6-rt721-trace.sh
-sudo reboot
+./scripts/build-phase6-amd-trace.sh   # 0003+0004 today; 0005 when landed
+sudo reboot                           # required before PASS attempt
+
 sudo systemctl mask --runtime px13-audio-rebind.service
-
 ./scripts/phase6-experiment.sh disarm
-./scripts/phase6-experiment.sh arm --notes run-N
+./scripts/phase6-experiment.sh arm --notes run-N-clean-boot
 systemctl suspend
-# wait ~60s for worker
 
-./scripts/phase6-experiment.sh sm
-./scripts/phase6-experiment.sh tl
-./scripts/phase6-experiment.sh status
+./scripts/phase6-experiment.sh sm RUN_ID
 ```

@@ -59,3 +59,5 @@ boot_id,timestamp,kernel,uid8_fw,uidb_fw,uid8_warn,uidb_warn,left_audio,right_au
 58,2026-07-10T03:49:57+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
 59,2026-07-10T03:53:35+02:00,7.0.0-27-generic,WARN,OK,28,0,,,suspend_resume,48000,NO,auto@suspend
 60,2026-07-10T12:36:49+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+61,2026-07-10T12:51:39+02:00,7.0.0-27-generic,WARN,OK,23,0,,,suspend_resume,48000,NO,auto@suspend
+62,2026-07-10T12:55:26+02:00,7.0.0-27-generic,WARN,OK,75,0,,,suspend_resume,48000,NO,auto@suspend

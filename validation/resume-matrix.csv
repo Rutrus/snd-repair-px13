@@ -9,3 +9,4 @@ boot_id,run_id,resume_ts,pm,attach,fw,speaker,audio,composite,uid8_attach_t60,po
 56,0008,2026-07-10T03:44:37,FAIL,NO,NO,NO,NO,FAIL,NO,N/A,run-8-0004-irq
 58,0009,2026-07-10T03:50:54,FAIL,NO,NO,NO,NO,FAIL,NO,N/A,run-8
 60,0010,2026-07-10T12:48:45,FAIL,NO,NO,NO,NO,FAIL,NO,N/A,run-10
+61,0011,2026-07-10T12:53:42,OK,NO,NO,NO,NO,WARN,NO,N/A,run-11-pass-attempt

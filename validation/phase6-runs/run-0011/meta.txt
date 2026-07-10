@@ -1,0 +1,4 @@
+resume_ts=jul 10 12:53:42
+window_since=2026-07-10 12:53:22
+window_until=2026-07-10 12:53:57
+load1=2.33

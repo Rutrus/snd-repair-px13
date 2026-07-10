@@ -88,19 +88,19 @@ phase6_resume_path_summary() {
 		echo "  fail_class: FAIL-2 (RT721 resume_early_exit, no wait_init)"
 	fi
 
-	# Case A/B/C/D sketch (log-based, IRQ-aware)
+	# Case / scenario sketch (IRQ-aware)
 	if [[ "$mr" -eq 1 && "$irq" -eq 1 && "$ping_irq" -eq 0 && "$acp_irq" -eq 0 ]]; then
-		echo "  → H1? (irq_enabled, no ACP IRQ / ping_irq)"
+		echo "  → S1/S2? (irq_enabled, no ACP IRQ — HW assert or routing)"
 	elif [[ "$mr" -eq 1 && "$acp_irq" -eq 1 && "$ping_irq" -eq 0 ]]; then
-		echo "  → H1? (ACP IRQ, irq_thread never ran)"
+		echo "  → S3? (ACP IRQ/handler, irq_thread never ran)"
 	elif [[ "$mr" -eq 1 && "$ping_irq" -eq 1 && "$qw" -eq 0 ]]; then
-		echo "  → H2? (ping_irq, no queue_work — empty status or PREQ-only)"
+		echo "  → S4? (ping_irq, no queue_work — empty status)"
 	elif [[ "$qw" -eq 1 && "$att" -eq 0 && "$comp" -eq 0 ]]; then
-		echo "  → H3? (queue_work, no bus ATTACHED/completion)"
+		echo "  → H-SDW? (queue_work, no bus ATTACHED/completion)"
 	elif [[ "$att" -eq 1 && "$comp" -eq 1 ]]; then
 		echo "  → Case D (PASS path)"
-	elif [[ "$mr" -eq 1 && "$ping_irq" -eq 0 && "$acp_irq" -eq 0 && "$ping" -eq 0 ]]; then
-		echo "  → H1? (post-reset: no ACP IRQ / ping_irq / ping_status)"
+	elif [[ "$mr" -eq 1 && "$irq" -eq 0 ]]; then
+		echo "  → pre-0004? (no irq_enabled log — rebuild module)"
 	fi
 	echo ""
 }

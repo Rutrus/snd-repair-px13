@@ -93,3 +93,13 @@ run_id,boot_id,proc_boot_id,resume_ts,offset_s,offset_ms,pm,uid8_attach,uidb_att
 0010,60,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:48:45,20,20000,FAIL,NO,NO,UNK,NO,UNK,NO,NONE,NO,NO,NO,1,active,active,unsupported,NO,FAIL,run-10
 0010,60,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:48:45,30,30000,FAIL,NO,NO,UNK,NO,UNK,NO,NONE,NO,NO,NO,2,active,active,unsupported,NO,FAIL,run-10
 0010,60,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:48:45,60,60000,FAIL,NO,NO,UNK,NO,UNK,NO,NONE,NO,NO,NO,3,active,active,unsupported,NO,FAIL,run-10
+0011,61,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:53:42,0,0,OK,UNK,UNK,UNK,UNK,UNK,YES,Dummy,NO,CLOSED,NO,0,active,active,unsupported,SKIP,WARN,run-11-pass-attempt
+0011,61,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:53:42,0.5,500,OK,UNK,UNK,UNK,UNK,UNK,YES,Dummy,NO,CLOSED,NO,0,active,active,unsupported,SKIP,WARN,run-11-pass-attempt
+0011,61,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:53:42,1,1000,OK,UNK,UNK,UNK,UNK,UNK,YES,Dummy,NO,CLOSED,NO,0,active,active,unsupported,SKIP,WARN,run-11-pass-attempt
+0011,61,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:53:42,2,2000,OK,UNK,UNK,UNK,UNK,UNK,YES,Dummy,NO,CLOSED,NO,0,active,active,unsupported,SKIP,WARN,run-11-pass-attempt
+0011,61,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:53:42,3,3000,OK,UNK,UNK,UNK,UNK,UNK,YES,Dummy,NO,CLOSED,NO,0,active,active,unsupported,SKIP,WARN,run-11-pass-attempt
+0011,61,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:53:42,5,5000,OK,UNK,UNK,UNK,UNK,UNK,YES,Dummy,NO,CLOSED,NO,0,active,active,unsupported,SKIP,WARN,run-11-pass-attempt
+0011,61,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:53:42,10,10000,OK,UNK,UNK,UNK,UNK,UNK,YES,Dummy,NO,CLOSED,NO,0,active,active,unsupported,NO,WARN,run-11-pass-attempt
+0011,61,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:53:42,20,20000,OK,NO,NO,UNK,NO,UNK,NO,NONE,NO,NO,NO,1,active,active,unsupported,NO,WARN,run-11-pass-attempt
+0011,61,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:53:42,30,30000,OK,NO,NO,NO,NO,UNK,NO,NONE,NO,NO,NO,2,MISSING,MISSING,MISSING,NO,WARN,run-11-pass-attempt
+0011,61,04c18a3f-b4a9-4b08-b698-d7a11fb9913d,2026-07-10T12:53:42,60,60000,OK,NO,NO,UNK,NO,UNK,YES,NONE,NO,NO,NO,9,active,active,unsupported,NO,WARN,run-11-pass-attempt
