@@ -1,192 +1,153 @@
 # Phase 6 investigation status (ACP70 / PX13)
 
-English (canonical). Last updated: 2026-07-10 (runs 0010–0011).
+English (canonical). Last updated: 2026-07-10 (runs 0010–0012).
 
-**Progress estimate:** ~92% delimitation. **Inflection point (commit 507e789 / run 0010):** investigation is no longer about codecs or SoundWire core — it is why the **ACP70 IRQ chain stops after a correct `manager_reset` + interrupt enable**.
+**Progress:** ~92% delimitation. **Method:** uncertainty shrinks one layer per iteration — not shotgun patching.
 
-**Filled link (run 0010):** `manager_reset` → **`irq_enabled`** → *(no SDW IRQ in log)* → `wait_init_timeout` (-110).
-
-See also: [SOUNDWIRE-RESUME-STATE-MACHINE.md](SOUNDWIRE-RESUME-STATE-MACHINE.md), [proposed/NEXT-ACP-HW-IRQ-TRACE.md](proposed/NEXT-ACP-HW-IRQ-TRACE.md)
+**Canonical facts (do not re-debate):** [KNOWN-FACTS.md](KNOWN-FACTS.md)
 
 ---
 
-## What is now solid
+## Problem statement (demonstrated)
 
-### 1. `amd_enable_sdw_interrupts()` is not the problem
+> The first observable failure occurs **after** `amd_resume_runtime()` executes `manager_reset` and re-enables interrupts. All SoundWire re-enumeration activity then **disappears from the log** until RT721 exhausts `wait_for_completion_timeout()` (~5 s, `-110`).
 
-Run 0010 logs `irq_enabled` immediately after `manager_reset`. Hypothesis *"AMD never re-enables interrupts"* is **ruled out**.
+Supported by repeated FAIL-1 runs (0010, 0012): `manager_reset` + `irq_enabled` always; no `sdw0_irq` / `ping_irq` / `queue_work` / `ATTACHED` / `completion`.
 
-### 2. Break is after enable — do not instrument earlier layers
+---
+
+## Upstream diagram (maintainer entry point)
 
 ```text
 resume
-│
-├── enable IRQ          ✅ (irq_enabled)
-│
-├── hardware IRQ?       ← ACTIVE SEARCH
-├── IRQ routing?
-├── handler runs?
-├── irq_thread runs?
-├── ping_status?
-└── queue_work?
+   ↓
+manager_reset                    ✅ always (FAIL-1)
+   ↓
+irq_enabled                      ✅ always (0010, 0012)
+   ↓
+────────────────────────────────  ← first reproducible gap
+(no ACP interrupt activity in log)
+────────────────────────────────
+   ↓
+no UNATTACHED → ATTACHED
+   ↓
+no completion()
+   ↓
+RT721 wait_init_timeout (-110)   witness only
 ```
 
-No further trace in PM resume entry, `manager_reset` setup, or bus.c until IRQ chain is bisected.
-
-### 3. Codecs are witnesses only
-
-RT721 `-110` and TAS2783 no-FW are **downstream** of missing `initialization_complete()`.
+A maintainer can start work **at the gap** — not at RT721 or TAS2783.
 
 ---
 
-## Demonstrated causal chain (updated)
+## What is proven vs what is not
+
+| Statement | Status |
+|-----------|--------|
+| `manager_reset` runs | **Proven** |
+| `irq_enabled` runs | **Proven** (0010, 0012) |
+| No downstream SDW activity in log | **Proven** (FAIL-1) |
+| RT721 `-110` is consequence | **Proven** |
+| Hardware never asserts IRQ | **Not proven** — only *no IRQ observable by current trace* |
+| IRQ routing broken | **Not proven** — 0005 bisects S1 vs S2 |
+
+Remaining branches after enable (0005 target):
 
 ```text
-system_resume
-        │
-        ▼
-amd_resume_runtime()          ✅ resume_enter
-        │
-        ▼
-manager_reset                 ✅ t=+0ms
-        │
-        ▼
-irq_enabled                   ✅ run 0010/0011 (amd_enable_sdw_interrupts)
-        │
-        ▼
-        ???                     ← GAP: no sdw0_irq / ping_irq / queue_work (resume=N)
-        │
-        ├── PASS (needed)
-        │      sdw0_irq → ping_irq → queue_work → ATTACHED → completion
-        │
-        └── FAIL (0010)
-               wait_init_timeout @ kernel t=+5358ms → -110
+enable IRQ
+      │
+      ├── HW never raises STAT bit          → S1
+      ├── HW raises bit, lost before handler → S2
+      ├── handler enters, exits early
+      └── handler takes non-SDW path
 ```
 
 ---
 
-## Hypotheses (revised post-0010)
+## Hypotheses (post-0010 / 0012)
 
-| ID | ~% | Statement |
-|----|---:|-----------|
-| **H-IRQ** | **80** | **ACP→SDW interrupt chain** (hardware assert, firmware, or PCI/routing) — STAT never fires or handler never sees it |
-| **H-SDW** | 15 | IRQ arrives but SDW protocol path empty (S4: `ping_irq` with sc=0) |
-| **H-other** | 5 | Unlikely: SDW core skip, codec, FW |
+| ID | ~% | Scope |
+|----|---:|-------|
+| **H-ACP** | **80** | ACP IRQ chain: hardware assert or PCI/routing (S1/S2) |
+| **H-SDW** | 15 | After IRQ proven: protocol / empty status |
+| **H-other** | 5 | Codec, FW, bus core skip |
 
-Former H2–H4 collapse into H-SDW once hardware IRQ is proven.
-
-### Ruled out or deprioritized
-
-| Item | Status |
-|------|--------|
-| AMD never enables IRQs | **Ruled out** (0010) |
-| Codec root cause | **Witness** |
-| SoundWire bus core (pre-IRQ) | **Deprioritized** |
-| IO_PAGE_FAULT as necessary cause | **Demoted** — see observations |
+See [KNOWN-FACTS.md](KNOWN-FACTS.md) for ruled-out items.
 
 ---
 
-## Four scenarios (next bisect — 0005)
+## FAIL classes
 
-| # | Observation | Points to |
-|---|-------------|-----------|
-| **S1** | `ACP_EXTERNAL_INTR_STAT` SDW bit never set | HW / FW / ACP block |
-| **S2** | STAT bit set, no `acp_irq_handler` / `sdw0_irq` | IRQ routing, mask, IOMMU |
-| **S3** | handler runs, no `ping_irq` | workqueue / `schedule_work` |
-| **S4** | `ping_irq`, empty status, no `queue_work` | SDW protocol |
+| Class | RT721 | Runs |
+|-------|-------|------|
+| **FAIL-1** | `wait_init` → `-110` | 0004–0006, 0008–0010, **0012** |
+| **FAIL-2** | `resume_early_exit` | 0007, 0011 (cascade; `resume≥2`) |
 
-Draft: [proposed/NEXT-ACP-HW-IRQ-TRACE.md](proposed/NEXT-ACP-HW-IRQ-TRACE.md)
+Chronology `OK` + Dummy ≠ PASS. Clean reboot before PASS capture.
 
 ---
 
-## FAIL classes (codec witness path)
+## Run reference (recent)
 
-| Class | Runs | RT721 |
-|-------|------|-------|
-| **FAIL-1** | 0004–0006, 0008–0010 | `wait_init` → timeout `-110` |
-| **FAIL-2** | 0007, **0011** | `resume_early_exit` (`first_hw_init`); no wait |
-
-Run **0011** (`resume=2`, same boot after 0010): same `irq_enabled` → silence, but FAIL-2 because `hw_init=0` from prior FAIL. Chronology `OK/WARN` + Dummy is **not** PASS. Use **clean reboot** before PASS capture.
-
----
-
-## Run reference table
-
-| Run | Time | AMD post-reset | Notes |
-|-----|------|----------------|-------|
-| 0010 | 12:48:45 | reset → **irq_enabled** → silence → -110 | **FAIL-1; inflection run**; IO_PAGE_FAULT **NO** |
-| 0011 | 12:53:42 | reset → irq_enabled → silence | FAIL-2 cascade; `resume=2`; IO_PAGE_FAULT YES |
-
-Earlier: 0004–0009 in git history; pre-`irq_enabled` runs useful but superseded by 0010.
+| Run | Post-reset AMD | Notes |
+|-----|----------------|-------|
+| 0010 | reset → irq_enabled → silence → -110 | Inflection; IO_PAGE_FAULT NO |
+| 0012 | same as 0010 | **Reproduces** 0010; IO_PAGE_FAULT NO |
+| 0011 | irq_enabled → silence | FAIL-2 cascade |
 
 ```bash
-./scripts/phase6-experiment.sh sm 0010
-./scripts/phase6-experiment.sh tl 0010
+./scripts/phase6-experiment.sh sm 0012
 ```
 
 ---
 
-## Observations (not primary hypotheses)
+## Instrumentation
 
-### IO_PAGE_FAULT
+| Patch | Purpose | Status |
+|-------|---------|--------|
+| 0003 | resume=N, bus witness | Installed |
+| 0004 | irq_enabled, sdw0_irq, ping_irq | Installed |
+| **0005** | **S1/S2 only:** `intr_stat_post_enable`, `irq_handler_enter`, `irq_thread_enter` | Ready — [0005](proposed/0005-phase6-s1-s2-bisect.patch) |
 
-`snd_pci_ps` + `AMD-Vi: IO_PAGE_FAULT` appears in some FAIL windows (0004–0009, 0011) but **run 0010 FAILs without it**.
-
-| Run | IO_PAGE_FAULT |
-|-----|---------------|
-| 0004–0009, 0011 | YES |
-| **0010** | **NO** |
-
-**Conclusion:** temporal **correlation** only — not a necessary cause. Keep in Resume path block; do not drive patch target.
+0005 instruments **ACP only** — not more SoundWire / `ping_status`.
 
 ---
 
-## Upstream framing (maintainer-ready when PASS captured)
+## Frozen scope
 
-**FAIL (0010):**
+RT721, TAS2783, machine driver, 0003 FW reload, PipeWire, `px13-audio-rebind`, extra `bus.c` — sufficient separation achieved.
 
-> After s2idle resume on ACP70, `manager_reset` and `amd_enable_sdw_interrupts()` complete (`irq_enabled`). No log evidence of `ACP_SDW0_STAT` / manager IRQ processing occurs before RT721 times out waiting for `initialization_complete()`. First broken transition: **`irq_enabled` → (no IRQ delivery)`**.
+---
 
-**Contrast needed:**
+## PASS value (when it appears)
+
+Same instrumentation; first divergence is the entire upstream story:
 
 ```text
-PASS:  manager_reset → irq_enabled → sdw0_irq → ping_irq → queue_work → ATTACHED → completion
-FAIL:  manager_reset → irq_enabled → (nothing) → timeout
+FAIL:  reset → irq_enabled → (silence) → timeout
+PASS:  reset → irq_enabled → handler → ping → queue_work → ATTACHED → completion
 ```
 
----
-
-## Instrumentation status
-
-| Patch | Probes | Status |
-|-------|--------|--------|
-| 0003 | verbose amd + resume=N | Installed |
-| 0004 | irq_enabled, sdw0_irq, ping_irq, queue_work | Installed (0010) |
-| **0005** | `intr_stat_post_enable`, `irq_handler_enter`, `irq_thread_enter` | **Ready** — [0005-phase6-s1-s2-bisect.patch](proposed/0005-phase6-s1-s2-bisect.patch) |
+Not required to continue S1/S2 bisect, but **gold** for maintainer report.
 
 ---
 
 ## Exit criteria
 
-- [x] `irq_enabled` proves enable path runs
-- [x] First missing step identified on FAIL-1 (0010)
-- [x] IO_PAGE_FAULT demoted to observation
-- [ ] 0005 S1/S2 bisect on ≥1 clean-boot FAIL (`run-13+`)
-- [ ] ≥1 **clean-boot PASS** with same trace (Case D)
-- [ ] PASS vs FAIL first-divergence table for upstream
+- [x] Known facts documented ([KNOWN-FACTS.md](KNOWN-FACTS.md))
+- [x] Reproducible FAIL-1 gap (0010 + 0012)
+- [x] `irq_enabled` proven; IO_PAGE_FAULT demoted
+- [ ] 0005 run: S1 or S2 on clean-boot FAIL
+- [ ] Optional: clean-boot PASS with same trace
 
 ---
 
 ## Commands
 
 ```bash
-./scripts/build-phase6-amd-trace.sh   # 0003+0004 today; 0005 when landed
-sudo reboot                           # required before PASS attempt
-
-sudo systemctl mask --runtime px13-audio-rebind.service
-./scripts/phase6-experiment.sh disarm
-./scripts/phase6-experiment.sh arm --notes run-N-clean-boot
+./scripts/build-phase6-amd-trace.sh   # 0003+0004+0005
+sudo reboot
+./scripts/phase6-experiment.sh arm --notes run-13-s1s2
 systemctl suspend
-
-./scripts/phase6-experiment.sh sm RUN_ID
+./scripts/phase6-experiment.sh sm
 ```

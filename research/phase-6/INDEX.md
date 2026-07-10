@@ -1,8 +1,9 @@
 # Phase 6 — State transition analysis (suspend → resume)
 
 > **Branch:** `research/suspend-lifecycle`  
-> **Status doc:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) ← **inflection run 0010** (`irq_enabled` → no IRQ)  
-> **Next trace:** [proposed/NEXT-ACP-HW-IRQ-TRACE.md](proposed/NEXT-ACP-HW-IRQ-TRACE.md) (0005: STAT → handler → thread)
+> **Facts (1 page):** [KNOWN-FACTS.md](KNOWN-FACTS.md) ← do not re-debate  
+> **Status:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md)  
+> **Next:** [0005 S1/S2 bisect](proposed/0005-phase6-s1-s2-bisect.patch)
 
 English (canonical). Phase 5 delivered playback/FW/stereo. Phase 6 explains **intermittent s2idle resume** on ACP70 SoundWire.
 
@@ -23,7 +24,8 @@ After `manager_reset`, FAIL-1 (0010) shows **`irq_enabled` then no IRQ** before 
 
 | Doc | Content |
 |-----|---------|
-| [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) | Runs, H1–H4, gap diagram, IO_PAGE_FAULT notes, exit criteria |
+| [KNOWN-FACTS.md](KNOWN-FACTS.md) | **Demonstrated facts only** — ruled-out hypotheses |
+| [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) | Runs, gap diagram, exit criteria |
 | [SOUNDWIRE-RESUME-STATE-MACHINE.md](SOUNDWIRE-RESUME-STATE-MACHINE.md) | State diagram, Case A–D |
 | [LINK-REENUMERATION-FAILURE.md](LINK-REENUMERATION-FAILURE.md) | Upstream wording |
 | [SDW-INITIALIZATION-COMPLETE-MAP.md](SDW-INITIALIZATION-COMPLETE-MAP.md) | wait/complete map |
