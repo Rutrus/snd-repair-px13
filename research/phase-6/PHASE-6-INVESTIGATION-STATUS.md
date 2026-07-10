@@ -19,7 +19,7 @@ English (canonical). Last updated: 2026-07-10 (run **0015**).
 |-------|--------|
 | Early Phase 6 | **Delimitation** — where does resume break? |
 | Runs 0013–0015 | Software path, registers, kicks — **closed on FAIL** |
-| **Now** | **Experimental contrast** — PASS vs FAIL; upstream draft ready |
+| **Now** | Phase 6 **observation closed** → [Phase 7 experiments](../phase-7/INDEX.md) |
 
 The project is no longer *"why RT721 times out."* That is answered. RT721 waits because nothing upstream signals `initialization_complete()`.
 
@@ -66,8 +66,9 @@ manager_reset → clear_slave_status → init/enable manager (ret=0)
 - [x] Software kick sequence complete on FAIL (0015)
 - [x] Instrumentation freeze + binary-question policy documented
 - [x] Upstream report draft (FAIL-only, conservative wording)
-- [ ] Bounded PASS hunt (≤20–30 attempts, rebind masked) — or declare scenario 3
-- [ ] Submit: scenario 2 now, or scenario 1 if PASS found
+- [x] Upstream report draft (scenario 2/3 submittable)
+- [ ] Optional: bounded PASS hunt (diminishing returns if N/N identical)
+- [x] Handoff to [Phase 7 — bring-up experiments](../phase-7/INDEX.md)
 
 ---
 

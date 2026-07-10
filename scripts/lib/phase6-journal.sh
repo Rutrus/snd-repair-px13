@@ -78,7 +78,7 @@ phase6_journal_extract_window() {
 	until="${bounds#*$'\t'}"
 	journalctl -k -b 0 --no-pager -o short-precise \
 		--since "$since" --until "$until" 2>/dev/null \
-		| grep -E 'PHASE6 ctx=|PM: suspend (entry|exit)' || true
+		| grep -E 'PHASE[67] ctx=|PM: suspend (entry|exit)' || true
 }
 
 # Save resume-window log for offline analysis (cross-boot safe).
@@ -137,7 +137,7 @@ phase6_lines_for_run() {
 	case "$mode" in
 	all_boot)
 		journalctl -k -b 0 --no-pager 2>/dev/null \
-			| grep -E 'PHASE6 ctx=|PM: suspend (entry|exit)' || true
+			| grep -E 'PHASE[67] ctx=|PM: suspend (entry|exit)' || true
 		;;
 	resume_window|*)
 		local exit_ts

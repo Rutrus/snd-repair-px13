@@ -1,0 +1,56 @@
+From: snd-repair phase7 <snd-repair@local>
+Date: Fri, 10 Jul 2026 18:35:00 +0200
+Subject: [PATCH phase7 0005] soundwire: amd: delay after D0 (falsification)
+
+Applies on Phase 6 trace series (0003–0007). NOT a fix — falsify timing
+hypothesis after ACP70 device_state D0 on POWER_OFF resume.
+
+module_param phase7_delay_ms (default 0 = control). Probes:
+delay_after_D0 delay_ms=N, intr_stat_post_delay delay_ms=N stat=...
+
+Signed-off-by: snd-repair phase7 <snd-repair@local>
+---
+--- a/drivers/soundwire/amd_manager.c
++++ b/drivers/soundwire/amd_manager.c
+@@ -13,6 +13,7 @@
+ #include <linux/ktime.h>
++#include <linux/delay.h>
+ #include <linux/module.h>
++#include <linux/moduleparam.h>
+ #include <linux/slab.h>
+ #include <linux/soundwire/sdw.h>
+ #include <linux/soundwire/sdw_registers.h>
+@@ -27,6 +28,16 @@
+ 
+ static atomic_t amd_phase6_system_sleep;
+ static atomic_t amd_phase6_resume_seq;
++
++/* Phase 7: falsify timing-after-D0 (0 = control). NOT a production fix. */
++static unsigned int snd_repair_phase7_delay_ms;
++module_param_named(phase7_delay_ms, snd_repair_phase7_delay_ms, uint, 0644);
++MODULE_PARM_DESC(phase7_delay_ms,
++		 "Phase7 falsification: msleep after D0 on resume (0=control)");
++
+ #define AMD_PHASE6_MAX_LINKS 2
+ static ktime_t amd_phase6_reset_ts[AMD_PHASE6_MAX_LINKS];
+ static int amd_phase6_link_resume_id[AMD_PHASE6_MAX_LINKS];
+@@ -1555,6 +1566,18 @@ static int __maybe_unused amd_resume_runtime(struct device *dev)
+ 			 bus->link_id, amd_phase6_resume_id(amd_manager),
+ 			 readl(amd_manager->acp_mmio +
+ 			       ACP_EXTERNAL_INTR_STAT(amd_manager->instance)));
++		if (snd_repair_phase7_delay_ms) {
++			dev_info(dev,
++				 "PHASE7 ctx=amd fn=delay_after_D0 link=%d resume=%d delay_ms=%u\n",
++				 bus->link_id, amd_phase6_resume_id(amd_manager),
++				 snd_repair_phase7_delay_ms);
++			msleep(snd_repair_phase7_delay_ms);
++			dev_info(dev,
++				 "PHASE7 ctx=amd fn=intr_stat_post_delay link=%d resume=%d delay_ms=%u stat=0x%x\n",
++				 bus->link_id, amd_phase6_resume_id(amd_manager),
++				 snd_repair_phase7_delay_ms,
++				 readl(amd_manager->acp_mmio +
++				       ACP_EXTERNAL_INTR_STAT(amd_manager->instance)));
++		}
+ 		if (ret)
+ 			return ret;
+ 	}

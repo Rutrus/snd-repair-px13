@@ -61,8 +61,10 @@ normalize_machine() {
 			echo "  sdw dev=${dev}  SKIP  (${reason})"
 		elif echo "$line" | grep -qE 'ctx=amd fn='; then
 			fn="$(echo "$line" | sed -n 's/.*fn=\([^ ]*\).*/\1/p')"
-			rest="$(echo "$line" | sed 's/.*PHASE6 ctx=amd //')"
-			echo "  amd  ${fn}  ${rest}"
+			rest="$(echo "$line" | sed 's/.*PHASE6 ctx=amd //; s/.*PHASE7 ctx=amd //')"
+			tag="amd"
+			echo "$line" | grep -q 'PHASE7 ctx=amd' && tag="p7"
+			echo "  ${tag}  ${fn}  ${rest}"
 		elif echo "$line" | grep -qE 'ctx=acp fn='; then
 			fn="$(echo "$line" | sed -n 's/.*fn=\([^ ]*\).*/\1/p')"
 			rest="$(echo "$line" | sed 's/.*PHASE6 ctx=acp //')"
