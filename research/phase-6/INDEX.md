@@ -1,21 +1,27 @@
 # Phase 6 — State transition analysis (suspend → resume)
 
 > **Branch:** `research/suspend-lifecycle`  
-> **Facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md) — phase boundary + irrefutable STAT wording  
-> **Status:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) (~95% delimitation)  
-> **0006:** [ACP block state snapshot](proposed/NEXT-ACP-STAT-ZERO.md) (not more SDW trace)
+> **Facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md)  
+> **Status:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) — delimitation complete (0015); **PASS hunt / upstream submit**  
+> **Upstream:** [UPSTREAM-REPORT-DRAFT.md](UPSTREAM-REPORT-DRAFT.md) · [UPSTREAM-CONTRAST.md](UPSTREAM-CONTRAST.md)
 
-English (canonical). Phase 5 delivered playback/FW/stereo. Phase 6 explains **intermittent s2idle resume** on ACP70 SoundWire.
+English (canonical). Phase 5 delivered playback/FW/stereo. Phase 6 documents **intermittent s2idle resume** on ACP70 SoundWire.
 
 ---
 
-## Current finding
+## Current finding (run 0015)
 
-After `manager_reset` + `irq_enabled`, run **0013** shows **`ACP_EXTERNAL_INTR_STAT=0`** and no handler (S1; S2 ruled out on that run).
+Software `POWER_OFF` resume sequence **complete** on FAIL; block **programmed**; **`STAT=0`** and **no handler** in wait window. RT721 `-110` is downstream.
 
 ```bash
-./scripts/phase6-experiment.sh sm 0013   # S1 bisect
+/home/rutrus/snd_repair/scripts/phase6-hunt.sh post-reboot --notes run-NN
+systemctl suspend
+/home/rutrus/snd_repair/scripts/phase6-hunt.sh post-suspend
 ```
+
+Or: `./scripts/phase6-experiment.sh sm` for last resume window only.
+
+**Do not add horizontal trace.** Capture PASS with same 0003–0007.
 
 ---
 
@@ -23,13 +29,15 @@ After `manager_reset` + `irq_enabled`, run **0013** shows **`ACP_EXTERNAL_INTR_S
 
 | Doc | Content |
 |-----|---------|
-| [KNOWN-FACTS.md](KNOWN-FACTS.md) | **Demonstrated facts only** — ruled-out hypotheses |
-| [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) | Runs, gap diagram, exit criteria |
-| [SOUNDWIRE-RESUME-STATE-MACHINE.md](SOUNDWIRE-RESUME-STATE-MACHINE.md) | State diagram, Case A–D |
-| [LINK-REENUMERATION-FAILURE.md](LINK-REENUMERATION-FAILURE.md) | Upstream wording |
-| [SDW-INITIALIZATION-COMPLETE-MAP.md](SDW-INITIALIZATION-COMPLETE-MAP.md) | wait/complete map |
+| [KNOWN-FACTS.md](KNOWN-FACTS.md) | Demonstrated vs not demonstrated |
+| [UPSTREAM-REPORT-DRAFT.md](UPSTREAM-REPORT-DRAFT.md) | **Submit-ready** — Observed / Not demonstrated / golden diff |
+| [UPSTREAM-CONTRAST.md](UPSTREAM-CONTRAST.md) | Golden diff table + submit checklist |
+| [UPSTREAM-STRATEGY.md](UPSTREAM-STRATEGY.md) | No-PASS strategy, deterministic FAIL, userspace contrast |
+| [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) | Runs, exit criteria |
+| [proposed/0006-phase6-acp-block-state.patch](proposed/0006-phase6-acp-block-state.patch) | ACP register snapshot (0006) |
+| [proposed/0007-phase6-resume-kick-trace.patch](proposed/0007-phase6-resume-kick-trace.patch) | Resume kick sequence trace (0007) |
+| [SOUNDWIRE-RESUME-STATE-MACHINE.md](SOUNDWIRE-RESUME-STATE-MACHINE.md) | State diagram |
 | [AMD-RESUME-PATHS.md](AMD-RESUME-PATHS.md) | Static call graph |
-| [HYPOTHESES.md](HYPOTHESES.md) | Legacy H1–H4 (see status doc for revised IRQ hypotheses) |
 
 ---
 
@@ -37,33 +45,23 @@ After `manager_reset` + `irq_enabled`, run **0013** shows **`ACP_EXTERNAL_INTR_S
 
 | Script | Role |
 |--------|------|
-| [`scripts/phase6-experiment.sh`](../../scripts/phase6-experiment.sh) | `arm` · `disarm` · `arm --force` · `sm` · `tl` · `matrix` · `status` |
-| [`scripts/phase6-state-machine.sh`](../../scripts/phase6-state-machine.sh) | State sequence + **Resume path** block |
-| [`scripts/phase6-resume-timeline.sh`](../../scripts/phase6-resume-timeline.sh) | Δt timeline (kernel clock for waits) |
-| [`scripts/build-phase6-amd-trace.sh`](../../scripts/build-phase6-amd-trace.sh) | AMD PHASE6 0003+0004 (IRQ chain + snd-pci-ps) |
-| [`scripts/build-phase6-sdw-trace.sh`](../../scripts/build-phase6-sdw-trace.sh) | Bus PHASE6 trace |
-| [`scripts/build-phase6-rt721-trace.sh`](../../scripts/build-phase6-rt721-trace.sh) | RT721 PHASE6 trace |
+| [`scripts/phase6-hunt.sh`](../../scripts/phase6-hunt.sh) | **post-reboot / post-suspend** PASS hunt workflow |
+| [`scripts/phase6-experiment.sh`](../../scripts/phase6-experiment.sh) | `arm` · `sm` · `status` |
+| [`scripts/phase6-state-machine.sh`](../../scripts/phase6-state-machine.sh) | State sequence + Resume path block |
+| [`scripts/build-phase6-amd-trace.sh`](../../scripts/build-phase6-amd-trace.sh) | AMD 0003–0007 (keep for PASS) |
+
+Bus/RT721 build scripts — **frozen** for root-cause work.
 
 ---
+
+## Exit criteria
+
+See [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md). Remaining: **PASS run** or scenario-3 submit.
 
 ## Artifacts
 
 | Path | Content |
 |------|---------|
 | `validation/phase6-runs/run-NNNN/` | Per-run dumps + `kmsg-phase6-window.log` |
+| `validation/phase6-hunt-log.csv` | Bounded PASS hunt log (kernel witness per attempt) |
 | `validation/phase6-chronology.csv` | Userspace samples |
-| `validation/resume-matrix.csv` | Composite row per run |
-
----
-
-## Relation to Phase 5
-
-Phase 5 patches (TAS2783 FW, etc.) **frozen** until re-enumeration path is understood. RT721/TAS2783 are witnesses only.
-
-Prior: [`../phase-5/BIFURCATION-EXPERIMENT.md`](../phase-5/BIFURCATION-EXPERIMENT.md)
-
----
-
-## Exit criteria
-
-See [PHASE-6-INVESTIGATION-STATUS.md#exit-criteria-updated](PHASE-6-INVESTIGATION-STATUS.md#exit-criteria-updated).

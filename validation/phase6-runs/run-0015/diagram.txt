@@ -1,0 +1,15 @@
+=== Phase 6 timeline diagram — run 0015 ===
+resume (anchor 0 ms)
+ │
+ ├─ +-3323000 ms  [kernel    ] PM suspend exit
+ ├─ +-3323000 ms  [kernel    ] RT721 resume enter
+ ├─ +-3323000 ms  [kernel    ] RT721 wait init
+ ├─ +-3323000 ms  [hardware  ] rt721 init timeout
+ ├─ +-3323000 ms  [kernel    ] RT721 resume exit
+ ├─ +-3323000 ms  [hardware  ] RT721 Unattached
+ ├─ +-3323000 ms  [kernel    ] RT721 PM -110
+ ├─ +-3323000 ms  [hardware  ] :8 Unattached
+ │
+ └──── end of captured events
+
+Total events: 24  (full log: validation/phase6-events.csv)

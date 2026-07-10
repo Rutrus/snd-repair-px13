@@ -18,13 +18,19 @@ BUILD="$KERNEL_BUILD"
 PATCH="$REPO_ROOT/research/phase-6/proposed/0003-phase6-amd-sdw-trace.patch"
 PATCH4="$REPO_ROOT/research/phase-6/proposed/0004-phase6-amd-minimal-irq-trace.patch"
 PATCH5="$REPO_ROOT/research/phase-6/proposed/0005-phase6-s1-s2-bisect.patch"
+PATCH6="$REPO_ROOT/research/phase-6/proposed/0006-phase6-acp-block-state.patch"
+PATCH7="$REPO_ROOT/research/phase-6/proposed/0007-phase6-resume-kick-trace.patch"
 STAMP="$SRC/.snd-repair-phase6-amd-trace"
 STAMP4="$SRC/.snd-repair-phase6-amd-irq-trace"
 STAMP5="$SRC/.snd-repair-phase6-s1s2-trace"
+STAMP6="$SRC/.snd-repair-phase6-acp-block-state"
+STAMP7="$SRC/.snd-repair-phase6-resume-kick"
 
 [[ -f "$PATCH" ]] || { echo "Missing $PATCH" >&2; exit 1; }
 [[ -f "$PATCH4" ]] || { echo "Missing $PATCH4" >&2; exit 1; }
 [[ -f "$PATCH5" ]] || { echo "Missing $PATCH5" >&2; exit 1; }
+[[ -f "$PATCH6" ]] || { echo "Missing $PATCH6" >&2; exit 1; }
+[[ -f "$PATCH7" ]] || { echo "Missing $PATCH7" >&2; exit 1; }
 
 if [[ ! -f "$SRC/.snd-repair-upstream-applied" ]]; then
 	"$SCRIPT_DIR/apply-upstream-patches.sh"
@@ -49,6 +55,14 @@ phase6_amd_hw_trace_present() {
 	grep -q 'fn=intr_stat_post_enable' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
 }
 
+phase6_amd_block_state_present() {
+	grep -q 'fn=intr_cntl_post_enable' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
+}
+
+phase6_amd_kick_trace_present() {
+	grep -q 'fn=device_state_D0' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
+}
+
 cleanup_rejects() {
 	rm -f "$SRC/drivers/soundwire/amd_manager.c.rej"
 	rm -f "$SRC/sound/soc/amd/ps/pci-ps.c.rej"
@@ -58,7 +72,7 @@ if [[ -f "$STAMP" ]]; then
 	echo "==> Re-applying from upstream base (prior phase6 AMD stamp found)"
 	"$SCRIPT_DIR/reset-kernel-tree.sh"
 	"$SCRIPT_DIR/apply-upstream-patches.sh"
-	rm -f "$STAMP" "$STAMP4" "$STAMP5"
+	rm -f "$STAMP" "$STAMP4" "$STAMP5" "$STAMP6" "$STAMP7"
 fi
 
 if phase6_amd_trace_present; then
@@ -109,9 +123,43 @@ else
 	fi
 fi
 
+if phase6_amd_block_state_present; then
+	echo "==> PHASE6 ACP block state (0006) already present — skip"
+	cleanup_rejects
+else
+	echo "==> Applying 0006-phase6-acp-block-state.patch"
+	if patch -p1 --forward -d "$SRC" <"$PATCH6"; then
+		cleanup_rejects
+	elif phase6_amd_block_state_present; then
+		echo "==> Patch 0006 reported already applied — continuing"
+		cleanup_rejects
+	else
+		echo "ERROR: AMD patch 0006 failed" >&2
+		exit 1
+	fi
+fi
+
+if phase6_amd_kick_trace_present; then
+	echo "==> PHASE6 resume kick trace (0007) already present — skip"
+	cleanup_rejects
+else
+	echo "==> Applying 0007-phase6-resume-kick-trace.patch"
+	if patch -p1 --forward -d "$SRC" <"$PATCH7"; then
+		cleanup_rejects
+	elif phase6_amd_kick_trace_present; then
+		echo "==> Patch 0007 reported already applied — continuing"
+		cleanup_rejects
+	else
+		echo "ERROR: AMD patch 0007 failed" >&2
+		exit 1
+	fi
+fi
+
 date -Is >"$STAMP"
 date -Is >"$STAMP4"
 date -Is >"$STAMP5"
+date -Is >"$STAMP6"
+date -Is >"$STAMP7"
 
 echo "==> Building soundwire-amd + snd-pci-ps (phase6 AMD/ACP trace)"
 make -C "$BUILD" M="$(pwd)/drivers/soundwire" CONFIG_SOUNDWIRE=m CONFIG_SOUNDWIRE_AMD=m modules
@@ -129,7 +177,11 @@ backup_ps="$HOME/${name_ps}.zst.orig"
 [[ -f "$ko" ]] || { echo "Missing $ko" >&2; exit 1; }
 [[ -f "$ko_ps" ]] || { echo "Missing $ko_ps" >&2; exit 1; }
 
-if strings "$ko" | grep -q 'fn=intr_stat_post_enable'; then
+if strings "$ko" | grep -q 'fn=device_state_D0'; then
+	echo "OK: PHASE6 resume kick trace strings present (0007)"
+elif strings "$ko" | grep -q 'fn=intr_cntl_post_enable'; then
+	echo "OK: PHASE6 ACP block state strings present (0006)"
+elif strings "$ko" | grep -q 'fn=intr_stat_post_enable'; then
 	echo "OK: PHASE6 S1/S2 bisect strings present"
 elif strings "$ko" | grep -qE 'fn=irq_enabled|fn=ping_irq'; then
 	echo "OK: PHASE6 AMD IRQ trace strings present (0004 only — rebuild for 0005)"

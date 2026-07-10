@@ -64,3 +64,11 @@ boot_id,timestamp,kernel,uid8_fw,uidb_fw,uid8_warn,uidb_warn,left_audio,right_au
 63,2026-07-10T12:59:52+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
 64,2026-07-10T13:03:50+02:00,7.0.0-27-generic,WARN,OK,23,0,,,suspend_resume,48000,NO,auto@suspend
 65,2026-07-10T13:13:32+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+66,2026-07-10T13:25:08+02:00,7.0.0-27-generic,WARN,OK,23,0,,,suspend_resume,48000,NO,auto@suspend
+67,2026-07-10T13:43:26+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+68,2026-07-10T14:00:44+02:00,7.0.0-27-generic,WARN,OK,23,0,,,suspend_resume,48000,NO,auto@suspend
+69,2026-07-10T14:08:08+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+70,2026-07-10T15:20:01+02:00,7.0.0-27-generic,WARN,OK,22,0,,,suspend_resume,48000,NO,auto@suspend
+71,2026-07-10T15:24:23+02:00,7.0.0-27-generic,OK,OK,0,0,,,boot,48000,NO,auto@boot
+72,2026-07-10T15:30:58+02:00,7.0.0-27-generic,WARN,OK,23,0,,,suspend_resume,48000,NO,auto@suspend
+73,2026-07-10T15:55:01+02:00,7.0.0-27-generic,WARN,OK,73,0,,,suspend_resume,48000,NO,auto@suspend

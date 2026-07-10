@@ -16,6 +16,7 @@ Material for diagnosis and **active investigation** on the PX13.
 | [track-C-webcam-media0.md](track-C-webcam-media0.md) | Webcam media0 (P3, independent) |
 | [track-D-userspace-pipewire.md](track-D-userspace-pipewire.md) | PipeWire / px13 / systemd |
 | [FAILURE-REPORT-2026-07-09.md](FAILURE-REPORT-2026-07-09.md) | Consolidated failure report |
+| **[phase-6/INDEX.md](phase-6/INDEX.md)** | **Phase 6** — ACP70 resume delimitation, upstream draft, PASS hunt |
 
 **Quick snapshot:**
 

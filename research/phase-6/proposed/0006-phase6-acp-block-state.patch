@@ -1,0 +1,48 @@
+From: snd-repair phase6 <snd-repair@local>
+Date: Fri, 10 Jul 2026 13:35:00 +0200
+Subject: [PATCH phase6 6/6] soundwire: amd: ACP block state snapshot (0006)
+
+Applies on 0005. One structured register snapshot after manager_reset
+resume path — is the block prepared for the first event?
+
+Probes: intr_cntl_post_enable, intr_stat_post_enable (0005),
+sdw_en_post_resume, clk_frame, intr_stat_post_bringup.
+
+Signed-off-by: snd-repair phase6 <snd-repair@local>
+---
+--- a/drivers/soundwire/amd_manager.c
++++ b/drivers/soundwire/amd_manager.c
+@@ -1497,14 +1497,32 @@ static int __maybe_unused amd_resume_runtime(struct device *dev)
+ 		amd_enable_sdw_interrupts(amd_manager);
+ 		dev_info(dev, "PHASE6 ctx=amd fn=irq_enabled link=%d resume=%d\n",
+ 			 bus->link_id, amd_phase6_resume_id(amd_manager));
++		dev_info(dev,
++			 "PHASE6 ctx=amd fn=intr_cntl_post_enable link=%d resume=%d val=0x%x\n",
++			 bus->link_id, amd_phase6_resume_id(amd_manager),
++			 readl(amd_manager->acp_mmio +
++			       ACP_EXTERNAL_INTR_CNTL(amd_manager->instance)));
+ 		dev_info(dev,
+ 			 "PHASE6 ctx=amd fn=intr_stat_post_enable link=%d resume=%d stat=0x%x\n",
+ 			 bus->link_id, amd_phase6_resume_id(amd_manager),
+ 			 readl(amd_manager->acp_mmio +
+ 			       ACP_EXTERNAL_INTR_STAT(amd_manager->instance)));
+ 		ret = amd_enable_sdw_manager(amd_manager);
+ 		if (ret)
+ 			return ret;
++		dev_info(dev,
++			 "PHASE6 ctx=amd fn=sdw_en_post_resume link=%d resume=%d val=0x%x\n",
++			 bus->link_id, amd_phase6_resume_id(amd_manager),
++			 readl(amd_manager->mmio + ACP_SW_EN_STATUS));
+ 		amd_sdw_set_frameshape(amd_manager);
++		dev_info(dev,
++			 "PHASE6 ctx=amd fn=clk_frame link=%d resume=%d val=0x%x\n",
++			 bus->link_id, amd_phase6_resume_id(amd_manager),
++			 readl(amd_manager->mmio + ACP_SW_FRAMESIZE));
++		dev_info(dev,
++			 "PHASE6 ctx=amd fn=intr_stat_post_bringup link=%d resume=%d stat=0x%x\n",
++			 bus->link_id, amd_phase6_resume_id(amd_manager),
++			 readl(amd_manager->acp_mmio +
++			       ACP_EXTERNAL_INTR_STAT(amd_manager->instance)));
+ 	}
+ 	if (amd_manager->acp_rev >= ACP70_PCI_REV_ID) {
+ 		ret = amd_sdw_set_device_state(amd_manager, AMD_SDW_DEVICE_STATE_D0);

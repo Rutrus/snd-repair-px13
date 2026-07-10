@@ -1,0 +1,136 @@
+=== offset=2000s since_resume=jul 10 14:09:03 2026-07-10T14:09:29+02:00 ===
+--- wpctl status ---
+PipeWire 'pipewire-0' [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, cookie:2178444219]
+ └─ Clients:
+        33. WirePlumber                         [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:5773]
+        37. pipewire                            [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:5776]
+        40. WirePlumber [export]                [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:5773]
+        70. GNOME Volume Control Media Keys     [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6418]
+        73. libcanberra                         [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6419]
+        74. wpctl                               [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:12667]
+        75. gnome-shell                         [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6289]
+        76. GNOME Shell Volume Control          [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6289]
+        77. xdg-desktop-portal                  [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6731]
+
+Audio
+ ├─ Devices:
+ │      57. Radeon High Definition Audio Controller [alsa]
+ │      58. Audio Coprocessor                   [alsa]
+ │  
+ ├─ Sinks:
+ │  *   62. Audio Coprocessor Speaker           [vol: 0.65]
+ │      63. Audio Coprocessor Headphones        [vol: 1.00]
+ │  
+ ├─ Sources:
+ │      64. Audio Coprocessor Headset Microphone [vol: 1.00]
+ │  
+ ├─ Filters:
+ │  
+ └─ Streams:
+
+Video
+ ├─ Devices:
+ │  
+ ├─ Sinks:
+ │  
+ ├─ Sources:
+ │  
+ ├─ Filters:
+ │  
+ └─ Streams:
+
+Settings
+ └─ Default Configured Devices:
+--- pw-cli ls Node ---
+	id 30, type PipeWire:Interface:Node/3
+ 		object.serial = "30"
+ 		factory.id = "11"
+ 		priority.driver = "200000"
+ 		node.name = "Dummy-Driver"
+	id 31, type PipeWire:Interface:Node/3
+ 		object.serial = "31"
+ 		factory.id = "11"
+ 		priority.driver = "190000"
+ 		node.name = "Freewheel-Driver"
+	id 54, type PipeWire:Interface:Node/3
+ 		object.serial = "54"
+ 		factory.id = "11"
+ 		client.id = "40"
+ 		priority.session = "100"
+ 		priority.driver = "1"
+ 		node.name = "Midi-Bridge"
+ 		media.class = "Midi/Bridge"
+	id 59, type PipeWire:Interface:Node/3
+ 		object.serial = "59"
+ 		factory.id = "14"
+ 		client.id = "40"
+ 		node.description = "BLE MIDI 1"
+ 		node.name = "bluez_midi.server"
+ 		media.class = "Midi/Bridge"
+	id 62, type PipeWire:Interface:Node/3
+ 		object.serial = "62"
+ 		object.path = "alsa:acp:amdsoundwire:0:playback"
+ 		factory.id = "19"
+ 		client.id = "40"
+ 		device.id = "58"
+ 		priority.session = "712"
+ 		priority.driver = "712"
+ 		node.description = "Audio Coprocessor Speaker"
+ 		node.name = "alsa_output.pci-0000_c4_00.5-platform-amd_sdw.HiFi__Speaker__sink"
+ 		node.nick = "Speaker"
+ 		media.class = "Audio/Sink"
+	id 63, type PipeWire:Interface:Node/3
+ 		object.serial = "63"
+ 		object.path = "alsa:acp:amdsoundwire:1:playback"
+--- aplay -l ---
+**** Lista de PLAYBACK dispositivos hardware ****
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 3: HDMI 0 [HDMI 0]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 7: HDMI 1 [HDMI 1]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 8: HDMI 2 [HDMI 2]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 9: HDMI 3 [HDMI 3]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 1: amdsoundwire [amd-soundwire], dispositivo 0: SDW1-PIN0-PLAYBACK-SimpleJack rt721-sdca-aif1-0 []
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 1: amdsoundwire [amd-soundwire], dispositivo 2: SDW1-PIN1-PLAYBACK-SmartAmp multicodec-2 []
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+--- SDW sysfs status ---
+/sys/bus/soundwire/devices/sdw:0:1:0102:0000:01:8/status: UNATTACHED/sys/bus/soundwire/devices/sdw:0:1:0102:0000:01:b/status: UNATTACHED/sys/bus/soundwire/devices/sdw:0:1:025d:0721:01/status: UNATTACHED--- dmesg since resume (tail) ---
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=clear_slave_status link=1 resume=2
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=init_sdw_manager link=1 resume=2 ret=0
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=irq_enabled link=1 resume=2
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=intr_cntl_post_enable link=1 resume=2 val=0x400004
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=intr_stat_post_enable link=1 resume=2 stat=0x0
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=enable_sdw_manager link=1 resume=2 ret=0
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=sdw_en_post_resume link=1 resume=2 val=0x1
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=frameshape_done link=1 resume=2
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=clk_frame link=1 resume=2 val=0xc
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=intr_stat_post_bringup link=1 resume=2 stat=0x0
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=device_state_D0 link=1 resume=2 ret=0 val=0x0
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=intr_stat_post_D0 link=1 resume=2 stat=0x0
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=pm fn=system_resume uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: resume: initialization timed out
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PM: dpm_run_callback(): acpi_subsys_resume returns -110
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PM: failed to resume: error -110
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=pm fn=system_resume uid=0xb hw_init=0 fw_done=0 fw_ok=0
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: resume: initialization timed out
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PM: dpm_run_callback(): acpi_subsys_resume returns -110
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PM: failed to resume: error -110
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: OOM killer enabled.
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: Restarting tasks: Starting
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: Restarting tasks: Done
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: efivarfs: resyncing variable state
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: efivarfs: finished resyncing variable state
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: random: crng reseeded on system resumption
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend exit
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: hid-sensor-hub 0020:1022:0001.0008: Event data for report 4 was too short (18 vs 14)
+jul 10 14:09:29 Colosal3-ProArt-PX13-HN7306EAC kernel: hid-sensor-hub 0020:1022:0001.0008: Event data for report 4 was too short (18 vs 14)

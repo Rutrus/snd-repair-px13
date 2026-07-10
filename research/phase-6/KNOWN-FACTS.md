@@ -4,6 +4,8 @@ English (canonical). **One page.** Facts supported by repeated runs — not hypo
 
 **Rule:** If a future run contradicts a fact, update this file and cite the run. Do not re-debate ruled-out items without new evidence.
 
+**Patch rule:** Each new patch must answer **exactly one binary question** — see [UPSTREAM-REPORT-DRAFT.md](UPSTREAM-REPORT-DRAFT.md#instrumentation-policy-frozen).
+
 Status / runs: [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md)
 
 ---
@@ -14,10 +16,34 @@ Status / runs: [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md
 |-----------|--------------------------|
 | Early Phase 6 | `manager_reset` → **?** → `wait_init_timeout` |
 | Run **0013** (0005) | `irq_enabled` → **`ACP_EXTERNAL_INTR_STAT = 0`** → (no IRQ) |
+| Run **0014** (0006) | Block configured (`CNTL`, `EN`, `FRAME`) but **`STAT = 0`** → (no IRQ) |
+| Run **0015** (0007) | Full software kick sequence **`ret=0`**; **`STAT = 0`** post-D0 → (no IRQ) |
+| **Now** | **Delimitation complete** — experimental **PASS vs FAIL** contrast (not more FAIL trace) |
 
-We no longer infer the break from missing `completion()` alone. Run 0013 found the **first observable state** that differs from expected PASS behaviour.
+**Investigation goal:** obtain the [golden diff](UPSTREAM-REPORT-DRAFT.md#golden-diff-primary-experimental-goal). FAIL column filled (0015); PASS column pending.
 
-**Investigation goal now:** explain why the ACP block does not present the expected post-reset state — not *where* the sequence breaks.
+Report draft (submit without PASS if wording is conservative): [UPSTREAM-REPORT-DRAFT.md](UPSTREAM-REPORT-DRAFT.md).
+
+---
+
+## Demonstrated vs not demonstrated
+
+### Demonstrated (maintainer-safe)
+
+1. Full `amd_resume_runtime()` `POWER_OFF` sequence runs on FAIL-1 (0015): `manager_reset` through `device_state_D0`, all instrumented steps `ret=0`.
+2. `INTR_CNTL`, `SDW_EN`, `FRAME` read as programmed on FAIL (0014–0015).
+3. `ACP_EXTERNAL_INTR_STAT` is **0** on instrumented reads after enable, bringup, and D0.
+4. **No** `irq_handler_enter` / `irq_thread_enter` during the RT721 wait window (~5 s).
+5. **No** downstream SoundWire enumeration activity before RT721 `-110`.
+6. RT721, TAS2783, `bus.c` are **not** the first failure.
+
+### Not demonstrated (do not over-claim)
+
+| Claim | Why not |
+|-------|---------|
+| Hardware never asserts interrupt | Only single-point reads + no handler in window |
+| Wrong register values on FAIL | Reads match expected programmed state |
+| Which HW mechanism inside open box | Needs PASS diff or AMD HW input |
 
 ---
 
@@ -128,6 +154,65 @@ Earlier runs (0010, 0012) established silence after `irq_enabled`; 0005 / 0013 n
 
 ---
 
+## FACT 11 — ACP block reads configured on FAIL (run 0014; 0006)
+
+Run **0014** (`run-14-0006`, resume=1, FAIL-1):
+
+| Probe | Value |
+|-------|-------|
+| `intr_cntl_post_enable` | `0x400004` |
+| `intr_stat_post_enable` | `0x0` |
+| `sdw_en_post_resume` | `0x1` |
+| `clk_frame` | `0xc` |
+| `intr_stat_post_bringup` | `0x0` |
+
+Still: no `irq_handler_enter`, no `irq_thread_enter`, `wait_init_timeout`, RT721 `-110`.
+
+**Ruled out on 0014 (maintainer-safe):** *"Resume path failed to program INTR_CNTL / enable SDW / set frame."* Registers read as expected; **no pending interrupt visible** at both post-enable and post-bringup reads.
+
+**What remains:** the step that should make hardware assert the first `ACP_EXTERNAL_INTR_STAT` bit (see [proposed/NEXT-RESUME-KICK.md](proposed/NEXT-RESUME-KICK.md)). AMD has no explicit `start_bus()` — first event is hardware-autonomous after manager enable + frameshape (+ ACP70 `D0`).
+
+---
+
+## FACT 12 — Full resume kick sequence runs on FAIL; still no HW event (run 0015; 0007)
+
+Run **0015** (clean boot, `resume=1`, FAIL-1, 0007):
+
+| Kick probe | Result |
+|------------|--------|
+| `clk_resume_skip` | logged (no clock-resume reg) |
+| `clear_slave_status` | yes |
+| `init_sdw_manager` | `ret=0` |
+| `enable_sdw_manager` | `ret=0` |
+| `frameshape_done` | yes |
+| `device_state_D0` | `ret=0` `val=0x0` (D0 encodes as 0 — expected) |
+| `intr_stat_post_D0` | `0x0` |
+
+Same block reads as FACT 11 (`CNTL=0x400004`, `EN=1`, `FRAME=0xc`). Still: no `irq_handler_enter`, no `irq_thread_enter`, `wait_init_timeout`, RT721 `-110`.
+
+**Ruled out on 0015 (maintainer-safe):** *"A software kick step on the AMD resume path did not run or failed before completion."* Every instrumented step through `device_state_D0` completed with `ret=0`; **no `ACP_EXTERNAL_INTR_STAT` bit and no IRQ** in the wait window.
+
+**Strongest FAIL witness to date** for upstream: software sequence complete; first hardware-autonomous event never observed.
+
+---
+
+## FACT 13 — No kernel witness PASS with 0003–0007 (as of 0015)
+
+With Phase 6 AMD instrumentation (0003–0007), **no run to date** shows on clean-boot first suspend (`resume=1`):
+
+- `irq_handler_enter` + `ping_irq` + `completion()`, and
+- absence of `wait_init_timeout` / RT721 `-110`,
+
+without userspace recovery (`px13-audio-rebind`, PCI reset, etc.).
+
+Instrumented FAIL-1 on `resume=1` **is** repeated (0010, 0012, 0013, 0014, 0015).
+
+**Userspace audio OK ≠ kernel PASS** (FACT 9). Early run 0002 reported kernel-side RT721 success **before** full AMD trace — not a golden-diff PASS.
+
+**If this holds after bounded PASS hunt (≥20 attempts):** treat as **deterministic kernel FAIL** on this platform; upstream question becomes *why first post-reset HW event is never observed*, not *why PASS/FAIL diverge*. See [UPSTREAM-STRATEGY.md](UPSTREAM-STRATEGY.md).
+
+---
+
 ## FACT 8 — FAIL-2 is a distinct witness class
 
 `resume_early_exit reason=first_hw_init` — RT721 **does not wait**. Often a cascade after a prior FAIL in the same boot (`resume=2+`).
@@ -142,45 +227,50 @@ Chronology composite can show OK while the sink is Dummy / no FW. The kernel wit
 
 ---
 
-## FACT 10 — Investigation scope
+## FACT 10 — Investigation scope (updated run 0015)
 
-The current root-cause investigation is limited to the **ACP interrupt and re-enumeration path**.
+**FAIL path instrumentation is complete.** Do not add RT721, TAS2783, `bus.c`, or horizontal AMD existence probes (0008+) without evidence that breaks FACT 1–12 or a PASS/FAIL diff that opens a new question.
 
-The first missing transition is **identified** (FACT 7): `irq_enabled` → `STAT=0` → no IRQ to software.
+**Active work:** PASS capture with 0003–0007 — see [UPSTREAM-CONTRAST.md](UPSTREAM-CONTRAST.md).
 
-Investigation is now **why `ACP_EXTERNAL_INTR_STAT` stays 0** after `manager_reset` — ACP70 HW / sequencing only. **No further SoundWire or codec instrumentation** without new evidence.
-
-Do not propose RT721 or TAS2783 trace changes without evidence that breaks FACT 3–5.
+The open question is at the **hardware boundary** after software kick sequence completes, not in downstream SoundWire or codecs.
 
 ---
 
 ## Frozen (do not touch for root-cause investigation)
 
-- RT721 / TAS2783 behavior patches  
+- RT721 / TAS2783 behavior patches and **trace** — witness role complete  
 - Machine driver, `soc_sdw_utils`  
 - Phase 5 FW reload (0003)  
 - PipeWire / `px13-audio-rebind`  
-- Additional `bus.c` trace (question answered)
+- `bus.c` trace — question answered  
+- **AMD 0008+** horizontal instrumentation — default **no**; see [UPSTREAM-CONTRAST.md](UPSTREAM-CONTRAST.md)
 
-**Active layer:** ACP70 — why `ACP_EXTERNAL_INTR_STAT` is 0 after reset (see [proposed/NEXT-ACP-STAT-ZERO.md](proposed/NEXT-ACP-STAT-ZERO.md)). S2 ruled out on run 0013.
+**Keep:** 0003–0007 installed for PASS/FAIL contrast only.
 
 ---
 
 ## Upstream one-liner (FAIL)
 
-> After s2idle resume on AMD ACP70, `manager_reset` and interrupt re-enable succeed, but `ACP_EXTERNAL_INTR_STAT` reads **0** immediately after enable and no IRQ reaches the handler; re-enumeration never starts; RT721 `-110` is downstream.
+> On s2idle resume (FAIL-1, run 0015), the instrumented `POWER_OFF` resume sequence completes with all observed steps returning 0; control registers read as programmed; **`ACP_EXTERNAL_INTR_STAT` is 0** on reads after enable, bringup, and D0; **no IRQ handler runs** during the ~5 s before RT721 times out; re-enumeration never starts in the log window.
+
+**Do not write:** *hardware never asserts interrupt.* **Do write:** the observation above.
+
+**Next:** [UPSTREAM-CONTRAST.md](UPSTREAM-CONTRAST.md) · If PASS never appears: [UPSTREAM-STRATEGY.md](UPSTREAM-STRATEGY.md)
 
 **Gold contrast (same instrumentation — highest upstream value):**
 
-| | FAIL (0013) | PASS (target) |
+| | FAIL (0015) | PASS (target) |
 |--|-------------|---------------|
-| `irq_enabled` | yes | yes |
-| `ACP_EXTERNAL_INTR_STAT` | **0** | **≠0** |
+| `resume=` | 1 (clean boot) | 1 |
+| All kick probes | `ret=0` | same |
+| `INTR_CNTL` / `SDW_EN` / `FRAME` | programmed | same |
+| `intr_stat_post_D0` | **0** | **≠0** |
 | IRQ handler | no | yes |
 | `completion()` | no | yes |
 | RT721 | `-110` | OK |
 
 ```text
-FAIL:  irq_enabled → STAT=0 → (no handler) → timeout
-PASS:  irq_enabled → STAT≠0 → handler → … → completion
+FAIL:  kicks complete → STAT=0 post-D0 → (no handler) → timeout
+PASS:  kicks complete → STAT≠0 post-D0 → handler → … → completion
 ```

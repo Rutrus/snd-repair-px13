@@ -1,0 +1,136 @@
+=== offset=5000s since_resume=jul 10 15:28:03 2026-07-10T15:28:09+02:00 ===
+--- wpctl status ---
+PipeWire 'pipewire-0' [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, cookie:974608557]
+ └─ Clients:
+        33. WirePlumber                         [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6190]
+        36. pipewire                            [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6194]
+        40. WirePlumber [export]                [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6190]
+        74. GNOME Volume Control Media Keys     [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6852]
+        75. gnome-shell                         [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6674]
+        76. GNOME Shell Volume Control          [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:6674]
+        77. xdg-desktop-portal                  [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:7154]
+        86. Chromium input                      [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:17366]
+        87. wpctl                               [1.6.2, rutrus@Colosal3-ProArt-PX13-HN7306EAC, pid:20781]
+
+Audio
+ ├─ Devices:
+ │      57. Radeon High Definition Audio Controller [alsa]
+ │      58. Audio Coprocessor                   [alsa]
+ │  
+ ├─ Sinks:
+ │  *   62. Audio Coprocessor Speaker           [vol: 0.65]
+ │      63. Audio Coprocessor Headphones        [vol: 1.00]
+ │  
+ ├─ Sources:
+ │      64. Audio Coprocessor Headset Microphone [vol: 1.00]
+ │  
+ ├─ Filters:
+ │  
+ └─ Streams:
+
+Video
+ ├─ Devices:
+ │  
+ ├─ Sinks:
+ │  
+ ├─ Sources:
+ │  
+ ├─ Filters:
+ │  
+ └─ Streams:
+
+Settings
+ └─ Default Configured Devices:
+--- pw-cli ls Node ---
+	id 30, type PipeWire:Interface:Node/3
+ 		object.serial = "30"
+ 		factory.id = "11"
+ 		priority.driver = "200000"
+ 		node.name = "Dummy-Driver"
+	id 31, type PipeWire:Interface:Node/3
+ 		object.serial = "31"
+ 		factory.id = "11"
+ 		priority.driver = "190000"
+ 		node.name = "Freewheel-Driver"
+	id 54, type PipeWire:Interface:Node/3
+ 		object.serial = "54"
+ 		factory.id = "11"
+ 		client.id = "40"
+ 		priority.session = "100"
+ 		priority.driver = "1"
+ 		node.name = "Midi-Bridge"
+ 		media.class = "Midi/Bridge"
+	id 59, type PipeWire:Interface:Node/3
+ 		object.serial = "59"
+ 		factory.id = "14"
+ 		client.id = "40"
+ 		node.description = "BLE MIDI 1"
+ 		node.name = "bluez_midi.server"
+ 		media.class = "Midi/Bridge"
+	id 62, type PipeWire:Interface:Node/3
+ 		object.serial = "62"
+ 		object.path = "alsa:acp:amdsoundwire:0:playback"
+ 		factory.id = "19"
+ 		client.id = "40"
+ 		device.id = "58"
+ 		priority.session = "712"
+ 		priority.driver = "712"
+ 		node.description = "Audio Coprocessor Speaker"
+ 		node.name = "alsa_output.pci-0000_c4_00.5-platform-amd_sdw.HiFi__Speaker__sink"
+ 		node.nick = "Speaker"
+ 		media.class = "Audio/Sink"
+	id 63, type PipeWire:Interface:Node/3
+ 		object.serial = "63"
+ 		object.path = "alsa:acp:amdsoundwire:1:playback"
+--- aplay -l ---
+**** Lista de PLAYBACK dispositivos hardware ****
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 3: HDMI 0 [HDMI 0]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 7: HDMI 1 [HDMI 1]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 8: HDMI 2 [HDMI 2]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 0: Generic [HD-Audio Generic], dispositivo 9: HDMI 3 [HDMI 3]
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 1: amdsoundwire [amd-soundwire], dispositivo 0: SDW1-PIN0-PLAYBACK-SimpleJack rt721-sdca-aif1-0 []
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+tarjeta 1: amdsoundwire [amd-soundwire], dispositivo 2: SDW1-PIN1-PLAYBACK-SmartAmp multicodec-2 []
+  Subdispositivos: 1/1
+  Subdispositivo #0: subdevice #0
+--- SDW sysfs status ---
+/sys/bus/soundwire/devices/sdw:0:1:0102:0000:01:8/status: UNATTACHED/sys/bus/soundwire/devices/sdw:0:1:0102:0000:01:b/status: UNATTACHED/sys/bus/soundwire/devices/sdw:0:1:025d:0721:01/status: UNATTACHED--- dmesg since resume (tail) ---
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-61): at snd_soc_link_prepare() on SDW1-PIN1-PLAYBACK-SmartAmp
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: SDW_SCP_BUSCLOCK_SCALE register write failed
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: Program params failed: -61
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-61): at snd_soc_link_prepare() on SDW1-PIN1-PLAYBACK-SmartAmp
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: SDW_SCP_BUSCLOCK_SCALE register write failed
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: Program params failed: -61
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-61): at snd_soc_link_prepare() on SDW1-PIN1-PLAYBACK-SmartAmp
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: SDW_SCP_BUSCLOCK_SCALE register write failed
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: Program params failed: -61
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-61): at snd_soc_link_prepare() on SDW1-PIN1-PLAYBACK-SmartAmp
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: SDW_SCP_BUSCLOCK_SCALE register write failed
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: Program params failed: -61
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-61): at snd_soc_link_prepare() on SDW1-PIN1-PLAYBACK-SmartAmp
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: SDW_SCP_BUSCLOCK_SCALE register write failed
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: Program params failed: -61
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-61): at snd_soc_link_prepare() on SDW1-PIN1-PLAYBACK-SmartAmp
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 1 failed:-5 write addr 8089 count 0
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw amd_sdw: ASoC: PRE_PMD: tas2783-2 FU21 event failed: -5
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 1 failed:-5 write addr 8109 count 0
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw amd_sdw: ASoC: PRE_PMD: tas2783-2 FU23 event failed: -5
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 2 failed:-5 write addr 8089 count 0
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw amd_sdw: ASoC: PRE_PMD: tas2783-1 FU21 event failed: -5
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 2 failed:-5 write addr 8109 count 0
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw amd_sdw: ASoC: PRE_PMD: tas2783-1 FU23 event failed: -5
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: de-prep failed for port 1, err=-61
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: Slave Port Prep cmd 1 failed: -61
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: SDW_DPN_INTMASK write failed:0
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: De-prepare port(s) failed: -61
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 2 failed:-5 write addr 8608 count 0
+jul 10 15:28:08 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 1 failed:-5 write addr 8608 count 0

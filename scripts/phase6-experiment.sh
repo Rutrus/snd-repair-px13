@@ -3,6 +3,9 @@
 #
 #   baseline [--notes N]
 #   arm [--notes N]          # then: systemctl suspend
+#   sm | state-machine       # last resume window
+#
+# PASS hunt workflow: scripts/phase6-hunt.sh post-reboot | post-suspend
 #   status
 #   diff RUN_A RUN_B         # first diverging event (all layers)
 #   diagram RUN_ID           # ASCII timeline

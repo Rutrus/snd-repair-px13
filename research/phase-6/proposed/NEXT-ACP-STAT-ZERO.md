@@ -60,9 +60,9 @@ If PASS shows identical CNTL + enable but STAT≠0 only on PASS → timing/kick 
 - No new `bus.c`, `ping_status`, codec PM.
 - No behaviour-changing fixes until FAIL vs PASS snapshot differs.
 
-Patch file: create `0006-phase6-acp-block-state.patch` when implementing (applies on 0005).
+Patch file: `0006-phase6-acp-block-state.patch` (applies on 0005).
 
-Build: extend `scripts/build-phase6-amd-trace.sh`.
+Build: `scripts/build-phase6-amd-trace.sh` applies 0003–0006.
 
 ---
 

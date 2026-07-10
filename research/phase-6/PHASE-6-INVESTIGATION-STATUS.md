@@ -1,81 +1,84 @@
 # Phase 6 investigation status (ACP70 / PX13)
 
-English (canonical). Last updated: 2026-07-10 (run **0013**).
+English (canonical). Last updated: 2026-07-10 (run **0015**).
 
-**Delimitation:** ~**95%** — *where* the sequence breaks is identified; ~**5%** remains (*why* STAT=0 on FAIL + PASS contrast).
+**Delimitation:** FAIL path **complete** (run 0015). **Explanation:** open — PASS contrast or AMD input.
 
-**Facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md) · **0006 plan:** [proposed/NEXT-ACP-STAT-ZERO.md](proposed/NEXT-ACP-STAT-ZERO.md)
-
----
-
-## Objective shift (not a percentage game)
-
-| Stage | First unknown |
-|-------|----------------|
-| Early Phase 6 | `manager_reset` → **?** → timeout |
-| **Now (0013)** | `irq_enabled` → **`STAT=0`** → no IRQ |
-
-The project no longer searches *where* it fails. It explains **why the first expected hardware-visible state does not appear** after `manager_reset` + `irq_enabled`.
+| Doc | Role |
+|-----|------|
+| [KNOWN-FACTS.md](KNOWN-FACTS.md) | Demonstrated vs not demonstrated |
+| [UPSTREAM-REPORT-DRAFT.md](UPSTREAM-REPORT-DRAFT.md) | **Submit-ready draft** (usable before PASS) |
+| [UPSTREAM-STRATEGY.md](UPSTREAM-STRATEGY.md) | **If PASS never appears** — scenarios 2/3, bounded hunt |
+| [UPSTREAM-CONTRAST.md](UPSTREAM-CONTRAST.md) | Golden diff + capture procedure |
 
 ---
 
-## Observable break (run 0013)
+## Phase shift
+
+| Stage | Focus |
+|-------|--------|
+| Early Phase 6 | **Delimitation** — where does resume break? |
+| Runs 0013–0015 | Software path, registers, kicks — **closed on FAIL** |
+| **Now** | **Experimental contrast** — PASS vs FAIL; upstream draft ready |
+
+The project is no longer *"why RT721 times out."* That is answered. RT721 waits because nothing upstream signals `initialization_complete()`.
+
+---
+
+## Demonstrated on FAIL (0015, `resume=1`)
 
 ```text
-manager_reset → irq_enabled → ACP_EXTERNAL_INTR_STAT=0 → (no handler) → no completion → -110
+manager_reset → clear_slave_status → init/enable manager (ret=0)
+  → irq_enabled → block programmed → frameshape → D0 (ret=0)
+  → STAT=0 (post-enable, post-bringup, post-D0)
+  → no handler in ~5 s → no re-enumeration → RT721 -110
 ```
 
-**Maintainer-safe fact:** on the instrumented read immediately after `irq_enabled`, STAT is 0 and no IRQ handler activity occurs during the wait window. **Not** equivalent to proving HW never fires.
+**Conservative claim:** no pending interrupt visible on instrumented reads; no handler in wait window. **Not:** hardware never fires.
 
 ---
 
-## PASS contrast (gold)
+## Frozen
 
-| | FAIL | PASS |
-|--|------|------|
-| `irq_enabled` | ✓ | ✓ |
-| STAT | 0 | ≠0 |
-| handler | ✗ | ✓ |
-| completion | ✗ | ✓ |
-| RT721 | -110 | OK |
+- RT721 / TAS2783 / `bus.c` instrumentation — closed
+- AMD patches 0008+ horizontal traces — **no default**; see [UPSTREAM-CONTRAST.md](UPSTREAM-CONTRAST.md)
+- Phase 5 codec patches, PipeWire, px13-rebind — out of scope
 
-Same instrumentation (0003–0005; 0006 optional). More convincing than extra log volume.
+**Installed trace (keep):** 0003–0007 for PASS capture only.
 
 ---
 
-## Next: 0006 (ACP block state only)
-
-Structured snapshot after enable — CNTL, STAT, SDW enable, optional clock/frame — answering *is the block prepared to generate the first event?*
-
-**Frozen:** RT721, TAS2783, bus.c, userspace, PipeWire, px13 rebind.
-
----
-
-## Runs
+## Key runs
 
 | Run | Note |
 |-----|------|
-| 0010, 0012 | Gap after `irq_enabled` |
-| **0013** | STAT=0, S2 ruled out |
-
-```bash
-./scripts/phase6-experiment.sh sm 0013
-```
+| 0013 | STAT=0, S1; S2 ruled out |
+| 0014 | Block snapshot (0006) |
+| **0015** | **Full kick sequence `ret=0`; STAT=0 post-D0** — strongest FAIL |
 
 ---
 
 ## Exit criteria
 
-- [x] First **observable** break identified (STAT=0, 0013)
-- [x] S2 ruled out on 0013
-- [ ] 0006 block-state snapshot on FAIL (+ PASS compare)
-- [ ] Clean-boot PASS with 0003–0005
+- [x] Observable break identified (STAT=0 + no handler)
+- [x] S2 ruled out (0013)
+- [x] Block programmed on FAIL (0014)
+- [x] Software kick sequence complete on FAIL (0015)
+- [x] Instrumentation freeze + binary-question policy documented
+- [x] Upstream report draft (FAIL-only, conservative wording)
+- [ ] Bounded PASS hunt (≤20–30 attempts, rebind masked) — or declare scenario 3
+- [ ] Submit: scenario 2 now, or scenario 1 if PASS found
 
 ---
 
-## Commands
+## Commands (PASS hunt)
 
 ```bash
-./scripts/build-phase6-amd-trace.sh
-./scripts/phase6-experiment.sh sm 0013
+/home/rutrus/snd_repair/scripts/phase6-hunt.sh post-reboot --notes run-NN-attempt
+systemctl suspend
+/home/rutrus/snd_repair/scripts/phase6-hunt.sh post-suspend
 ```
+
+Log: `/home/rutrus/snd_repair/validation/phase6-hunt-log.csv`
+
+See [UPSTREAM-STRATEGY.md](UPSTREAM-STRATEGY.md). If audio works but `sm` shows FAIL-1, treat as valuable data — audio PASS ≠ kernel witness PASS (FACT 9).

@@ -7,7 +7,7 @@
 
 **Phase 5 (branch `research/suspend-lifecycle`):** TAS2783 lifecycle traced; 0003 **on hold**. → [`phase-5/INDEX.md`](phase-5/INDEX.md)
 
-**Phase 6:** **State transition analysis** — PASS vs FAIL bifurcation after resume; **no kernel patches**. → [`phase-6/INDEX.md`](phase-6/INDEX.md)
+**Phase 6:** ACP70 SoundWire resume — delimitation complete (run 0015); upstream submit + bounded PASS hunt. → [`phase-6/INDEX.md`](phase-6/INDEX.md)
 
 Líneas **independientes**. No mezclar evidencia entre tracks salvo correlación explícita en logs.
 
