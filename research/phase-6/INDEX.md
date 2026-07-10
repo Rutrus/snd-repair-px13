@@ -1,9 +1,8 @@
 # Phase 6 — State transition analysis (suspend → resume)
 
 > **Branch:** `research/suspend-lifecycle`  
-> **Facts (1 page):** [KNOWN-FACTS.md](KNOWN-FACTS.md) ← do not re-debate  
-> **Status:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md)  
-> **Next:** [0005 S1/S2 bisect](proposed/0005-phase6-s1-s2-bisect.patch)
+> **Facts:** [KNOWN-FACTS.md](KNOWN-FACTS.md) · **Status:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md)  
+> **0013:** S1 — `STAT=0` after enable · **Next:** [why STAT=0](proposed/NEXT-ACP-STAT-ZERO.md)
 
 English (canonical). Phase 5 delivered playback/FW/stereo. Phase 6 explains **intermittent s2idle resume** on ACP70 SoundWire.
 
@@ -11,11 +10,10 @@ English (canonical). Phase 5 delivered playback/FW/stereo. Phase 6 explains **in
 
 ## Current finding
 
-After `manager_reset`, FAIL-1 (0010) shows **`irq_enabled` then no IRQ** before timeout. FAIL-2 (0011) is cascade after prior FAIL — not PASS.
+After `manager_reset` + `irq_enabled`, run **0013** shows **`ACP_EXTERNAL_INTR_STAT=0`** and no handler (S1; S2 ruled out on that run).
 
 ```bash
-./scripts/phase6-experiment.sh sm 0010   # FAIL-1 inflection
-./scripts/phase6-experiment.sh sm 0011   # FAIL-2 cascade
+./scripts/phase6-experiment.sh sm 0013   # S1 bisect
 ```
 
 ---

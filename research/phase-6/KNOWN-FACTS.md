@@ -20,7 +20,7 @@ This chain does **not** depend on TAS2783, PipeWire, or userspace recovery scrip
 
 Observed in **every instrumented FAIL-1 run to date** with AMD trace (`resume=N`, `pm=system_resume`).
 
-Runs: 0004–0006, 0008–0010, 0012.
+Runs: 0004–0006, 0008–0010, 0012, **0013**.
 
 ---
 
@@ -28,7 +28,7 @@ Runs: 0004–0006, 0008–0010, 0012.
 
 Observed in **every instrumented FAIL-1 run to date** with patch 0004+: `amd_enable_sdw_interrupts()` completes; log `fn=irq_enabled` appears immediately after reset.
 
-Runs: **0010**, **0012** (reproducible clean-boot FAIL-1).
+Runs: **0010**, **0012**, **0013** (reproducible clean-boot FAIL-1).
 
 **Ruled out:** *"AMD never re-enables interrupts after resume."*
 
@@ -47,7 +47,7 @@ After `irq_enabled`, for matching `resume=N`:
 | bus `UNATTACHED → ATTACHED` | **No** |
 | `completion()` | **No** |
 
-Runs: 0010, 0012 (and pre-0004 FAILs consistent with the same gap).
+Runs: 0010, 0012, **0013** (and pre-0004 FAILs consistent with the same gap).
 
 **No evidence of any transition from the ACP manager into the SoundWire enumeration path was observed after `irq_enabled`.**
 
@@ -79,27 +79,35 @@ Some other FAILs show correlation — track as **observation**, not cause.
 
 ---
 
-## FACT 7 — First known gap; S1 on run 0013 (0005)
+## FACT 7 — First known gap (run 0013; S1, S2 ruled out on that run)
 
 ```text
+manager_reset
+      ↓
 irq_enabled
-      │
-      ├──────────────  ← gap (0010, 0012: no observed IRQ activity)
-      │  intr_stat_post_enable = 0x0   (0013, immediately post-enable)
-      │  irq_handler_enter = none    (0013, full wait window)
-      ├──────────────  → S1 pattern (not S2)
-      │
-      ▼
+      ↓
+ACP_EXTERNAL_INTR_STAT = 0x0     ← 0013, read immediately post-enable
+      ↓
+(no observed IRQ handler / thread)
+      ↓
 (no ATTACHED / no completion)
-      ▼
+      ↓
 RT721 timeout (-110)
 ```
 
-**Run 0013 (`run-13-s1s2`, resume=1):** after `irq_enabled`, `intr_stat_post_enable stat=0x0`; no `irq_handler_enter` or `irq_thread_enter` before `wait_init_timeout` at kernel t=+5131ms. **`sm` verdict: S1** — no pending interrupt visible at enable time and no handler activity during wait.
+**Run 0013 (`run-13-s1s2`, resume=1):** `intr_stat_post_enable stat=0x0`; no `irq_handler_enter` or `irq_thread_enter` before `wait_init_timeout` at kernel t=+5131ms. **`sm` verdict: S1.**
 
-**Conservative reading:** compatible with the ACP block **not asserting** a post-reset interrupt (hardware / firmware / sequencing). **Rules out S2** on this run (stat≠0 but no handler). Does not prove the bit never toggles later without a later STAT poll; does prove no delivered IRQ reached software in the wait window.
+**Ruled out on 0013 (maintainer-safe):** **S2** — not *stat≠0 with no handler*; observed *stat=0* and no handler.
 
-Earlier runs (0010, 0012) established the gap before 0005; 0013 names it **S1**.
+**What `STAT=0` does not identify by itself:**
+
+1. Event **never generated** (most likely given full wait window with no handler).
+2. Event generated **later** — single post-enable read may miss it (would need STAT poll or PASS trace).
+3. Event requires a **prior kick** (clock, power, first PING, FW) that never occurs on this path.
+
+`STAT=0` locates the break; it does not name which mechanism failed.
+
+Earlier runs (0010, 0012) established silence after `irq_enabled`; 0005 / 0013 names **stat=0 + S1**.
 
 ---
 
@@ -121,9 +129,11 @@ Chronology composite can show OK while the sink is Dummy / no FW. The kernel wit
 
 The current root-cause investigation is limited to the **ACP interrupt and re-enumeration path**.
 
-Further instrumentation below the codec layer is **intentionally frozen** until the first missing transition between `irq_enabled` and SoundWire re-enumeration is identified.
+The first missing transition is **identified** (FACT 7): `irq_enabled` → `STAT=0` → no IRQ to software.
 
-Do not propose RT721 or TAS2783 trace changes without new evidence that breaks FACT 3–5.
+Investigation is now **why `ACP_EXTERNAL_INTR_STAT` stays 0** after `manager_reset` — ACP70 HW / sequencing only. **No further SoundWire or codec instrumentation** without new evidence.
+
+Do not propose RT721 or TAS2783 trace changes without evidence that breaks FACT 3–5.
 
 ---
 
@@ -135,20 +145,20 @@ Do not propose RT721 or TAS2783 trace changes without new evidence that breaks F
 - PipeWire / `px13-audio-rebind`  
 - Additional `bus.c` trace (question answered)
 
-**Active layer:** ACP block post-`irq_enabled` — why `ACP_EXTERNAL_INTR_STAT` is 0x0 after reset (S1). IRQ routing (S2) ruled out on run 0013.
+**Active layer:** ACP70 — why `ACP_EXTERNAL_INTR_STAT` is 0 after reset (see [proposed/NEXT-ACP-STAT-ZERO.md](proposed/NEXT-ACP-STAT-ZERO.md)). S2 ruled out on run 0013.
 
 ---
 
 ## Upstream one-liner (FAIL)
 
-> After s2idle resume on AMD ACP70, `manager_reset` and interrupt re-enable succeed. No observed transition from the ACP manager into SoundWire re-enumeration occurs in the log window; slaves never return to ATTACHED; RT721 `-110` is downstream.
+> After s2idle resume on AMD ACP70, `manager_reset` and interrupt re-enable succeed, but `ACP_EXTERNAL_INTR_STAT` reads **0** immediately after enable and no IRQ reaches the handler; re-enumeration never starts; RT721 `-110` is downstream.
 
 **Gold contrast (when captured):**
 
 ```text
-FAIL:  reset → irq_enabled → (no observed IRQ activity) → timeout
+FAIL:  reset → irq_enabled → STAT=0 → (no handler) → timeout
 
-PASS:  reset → irq_enabled → ACP IRQ → ping → queue_work → ATTACHED → completion
+PASS:  reset → irq_enabled → STAT≠0 → handler → … → ATTACHED → completion
 ```
 
-Until PASS is captured, 0005 S1/S2 bisect remains the next step — not a return to codec-layer instrumentation.
+PASS remains high value for upstream; S1/S2 bisect on 0013 is complete for FAIL path.
