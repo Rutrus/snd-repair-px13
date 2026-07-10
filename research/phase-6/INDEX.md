@@ -1,7 +1,7 @@
 # Phase 6 — State transition analysis (suspend → resume)
 
 > **Branch:** `research/suspend-lifecycle`  
-> **Status doc:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) ← **canonical snapshot** (~80–85% delimited)  
+> **Status doc:** [PHASE-6-INVESTIGATION-STATUS.md](PHASE-6-INVESTIGATION-STATUS.md) ← **H1 confirmed run 0010** (`irq_enabled` → no IRQ)  
 > **Rule:** No behavior-changing kernel patches until post-reset AMD IRQ chain bisect is complete.  
 > **Next:** Minimal AMD trace — [proposed/NEXT-AMD-IRQ-TRACE.md](proposed/NEXT-AMD-IRQ-TRACE.md).
 

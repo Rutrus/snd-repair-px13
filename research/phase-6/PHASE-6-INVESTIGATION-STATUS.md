@@ -2,7 +2,9 @@
 
 English (canonical). Last updated: 2026-07-10 (runs 0005–0007).
 
-**Progress estimate:** ~80–85% problem delimitation; **blocked on visibility** in one layer of the AMD resume chain (not on missing hypotheses).
+**Progress estimate:** ~90% problem delimitation; **H1 (IRQ delivery)** strongly supported on run 0010 with full 0004 trace.
+
+**First missing transition (run 0010):** `irq_enabled` → *(no `sdw0_irq` / `ping_irq` within 5s)* → `wait_init_timeout`.
 
 See also: [SOUNDWIRE-RESUME-STATE-MACHINE.md](SOUNDWIRE-RESUME-STATE-MACHINE.md), [LINK-REENUMERATION-FAILURE.md](LINK-REENUMERATION-FAILURE.md)
 
@@ -85,6 +87,9 @@ Chronology run 0007: userspace `OK/WARN` with Dummy sink (audio broken); do not 
 | 0005 | 02:31:15 | reset → no ping/work → timeout -110 | FAIL-1; `resume=1` (pre resume_id patch) |
 | 0006 | 02:55:08 | same as 0005 | FAIL-1, `run-6` |
 | 0007 | 03:01:15 | reset → early_exit only | FAIL-2; `resume=2`; no wait_init |
+| 0008 | 03:44:37 | reset → wait timeout -110 | FAIL-1; partial 0004 (no irq_enabled in ko) |
+| 0009 | 03:50:54 | reset → wait timeout -110 | FAIL-1; partial 0004; IO_PAGE_FAULT YES |
+| **0010** | 12:48:45 | **reset → irq_enabled → (silence) → timeout -110** | **FAIL-1; H1 signature; full 0004; IO_PAGE_FAULT NO |
 
 Tools:
 
@@ -99,33 +104,43 @@ Tools:
 
 | ID | ~% | Break | Log signature (when AMD trace complete) |
 |----|---:|-------|----------------------------------------|
-| **H1** | 45 | ACP SDW **IRQ never arrives** after enable | `resume_enter` + `irq_enabled` → **no** `ping_irq` |
-| **H2** | 35 | IRQ but **empty status** / no work | `ping_irq` → no `queue_work` or bitmap=0 |
-| **H3** | 15 | `queue_work` but empty `handle_status` / no ATTACHED | work logs, no bus ATTACHED |
-| **H4** | 5 | SDW core skip | `handle_status` + ATTACHED in manager but bus skip — unlikely |
+| **H1** | **70** | ACP SDW **IRQ never arrives** after enable | `irq_enabled resume=N` → **no** `sdw0_irq` / `ping_irq` *(run 0010)* |
+| **H2** | 20 | IRQ but **empty status** / no work | `ping_irq` → no `queue_work` or bitmap=0 |
+| **H3** | 8 | `queue_work` but empty `handle_status` / no ATTACHED | work logs, no bus ATTACHED |
+| **H4** | 2 | SDW core skip | `handle_status` + ATTACHED in manager but bus skip — unlikely |
 
 Previous codec/FW hypotheses: **deprioritized** (~5% combined).
 
 ---
 
-## Binary question (single target)
+## Binary question (answered on run 0010 — FAIL)
 
 > After `amd_resume_runtime()` and `manager_reset`, does the ACP controller **receive and process the first event** (IRQ / ping) that should start SoundWire re-enumeration?
 
-One YES/NO from the next minimal trace narrows to one stack component.
+**Answer (run 0010, resume=1):** **NO.** `irq_enabled` logged at t=+~1ms post-reset; no `sdw0_irq`, `ping_irq`, or `queue_work` before RT721 `wait_init_timeout` at kernel t=+5358ms.
+
+Narrow to: **ACP hardware IRQ delivery / interrupt routing** (pci-ps → manager irq_thread), not codec or bus core.
 
 ---
 
-## Next instrumentation (minimal — proposed)
+## Next instrumentation (H1 depth — proposed)
 
 **Not** more bus.c. **Reduce** AMD trace to existence probes only:
 
 | # | Location | Log |
 |---|----------|-----|
 | 1 | `amd_resume_runtime()` | `PHASE6 amd resume_enter resume=N` *(done)* |
-| 2 | After `amd_enable_sdw_interrupts()` | `PHASE6 amd irq_enabled resume=N` |
-| 3 | `pci-ps.c` `ACP_SDW0_STAT` → irq_thread **or** `amd_sdw_irq_thread` entry | `PHASE6 amd ping_irq resume=N` |
-| 4 | Before `schedule_work(amd_sdw_work)` | `PHASE6 amd queue_work resume=N` |
+| 2 | After `amd_enable_sdw_interrupts()` | `PHASE6 amd irq_enabled resume=N` *(done — run 0010)* |
+| 3 | `pci-ps.c` `ACP_SDW0_STAT` → irq_thread **or** `amd_sdw_irq_thread` entry | `PHASE6 amd ping_irq resume=N` *(done — absent on resume=1)* |
+| 4 | Before `schedule_work(amd_sdw_work)` | `PHASE6 amd queue_work resume=N` *(done — absent on resume=1)* |
+
+**0004 complete.** Next probes (if H1 needs hardware proof):
+
+| # | Location | Question |
+|---|----------|----------|
+| 5 | `pci-ps.c` `acp63_irq_handler` entry | Does **any** ACP IRQ fire post-resume? |
+| 6 | `amd_enable_sdw_interrupts` | Log `ACP_EXTERNAL_INTR_CNTL` mask written |
+| 7 | `readl(ACP_EXTERNAL_INTR_STAT)` poll after enable | Status bit ever set without handler? |
 
 No masks, no slave states — only **did this step run** for `resume=N`.
 
@@ -145,18 +160,19 @@ Track per run in Resume path block: `IO_PAGE_FAULT (window) YES/NO`.
 
 | Run | IO_PAGE_FAULT at resume |
 |-----|-------------------------|
-| 0004–0007 | YES (all observed FAIL) |
+| 0004–0007, 0009 | YES |
+| **0010** | **NO** |
 | PASS | *(none captured yet with AMD trace)* |
 
-Correlate temporally with `manager_reset` and absence of `ping_irq` once 0004 trace is installed. Do not assert causality until PASS/FAIL table includes PASS.
+IO_PAGE_FAULT is **not required** for FAIL (0010 fails without it). Track but do not treat as sole cause.
 
 ---
 
 ## Upstream framing
 
-> After system sleep resume on AMD ACP70, `manager_reset` clears all SoundWire slaves. In FAIL cases, we observe **no log evidence** of the manager IRQ/ping/work chain that should precede `ATTACHED` and `initialization_complete()`. RT721 `-110` (FAIL-1) or early PM exit (FAIL-2) are downstream. We are bisecting whether the first missing step is **IRQ delivery**, **ping processing**, or **work scheduling**.
+> After system sleep resume on AMD ACP70, `manager_reset` clears all SoundWire slaves. In FAIL run 0010, `irq_enabled` completes but **no log evidence** of `ACP_SDW0_STAT` / `ping_irq` occurs within the RT721 wait window; slaves never return to ATTACHED. Transition **`irq_enabled` → (no IRQ delivery)`** is the first broken step. RT721 `-110` is downstream.
 
-Replace with precise **X→Y** once `ping_irq` trace is in place.
+Still need ≥1 PASS with same trace for maintainer-ready contrast.
 
 ---
 
@@ -174,10 +190,10 @@ Replace with precise **X→Y** once `ping_irq` trace is in place.
 - [x] Bus model: post-reset no ATTACHED/completion (FAIL runs)
 - [x] FAIL-1 vs FAIL-2 taxonomy
 - [x] `sm` Resume path summary for quick run compare
-- [ ] Minimal AMD IRQ trace installed (`irq_enabled`, `ping_irq`, `queue_work`) — patch 0004 ready; needs build + reboot
-- [ ] ≥1 FAIL-1 with full chain bisect (H1/H2/H3)
+- [x] Minimal AMD IRQ trace installed (`irq_enabled`, `ping_irq`, `queue_work`) — run 0010
+- [x] ≥1 FAIL-1 with full chain bisect → **H1** (`irq_enabled` → silence)
 - [ ] ≥1 true PASS with same trace + Resume path Case D
-- [ ] IO_PAGE_FAULT correlation table (≥5 runs)
+- [ ] IO_PAGE_FAULT correlation table (≥5 runs) — partial; not causal
 
 ---
 

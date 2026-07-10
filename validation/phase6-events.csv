@@ -747,3 +747,161 @@ run_id,offset_ms,layer,component,event,detail
 0007,13000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[79604]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user is-active --quiet pipewire pipewire.socket
 0007,13000,userspace,px13,px13,PCI reset attempt 1/2
 0007,13000,userspace,px13,px13,unbinding PCI 0000:c4:00.5
+0008,-22000,kernel,PM,suspend_entry,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend entry (s2idle)
+0008,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=0 disable_irq=0 hw_init=1
+0008,0,kernel,rt721,pm_branch_fast,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=branch_fast_path t=+0ms skip_wait=1 restore_irq=1
+0008,0,kernel,rt721,pm_regmap_sync,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=regmap_sync_start t=+0ms 
+0008,0,kernel,rt721,pm_regmap_done,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=regmap_sync_done t=+6ms 
+0008,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+6ms ret=0
+0008,0,hardware,amd_sdw,resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=resume_enter link=1 resume=1 pm=system_resume mode=power_off
+0008,0,hardware,sdw_core,state_change,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE6 ctx=sdw fn=state_change master=0 link=1 dev=1 uid=0xb old=ATTACHED new=UNATTACHED reason=manager_reset
+0008,0,hardware,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0008,0,hardware,sdw_core,state_change,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE6 ctx=sdw fn=state_change master=0 link=1 dev=2 uid=0x8 old=ATTACHED new=UNATTACHED reason=manager_reset
+0008,0,hardware,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0008,0,hardware,sdw_core,state_change,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=sdw fn=state_change master=0 link=1 dev=3 uid=0xff old=ATTACHED new=UNATTACHED reason=manager_reset
+0008,0,hardware,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=1 status=0
+0008,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=1 disable_irq=1 hw_init=0
+0008,0,kernel,rt721,pm_wait_start,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_start t=+0ms timeout_ms=5000
+0008,0,hardware,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0008,0,hardware,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_timeout t=+5334ms remaining_ms=0
+0008,0,hardware,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: Initialization not complete; timed out
+0008,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+5350ms ret=-110
+0008,0,kernel,rt721,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PM: failed to resume: error -110
+0008,0,kernel,tas2783_8,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PM: failed to resume: error -110
+0008,0,kernel,tas2783_b,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PM: failed to resume: error -110
+0008,0,kernel,PM,suspend_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend exit
+0008,13000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0008,13000,kernel,pcm,hw_params,Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-22): at __soc_pcm_hw_params() on SDW1-PIN1-PLAYBACK-SmartAmp
+0008,13000,hardware,sdw_master,bus,Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 2 failed:-5 write addr 8608 count 0
+0008,13000,hardware,sdw_master,bus,Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 1 failed:-5 write addr 8608 count 0
+0008,13000,hardware,sdw_master,bus,Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 2 failed:-5 write addr 8608 count 0
+0008,13000,hardware,sdw_master,bus,Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 1 failed:-5 write addr 8608 count 0
+0008,11000,userspace,px13,px13,SDW resume -110 detected — extended settle + 3 PCI attempts
+0008,11000,userspace,px13,px13,stopping pipewire (+ sockets) for uid 1000 (rutrus)
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[13348]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user stop wireplumber pipewire-pulse pipewire pipewire.socket pipewire-pulse.socket filter-chain.service
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[13349]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user is-active --quiet pipewire pipewire.socket
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5813]: Stopping wireplumber.service - Multimedia Service Session Manager...
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5813]: Stopping pipewire-pulse.service - PipeWire PulseAudio...
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5856]: pw.core: 0x63b629777c10: leaked proxy 0x63b6298c4d40 id:3
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5856]: pw.core: 0x63b629777c10: leaked proxy 0x63b6298b4e20 id:4
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5856]: pw.core: 0x63b629777c10: leaked proxy 0x63b6298cb750 id:5
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5856]: pw.core: 0x63b629777c10: leaked proxy 0x63b6298a0bb0 id:6
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5856]: pw.core: 0x63b629777c10: leaked proxy 0x63b62998df40 id:7
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5856]: pw.core: 0x63b629777c10: leaked proxy 0x63b62999f150 id:8
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5856]: pw.core: 0x63b629777c10: leaked proxy 0x63b629ab9a50 id:10
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5856]: pw.core: 0x63b629777c10: leaked proxy 0x63b62999b6e0 id:11
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5856]: pw.core: 0x63b629777c10: leaked proxy 0x63b6299a90c0 id:12
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5813]: Stopped pipewire-pulse.service - PipeWire PulseAudio.
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5813]: Closed pipewire-pulse.socket - PipeWire PulseAudio.
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5813]: Stopped wireplumber.service - Multimedia Service Session Manager.
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5813]: Stopping pipewire.service - PipeWire Multimedia Service...
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5813]: Stopped pipewire.service - PipeWire Multimedia Service.
+0008,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5813]: Closed pipewire.socket - PipeWire Multimedia System Sockets.
+0008,12000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[13361]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user is-active --quiet pipewire pipewire.socket
+0008,12000,userspace,px13,px13,PCI reset attempt 1/3
+0008,12000,userspace,px13,px13,unbinding PCI 0000:c4:00.5
+0009,-27000,kernel,PM,suspend_entry,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend entry (s2idle)
+0009,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=0 disable_irq=0 hw_init=1
+0009,0,kernel,rt721,pm_branch_fast,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=branch_fast_path t=+0ms skip_wait=1 restore_irq=1
+0009,0,kernel,rt721,pm_regmap_sync,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=regmap_sync_start t=+0ms 
+0009,0,kernel,rt721,pm_regmap_done,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=regmap_sync_done t=+5ms 
+0009,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+5ms ret=0
+0009,0,hardware,amd_sdw,resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=resume_enter link=1 resume=1 pm=system_resume mode=power_off
+0009,0,hardware,sdw_core,state_change,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE6 ctx=sdw fn=state_change master=0 link=1 dev=1 uid=0xb old=ATTACHED new=UNATTACHED reason=manager_reset
+0009,0,hardware,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0009,0,hardware,sdw_core,state_change,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE6 ctx=sdw fn=state_change master=0 link=1 dev=2 uid=0x8 old=ATTACHED new=UNATTACHED reason=manager_reset
+0009,0,hardware,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0009,0,hardware,sdw_core,state_change,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=sdw fn=state_change master=0 link=1 dev=3 uid=0xff old=ATTACHED new=UNATTACHED reason=manager_reset
+0009,0,hardware,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=1 status=0
+0009,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=1 disable_irq=1 hw_init=0
+0009,0,kernel,rt721,pm_wait_start,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_start t=+0ms timeout_ms=5000
+0009,0,hardware,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0009,0,hardware,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_timeout t=+5023ms remaining_ms=0
+0009,0,hardware,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: Initialization not complete; timed out
+0009,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+5038ms ret=-110
+0009,0,kernel,rt721,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PM: failed to resume: error -110
+0009,0,kernel,tas2783_8,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PM: failed to resume: error -110
+0009,0,kernel,tas2783_b,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PM: failed to resume: error -110
+0009,0,kernel,PM,suspend_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend exit
+0009,13000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0009,13000,kernel,pcm,hw_params,Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-22): at __soc_pcm_hw_params() on SDW1-PIN1-PLAYBACK-SmartAmp
+0009,13000,hardware,sdw_master,bus,Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 2 failed:-5 write addr 8608 count 0
+0009,13000,hardware,sdw_master,bus,Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 1 failed:-5 write addr 8608 count 0
+0009,11000,userspace,px13,px13,SDW resume -110 detected — extended settle + 3 PCI attempts
+0009,11000,userspace,px13,px13,stopping pipewire (+ sockets) for uid 1000 (rutrus)
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[13287]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user is-active --quiet pipewire pipewire.socket
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[13286]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user stop wireplumber pipewire-pulse pipewire pipewire.socket pipewire-pulse.socket filter-chain.service
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5810]: Stopping wireplumber.service - Multimedia Service Session Manager...
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5810]: Stopping pipewire-pulse.service - PipeWire PulseAudio...
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5854]: pw.core: 0x583fedc773f0: leaked proxy 0x583feddc8830 id:3
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5854]: pw.core: 0x583fedc773f0: leaked proxy 0x583feddb5e50 id:4
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5854]: pw.core: 0x583fedc773f0: leaked proxy 0x583feddcc6e0 id:5
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5854]: pw.core: 0x583fedc773f0: leaked proxy 0x583fedda18b0 id:6
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5854]: pw.core: 0x583fedc773f0: leaked proxy 0x583fede8f0f0 id:7
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5854]: pw.core: 0x583fedc773f0: leaked proxy 0x583fedea0300 id:8
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5854]: pw.core: 0x583fedc773f0: leaked proxy 0x583fedfbb0a0 id:10
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5854]: pw.core: 0x583fedc773f0: leaked proxy 0x583fedfa0180 id:11
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[5854]: pw.core: 0x583fedc773f0: leaked proxy 0x583fedeaac90 id:12
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5810]: Stopped pipewire-pulse.service - PipeWire PulseAudio.
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5810]: Listening on pipewire.socket - PipeWire Multimedia System Sockets.
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5810]: Closed pipewire-pulse.socket - PipeWire PulseAudio.
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[5810]: Started wireplumber.service - Multimedia Service Session Manager.
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[13296]: [0:01:36.976097855] [13296]  INFO Camera camera_manager.cpp:340 libcamera v0.7.0
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[13296]: [0:01:37.096613709] [13311]  INFO Camera camera_manager.cpp:223 Adding camera '\_SB_.PCI0.GPPA.XHC1.RHUB.PRT1-1:1.0-13d3:52b9' for pipeline handler uvcvideo
+0009,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[13296]: [0:01:37.097158955] [13311]  INFO Camera camera_manager.cpp:223 Adding camera '\_SB_.PCI0.GPPA.XHC1.RHUB.PRT1-1:1.2-13d3:52b9' for pipeline handler uvcvideo
+0009,12000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[13312]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user is-active --quiet pipewire pipewire.socket
+0009,13000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[13316]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user is-active --quiet pipewire pipewire.socket
+0009,14000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[13341]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user is-active --quiet pipewire pipewire.socket
+0010,-209000,kernel,PM,suspend_entry,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend entry (s2idle)
+0010,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=0 disable_irq=0 hw_init=1
+0010,0,kernel,rt721,pm_branch_fast,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=branch_fast_path t=+0ms skip_wait=1 restore_irq=1
+0010,0,kernel,rt721,pm_regmap_sync,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=regmap_sync_start t=+0ms 
+0010,0,kernel,rt721,pm_regmap_done,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=regmap_sync_done t=+7ms 
+0010,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+7ms ret=0
+0010,0,hardware,amd_sdw,resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: PHASE6 ctx=amd fn=resume_enter link=1 resume=1 pm=system_resume mode=power_off
+0010,0,hardware,sdw_core,state_change,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE6 ctx=sdw fn=state_change master=0 link=1 dev=1 uid=0xb old=ATTACHED new=UNATTACHED reason=manager_reset
+0010,0,hardware,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0010,0,hardware,sdw_core,state_change,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE6 ctx=sdw fn=state_change master=0 link=1 dev=2 uid=0x8 old=ATTACHED new=UNATTACHED reason=manager_reset
+0010,0,hardware,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0010,0,hardware,sdw_core,state_change,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=sdw fn=state_change master=0 link=1 dev=3 uid=0xff old=ATTACHED new=UNATTACHED reason=manager_reset
+0010,0,hardware,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=1 status=0
+0010,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=1 disable_irq=1 hw_init=0
+0010,0,kernel,rt721,pm_wait_start,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_start t=+0ms timeout_ms=5000
+0010,0,hardware,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0010,0,hardware,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_timeout t=+5358ms remaining_ms=0
+0010,0,hardware,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: Initialization not complete; timed out
+0010,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+5374ms ret=-110
+0010,0,kernel,rt721,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PM: failed to resume: error -110
+0010,0,kernel,tas2783_8,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PM: failed to resume: error -110
+0010,0,kernel,tas2783_b,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PM: failed to resume: error -110
+0010,0,kernel,PM,suspend_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend exit
+0010,13000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0010,13000,kernel,pcm,hw_params,Colosal3-ProArt-PX13-HN7306EAC kernel:  SDW1-PIN1-PLAYBACK-SmartAmp: ASoC error (-22): at __soc_pcm_hw_params() on SDW1-PIN1-PLAYBACK-SmartAmp
+0010,13000,hardware,sdw_master,bus,Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 2 failed:-5 write addr 8608 count 0
+0010,13000,hardware,sdw_master,bus,Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 1 failed:-5 write addr 8608 count 0
+0010,13000,hardware,sdw_master,bus,Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 2 failed:-5 write addr 8608 count 0
+0010,13000,hardware,sdw_master,bus,Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: trf on Slave 1 failed:-5 write addr 8608 count 0
+0010,11000,userspace,px13,px13,SDW resume -110 detected — extended settle + 3 PCI attempts
+0010,11000,userspace,px13,px13,stopping pipewire (+ sockets) for uid 1000 (rutrus)
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[17347]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user stop wireplumber pipewire-pulse pipewire pipewire.socket pipewire-pulse.socket filter-chain.service
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[17348]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user is-active --quiet pipewire pipewire.socket
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[6138]: Stopping wireplumber.service - Multimedia Service Session Manager...
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[6193]: pw.core: 0x61725679bc10: leaked proxy 0x6172568c7690 id:3
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[6193]: pw.core: 0x61725679bc10: leaked proxy 0x6172568a8cb0 id:4
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[6193]: pw.core: 0x61725679bc10: leaked proxy 0x6172568ea8d0 id:5
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[6193]: pw.core: 0x61725679bc10: leaked proxy 0x6172568a97b0 id:6
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[6193]: pw.core: 0x61725679bc10: leaked proxy 0x6172569ae900 id:7
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[6193]: pw.core: 0x61725679bc10: leaked proxy 0x6172568e2aa0 id:8
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[6193]: pw.core: 0x61725679bc10: leaked proxy 0x7b2cf0000fb0 id:10
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[6193]: pw.core: 0x61725679bc10: leaked proxy 0x7b2cf0001d80 id:11
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC wireplumber[6193]: pw.core: 0x61725679bc10: leaked proxy 0x617256ab6140 id:12
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[6138]: Stopping pipewire-pulse.service - PipeWire PulseAudio...
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[6138]: Stopped pipewire-pulse.service - PipeWire PulseAudio.
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[6138]: Closed pipewire-pulse.socket - PipeWire PulseAudio.
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[6138]: Stopped wireplumber.service - Multimedia Service Session Manager.
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[6138]: Stopping pipewire.service - PipeWire Multimedia Service...
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[6138]: Stopped pipewire.service - PipeWire Multimedia Service.
+0010,11000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC systemd[6138]: Closed pipewire.socket - PipeWire Multimedia System Sockets.
+0010,12000,userspace,pipewire,event,Colosal3-ProArt-PX13-HN7306EAC sudo[17367]: root :  PWD=/ ; USER=rutrus ; COMMAND=/usr/bin/systemctl --user is-active --quiet pipewire pipewire.socket
+0010,12000,userspace,px13,px13,PCI reset attempt 1/3
+0010,12000,userspace,px13,px13,unbinding PCI 0000:c4:00.5
