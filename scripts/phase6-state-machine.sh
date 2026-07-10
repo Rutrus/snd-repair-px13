@@ -34,7 +34,7 @@ done
 set -- "${ARGS[@]}"
 
 normalize_machine() {
-	grep -E 'PHASE6 ctx=(sdw|pm|init|amd)|PM: suspend (entry|exit)' | while IFS= read -r line; do
+	grep -E 'PHASE[67] ctx=(sdw|pm|init|amd)|PM: suspend (entry|exit)' | while IFS= read -r line; do
 		if echo "$line" | grep -q 'PM: suspend entry'; then
 			echo "  pm  suspend_entry"
 		elif echo "$line" | grep -q 'PM: suspend exit'; then

@@ -38,7 +38,12 @@ EOF
 phase6_ko_has_trace() {
 	local ko_zst="$1" pattern="$2"
 	[[ -f "$ko_zst" ]] || return 1
-	zstd -d -c "$ko_zst" 2>/dev/null | strings | grep -q "$pattern"
+	# grep -q closes the pipe early; with pipefail the pipeline returns SIGPIPE (141).
+	set +o pipefail
+	zstd -d -qc "$ko_zst" 2>/dev/null | strings | grep -Fq -- "$pattern"
+	local rc=$?
+	set -o pipefail
+	[[ "$rc" -eq 0 ]]
 }
 
 phase6_mask_px13_recovery() {
@@ -71,9 +76,12 @@ phase6_hunt_classify_window() {
 	[[ -z "$fail_class" && "$wit" -eq 1 ]] && fail_class="FAIL-1"
 	echo "$raw" | grep -q 'fn=irq_handler_enter' && h=1
 	echo "$raw" | grep -q 'fn=completion' && comp=1
-	resume_n="$(echo "$raw" | grep 'fn=manager_reset' | tail -1 | sed -n 's/.*resume=\([0-9]*\).*/\1/p')"
-	istat_d0="$(echo "$raw" | grep 'fn=intr_stat_post_D0' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p')"
-	rt721="$(echo "$raw" | grep 'fn=resume_exit' | tail -1 | sed -n 's/.*ret=\(-*[0-9]*\).*/\1/p')"
+	# grep no-match + pipefail aborts under set -e inside $(…).
+	set +o pipefail
+	resume_n="$(echo "$raw" | grep 'fn=manager_reset' | tail -1 | sed -n 's/.*resume=\([0-9]*\).*/\1/p' || true)"
+	istat_d0="$(echo "$raw" | grep 'fn=intr_stat_post_D0' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	rt721="$(echo "$raw" | grep 'fn=resume_exit' | tail -1 | sed -n 's/.*ret=\(-*[0-9]*\).*/\1/p' || true)"
+	set -o pipefail
 
 	if [[ "$h" -eq 1 && "$comp" -eq 1 && "$wit" -eq 0 ]]; then
 		witness="PASS"
@@ -87,8 +95,19 @@ phase6_hunt_classify_window() {
 		witness="NO_DATA"
 	fi
 
-	printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%s\n' \
-		"$witness" "$fail_class" "$resume_n" "$istat_d0" "$h" "$comp" "$wit" "${rt721:-?}"
+	printf '%s|%s|%s|%s|%d|%d|%d|%s\n' \
+		"$witness" "$fail_class" "$resume_n" "$istat_d0" \
+		"$h" "$comp" "$wit" "${rt721:--}"
+}
+
+phase6_hunt_read_classify() {
+	local witness fail_class resume_n istat_d0 h comp wit rt721
+	IFS='|' read -r witness fail_class resume_n istat_d0 h comp wit rt721 < <(
+		phase6_hunt_classify_window "$1"
+	)
+	[[ "$rt721" == "-" ]] && rt721=""
+	printf '%s|%s|%s|%s|%s|%s|%s|%s\n' \
+		"$witness" "$fail_class" "$resume_n" "$istat_d0" "$h" "$comp" "$wit" "$rt721"
 }
 
 case "$cmd" in
@@ -180,9 +199,12 @@ post-suspend)
 	fi
 
 	raw="$(phase6_journal_extract_window "$exit_ts")"
-	IFS=$'\t' read -r witness fail_class resume_n istat_d0 h comp wit rt721 < <(
-		phase6_hunt_classify_window "$raw"
+	IFS='|' read -r witness fail_class resume_n istat_d0 h comp wit rt721 < <(
+		phase6_hunt_read_classify "$raw"
 	)
+	set +o pipefail
+	p7_delay_stat="$(echo "$raw" | grep 'fn=intr_stat_post_delay' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	set -o pipefail
 
 	echo "=== Phase 6 post-suspend $(date -Is) ==="
 	echo "  resume_exit: $exit_ts"
@@ -191,6 +213,7 @@ post-suspend)
 	[[ -n "$fail_class" ]] && echo "  fail_class: $fail_class"
 	[[ -n "$resume_n" ]] && echo "  resume_n: $resume_n"
 	[[ -n "$istat_d0" ]] && echo "  intr_stat_post_D0: 0x${istat_d0}"
+	[[ -n "$p7_delay_stat" ]] && echo "  intr_stat_post_delay: 0x${p7_delay_stat}"
 	echo "  irq_handler: $([[ "$h" -eq 1 ]] && echo YES || echo NO)"
 	echo "  completion:  $([[ "$comp" -eq 1 ]] && echo YES || echo NO)"
 	echo "  wait_init_timeout: $([[ "$wit" -eq 1 ]] && echo YES || echo NO)"

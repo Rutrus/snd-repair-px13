@@ -7,7 +7,7 @@
 #   PHASE7_EXPERIMENT=delay-after-d0 PHASE7_DELAY_MS=20 ./scripts/build-phase7.sh
 #
 # Phase 6 observation patches (0003–0007) are applied first, then ONE Phase 7 patch.
-# Set phase7_delay_ms via sysfs before suspend (default 0 = control).
+# Persist phase7_delay_ms across reboot via modprobe.d (see phase7-sweep-pre.sh).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -31,8 +31,12 @@ Environment:
   PHASE7_EXPERIMENT   same as --experiment
   PHASE7_DELAY_MS     suggested value (written to state file; set on module before suspend)
 
-After install:
-  echo MS | sudo tee /sys/module/soundwire_amd/parameters/phase7_delay_ms
+After install and reboot, use modprobe.d for sweep (echo does NOT persist):
+
+  ./scripts/phase7-sweep-pre.sh MS    # before reboot
+  ./scripts/phase7-sweep-post.sh      # after login
+
+Same-boot ad-hoc (no reboot): echo MS | sudo tee /sys/module/soundwire_amd/parameters/phase7_delay_ms
 EOF
 }
 
@@ -125,13 +129,32 @@ STATE="${REPO_ROOT}/validation/.state"
 mkdir -p "$STATE"
 echo "${DELAY_MS:-0}" >"${STATE}/phase7-delay-ms-suggested"
 echo "$EXPERIMENT" >"${STATE}/phase7-experiment"
+modinfo -F srcversion "$dest" >"${STATE}/phase7-installed-srcversion"
+
+loaded_sv=""
+if [[ -r /sys/module/soundwire_amd/srcversion ]]; then
+	loaded_sv="$(cat /sys/module/soundwire_amd/srcversion)"
+fi
+installed_sv="$(cat "${STATE}/phase7-installed-srcversion")"
 
 echo ""
 echo "==> Phase 7 installed: $EXPERIMENT on kernel $KVER"
-echo "Reboot required if module was already loaded."
+echo "    installed srcversion: ${installed_sv}"
+if [[ -n "$loaded_sv" && "$loaded_sv" != "$installed_sv" ]]; then
+	echo ""
+	echo "WARN: running soundwire_amd (${loaded_sv}) != installed (${installed_sv})" >&2
+	echo "      Reboot before sweep — verify-only will fail until the new .ko is loaded." >&2
+elif [[ -n "$loaded_sv" ]]; then
+	echo "    running srcversion:   ${loaded_sv} (matches)"
+else
+	echo "    soundwire_amd not loaded yet"
+fi
+echo ""
+echo "Reboot required after install (mandatory if module was already loaded)."
 echo ""
 echo "Before suspend (0 = control baseline):"
 echo "  echo ${DELAY_MS:-0} | sudo tee /sys/module/soundwire_amd/parameters/phase7_delay_ms"
 echo ""
-echo "Sweep: 0, 5, 10, 20, 50, 100 — see research/phase-7/experiments/0005-delay-after-d0.md"
-echo "Run:  /home/rutrus/snd_repair/scripts/phase6-hunt.sh post-reboot --notes p7-0005-delay\${MS}"
+echo "Sweep: see research/phase-7/experiments/0005-delay-after-d0.md"
+echo "  ${SCRIPT_DIR}/phase7-sweep-pre.sh MS   # before reboot"
+echo "  ${SCRIPT_DIR}/phase7-sweep-post.sh     # after login"

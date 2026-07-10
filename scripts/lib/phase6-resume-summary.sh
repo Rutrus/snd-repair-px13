@@ -32,17 +32,19 @@ phase6_resume_path_summary() {
 	echo "$raw" | grep -qE 'ctx=amd fn=manager_reset|reason=manager_reset' && mr=1
 	echo "$raw" | grep -q 'ctx=amd fn=resume_enter.*pm=system_resume' && sys=1
 
+	set +o pipefail
 	if echo "$post" | grep -q 'fn=irq_enabled'; then irq=1; fi
-	icntl="$(echo "$post" | grep 'fn=intr_cntl_post_enable' | tail -1 | sed -n 's/.*val=0x\([0-9a-fA-F]*\).*/\1/p')"
-	istat="$(echo "$post" | grep 'fn=intr_stat_post_enable' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p')"
+	icntl="$(echo "$post" | grep 'fn=intr_cntl_post_enable' | tail -1 | sed -n 's/.*val=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	istat="$(echo "$post" | grep 'fn=intr_stat_post_enable' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
 	[[ -n "$istat" && "$istat" != "0" ]] && istat_nz=1
-	sdw_en="$(echo "$post" | grep 'fn=sdw_en_post_resume' | tail -1 | sed -n 's/.*val=0x\([0-9a-fA-F]*\).*/\1/p')"
-	clk_frame="$(echo "$post" | grep 'fn=clk_frame' | tail -1 | sed -n 's/.*val=0x\([0-9a-fA-F]*\).*/\1/p')"
-	istat_bring="$(echo "$post" | grep 'fn=intr_stat_post_bringup' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p')"
-	istat_d0="$(echo "$post" | grep 'fn=intr_stat_post_D0' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p')"
-	init_ret="$(echo "$post" | grep 'fn=init_sdw_manager' | tail -1 | sed -n 's/.*ret=\(-*[0-9]*\).*/\1/p')"
-	en_ret="$(echo "$post" | grep 'fn=enable_sdw_manager' | tail -1 | sed -n 's/.*ret=\(-*[0-9]*\).*/\1/p')"
-	d0_val="$(echo "$post" | grep 'fn=device_state_D0' | tail -1 | sed -n 's/.*val=0x\([0-9a-fA-F]*\).*/\1/p')"
+	sdw_en="$(echo "$post" | grep 'fn=sdw_en_post_resume' | tail -1 | sed -n 's/.*val=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	clk_frame="$(echo "$post" | grep 'fn=clk_frame' | tail -1 | sed -n 's/.*val=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	istat_bring="$(echo "$post" | grep 'fn=intr_stat_post_bringup' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	istat_d0="$(echo "$post" | grep 'fn=intr_stat_post_D0' | tail -1 | sed -n 's/.*stat=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	init_ret="$(echo "$post" | grep 'fn=init_sdw_manager' | tail -1 | sed -n 's/.*ret=\(-*[0-9]*\).*/\1/p' || true)"
+	en_ret="$(echo "$post" | grep 'fn=enable_sdw_manager' | tail -1 | sed -n 's/.*ret=\(-*[0-9]*\).*/\1/p' || true)"
+	d0_val="$(echo "$post" | grep 'fn=device_state_D0' | tail -1 | sed -n 's/.*val=0x\([0-9a-fA-F]*\).*/\1/p' || true)"
+	set -o pipefail
 	echo "$post" | grep -q 'fn=clk_resume_skip' && clk_skip=1
 	echo "$post" | grep -q 'fn=clk_resume_done' && clk_done=1
 	echo "$post" | grep -q 'fn=clear_slave_status' && clr=1
@@ -59,7 +61,9 @@ phase6_resume_path_summary() {
 	if echo "$post" | grep -q 'fn=wait_init_timeout'; then wit=1; fi
 	if echo "$post" | grep -q 'fn=wait_init_ok'; then wiok=1; fi
 	if echo "$post" | grep -q 'fn=resume_early_exit'; then early=1; fi
-	ret="$(echo "$post" | grep 'fn=resume_exit' | tail -1 | sed -n 's/.*ret=\(-*[0-9]*\).*/\1/p')"
+	set +o pipefail
+	ret="$(echo "$post" | grep 'fn=resume_exit' | tail -1 | sed -n 's/.*ret=\(-*[0-9]*\).*/\1/p' || true)"
+	set -o pipefail
 
 	# IO_PAGE_FAULT in same resume window (full kmsg, not only PHASE6)
 	local bounds since until resume_ts=""
