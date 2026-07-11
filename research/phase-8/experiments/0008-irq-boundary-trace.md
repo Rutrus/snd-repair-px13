@@ -72,11 +72,17 @@ journalctl -k -b 0 | grep 'PHASE7 ctx=acp fn=irq_handler_enter' | tail -5
 
 ---
 
+## Status
+
+**8.1 closed** — milestone run [0008-run-boundary-c1.md](0008-run-boundary-c1.md) (2026-07-11).
+
+---
+
 ## Relation
 
 | Phase | Role |
 |-------|------|
 | [Phase 7 correlate](../phase-7/experiments/0007-run-correlate-d50.md) | STAT pending + no handler log |
 | **0008 (this)** | Independent handler counter + `/proc/interrupts` |
-| [8.2 boot vs resume](../INDEX.md) | Next — ACP register diff |
-| [8.3 ACP-IRQ-FLOW](../ACP-IRQ-FLOW.md) | Top-down diagram |
+| [0008-run-boundary-c1.md](0008-run-boundary-c1.md) | **Milestone** — three witnesses |
+| [8.2 + 8.3 ACP-IRQ-FLOW](../ACP-IRQ-FLOW.md) | Register ownership + last-write audit |

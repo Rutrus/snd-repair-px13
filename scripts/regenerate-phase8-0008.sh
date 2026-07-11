@@ -17,8 +17,8 @@ grep -q 'PHASE7 ctx=acp fn=irq_handler_enter' "$PS" || {
 	echo "Apply 0007 irq-delivery-trace first" >&2
 	exit 1
 }
-grep -q 'PHASE8 ctx=acp fn=irq_stats' "$PS" && {
-	echo "0008 already in tree — restore 0007-only pci-ps before regenerate" >&2
+grep -q 'PHASE8 ctx=acp fn=irq_stats' "$PS" && [[ "${REGEN_P8_FORCE:-0}" != "1" ]] && {
+	echo "0008 already in tree — restore 0007-only pci-ps or REGEN_P8_FORCE=1" >&2
 	exit 1
 }
 
@@ -34,23 +34,24 @@ inc = '#include <linux/interrupt.h>\n'
 if '#include <linux/atomic.h>' not in t:
     t = t.replace(inc, inc + '#include <linux/atomic.h>\n', 1)
 
-block = """
-/* Phase 8 / 0008: handler invocation counter (observation only). */
-static atomic64_t snd_repair_p8_irq_handler_total;
-static atomic64_t snd_repair_p8_irq_handler_since_pm;
-static u32 snd_repair_p8_irq_last_stat0;
-static u32 snd_repair_p8_irq_last_stat1;
-
-static void snd_repair_p8_log_irq_stats(unsigned int resume_id)
-{
-\tpr_info("PHASE8 ctx=acp fn=irq_stats resume=%u handler_total=%lld since_pm=%lld last_stat0=0x%x last_stat1=0x%x\\n",
-\t\tresume_id,
-\t\t(long long)atomic64_read(&snd_repair_p8_irq_handler_total),
-\t\t(long long)atomic64_read(&snd_repair_p8_irq_handler_since_pm),
-\t\tsnd_repair_p8_irq_last_stat0, snd_repair_p8_irq_last_stat1);
-}
-
-"""
+c_nl = "\\n"
+block = (
+    "/* Phase 8 / 0008: handler invocation counter (observation only). */\n"
+    "static atomic64_t snd_repair_p8_irq_handler_total;\n"
+    "static atomic64_t snd_repair_p8_irq_handler_since_pm;\n"
+    "static u32 snd_repair_p8_irq_last_stat0;\n"
+    "static u32 snd_repair_p8_irq_last_stat1;\n"
+    "\n"
+    "static void snd_repair_p8_log_irq_stats(unsigned int resume_id)\n"
+    "{\n"
+    f'\tpr_info("PHASE8 ctx=acp fn=irq_stats resume=%u handler_total=%lld since_pm=%lld last_stat0=0x%x last_stat1=0x%x{c_nl}",\n'
+    "\t\tresume_id,\n"
+    "\t\t(long long)atomic64_read(&snd_repair_p8_irq_handler_total),\n"
+    "\t\t(long long)atomic64_read(&snd_repair_p8_irq_handler_since_pm),\n"
+    "\t\tsnd_repair_p8_irq_last_stat0, snd_repair_p8_irq_last_stat1);\n"
+    "}\n"
+    "\n"
+)
 anchor = "/* Phase 7 / 0007: IRQ delivery trace"
 if "snd_repair_p8_irq_handler_total" not in t:
     t = t.replace(anchor, block + anchor, 1)
@@ -123,7 +124,7 @@ new_susp = (
     "\tstruct pci_dev *pci = to_pci_dev(dev);\n"
     "\n"
     "\tatomic64_set(&snd_repair_p8_irq_handler_since_pm, 0);\n"
-    "\tpr_info(\"PHASE8 ctx=acp fn=pm_suspend_enter irq=%d resume=%u\\n\",\n"
+    f'\tpr_info("PHASE8 ctx=acp fn=pm_suspend_enter irq=%d resume=%u{c_nl}",\n'
     "\t\tpci->irq, snd_repair_phase7_acp_resume_id());\n"
     "\treturn acp_hw_suspend(dev);\n"
     "}"
