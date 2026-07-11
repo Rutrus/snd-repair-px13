@@ -28,6 +28,8 @@ Experiments:
   delay-after-d0   module param phase7_delay_ms (0=control; archived 0005)
   stat-decode              INTR decode post-D0 + optional post_delay (0006b / 0006b.1)
   validate-manager-mask    0006b + manual schedule_work if STAT&mask (0006a)
+  irq-delivery-trace       pci-ps IRQ path observation (0007.1–0007.4)
+  irq-stat-correlate       0006b + 0007 + correlate (t_ms, cntl_write, /proc/interrupts)
 
 Environment:
   PHASE7_EXPERIMENT   same as --experiment
@@ -64,6 +66,12 @@ phase7_patch_for() {
 	validate-manager-mask)
 		echo "$REPO_ROOT/research/phase-7/proposed/0006a-validate-manager-mask.patch"
 		;;
+	irq-delivery-trace)
+		echo "$REPO_ROOT/research/phase-7/proposed/0007-irq-delivery-trace.patch"
+		;;
+	irq-stat-correlate)
+		echo "$REPO_ROOT/research/phase-7/proposed/0007-correlate.patch"
+		;;
 	*)
 		echo "Unknown experiment: $1" >&2
 		exit 1
@@ -87,6 +95,23 @@ phase7_0006b_present() {
 		grep -q 'phase7_delay_ms' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
 }
 
+phase7_irq_delivery_present() {
+	grep -q 'PHASE7 ctx=acp fn=irq_handler_enter' "$SRC/sound/soc/amd/ps/pci-ps.c" 2>/dev/null &&
+		grep -q 'PHASE7 ctx=acp fn=pm_resume_enter' "$SRC/sound/soc/amd/ps/pci-ps.c" 2>/dev/null
+}
+
+phase7_correlate_present() {
+	grep -q 'EXPORT_SYMBOL_GPL(snd_repair_phase7_t_mgr_reset_ms)' \
+		"$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null &&
+		grep -q 'fn=cntl_write who=amd_manager' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null &&
+		grep -q 'fn=cntl1_write who=acp70_host_wake' "$SRC/sound/soc/amd/ps/ps-common.c" 2>/dev/null &&
+		grep -q 't_mgr_ms=%lld' "$SRC/sound/soc/amd/ps/pci-ps.c" 2>/dev/null
+}
+
+phase7_needs_pci_ps() {
+	case "$1" in irq-delivery-trace|irq-stat-correlate) return 0 ;; *) return 1 ;; esac
+}
+
 phase7_present() {
 	case "$1" in
 	delay-after-d0)
@@ -101,8 +126,45 @@ phase7_present() {
 			grep -q 'snd_repair_phase7_try_manual_irq' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null &&
 			grep -q 'fn=manual_irq_schedule' "$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
 		;;
+	irq-delivery-trace)
+		phase7_irq_delivery_present
+		;;
+	irq-stat-correlate)
+		phase7_0006b_present && phase7_irq_delivery_present && phase7_correlate_present
+		;;
 	*) return 1 ;;
 	esac
+}
+
+apply_phase7_pci_patch() {
+	local patch="$1"
+	local label="$2"
+	rm -f "$SRC/sound/soc/amd/ps/pci-ps.c.rej"
+	echo "==> Applying Phase 7 (pci-ps): $label"
+	if patch -p1 --forward -d "$SRC" <"$patch"; then
+		return 0
+	fi
+	rm -f "$SRC/sound/soc/amd/ps/pci-ps.c.rej"
+	return 1
+}
+
+apply_phase7_correlate_patch() {
+	local patch="$1"
+	rm -f "$SRC/drivers/soundwire/amd_manager.c.rej" \
+		"$SRC/sound/soc/amd/ps/pci-ps.c.rej" \
+		"$SRC/sound/soc/amd/ps/ps-common.c.rej"
+	echo "==> Applying Phase 7: irq-stat-correlate (0007-correlate)"
+	if patch -p1 --forward -d "$SRC" <"$patch"; then
+		return 0
+	fi
+	rm -f "$SRC/drivers/soundwire/amd_manager.c.rej" \
+		"$SRC/sound/soc/amd/ps/pci-ps.c.rej" \
+		"$SRC/sound/soc/amd/ps/ps-common.c.rej"
+	if phase7_correlate_present; then
+		echo "==> correlate markers already present (partial/re-apply) — OK"
+		return 0
+	fi
+	return 1
 }
 
 apply_phase7_patch() {
@@ -127,7 +189,7 @@ if [[ -f "$STAMP_P7" ]] && [[ "$(head -1 "$STAMP_P7")" != "$EXPERIMENT" ]]; then
 fi
 
 echo "==> Phase 6 trace base (0003–0007)"
-"$SCRIPT_DIR/build-phase6-amd-trace.sh"
+PHASE6_SKIP_BUILD=1 "$SCRIPT_DIR/build-phase6-amd-trace.sh"
 
 cd "$SRC"
 if phase7_present "$EXPERIMENT"; then
@@ -152,7 +214,7 @@ else
 			}
 		fi
 		;;
-	stat-decode|delay-after-d0)
+		stat-decode|delay-after-d0)
 		if ! apply_phase7_patch "$PATCH_P7" "$EXPERIMENT"; then
 			if phase7_present "$EXPERIMENT"; then
 				echo "==> Phase 7 $EXPERIMENT already present — skip patch"
@@ -168,14 +230,85 @@ else
 			fi
 		fi
 		;;
+	irq-delivery-trace)
+		if ! phase7_irq_delivery_present; then
+			apply_phase7_pci_patch "$PATCH_P7" "irq-delivery-trace (0007)" || {
+				phase7_irq_delivery_present || {
+					echo "ERROR: 0007 pci-ps patch failed" >&2
+					[[ -f "$SRC/sound/soc/amd/ps/pci-ps.c.rej" ]] && \
+						cat "$SRC/sound/soc/amd/ps/pci-ps.c.rej" >&2
+					exit 1
+				}
+			}
+		fi
+		;;
+	irq-stat-correlate)
+		PATCH_0006B="$REPO_ROOT/research/phase-7/proposed/0006b-stat-decode.patch"
+		PATCH_0007="$REPO_ROOT/research/phase-7/proposed/0007-irq-delivery-trace.patch"
+		PATCH_CORR="$REPO_ROOT/research/phase-7/proposed/0007-correlate.patch"
+		if ! phase7_0006b_present; then
+			apply_phase7_patch "$PATCH_0006B" "stat-decode (0006b base)" || {
+				phase7_0006b_present || { echo "ERROR: 0006b base failed" >&2; exit 1; }
+			}
+		fi
+		if ! phase7_irq_delivery_present; then
+			apply_phase7_pci_patch "$PATCH_0007" "irq-delivery-trace (0007)" || {
+				phase7_irq_delivery_present || {
+					echo "ERROR: 0007 pci-ps patch failed" >&2
+					[[ -f "$SRC/sound/soc/amd/ps/pci-ps.c.rej" ]] && \
+						cat "$SRC/sound/soc/amd/ps/pci-ps.c.rej" >&2
+					exit 1
+				}
+			}
+		fi
+		if ! phase7_correlate_present; then
+			apply_phase7_correlate_patch "$PATCH_CORR" || {
+				phase7_correlate_present || {
+					echo "ERROR: 0007-correlate patch failed" >&2
+					for rej in \
+						"$SRC/drivers/soundwire/amd_manager.c.rej" \
+						"$SRC/sound/soc/amd/ps/pci-ps.c.rej" \
+						"$SRC/sound/soc/amd/ps/ps-common.c.rej"; do
+						[[ -f "$rej" ]] && cat "$rej" >&2
+					done
+					exit 1
+				}
+			}
+		fi
+		;;
 	esac
-	if [[ -f "$SRC/drivers/soundwire/amd_manager.c.rej" ]]; then
-		echo "ERROR: Phase 7 patch left .rej (partial apply)" >&2
-		exit 1
-	fi
-	if ! phase7_present "$EXPERIMENT"; then
-		echo "ERROR: Phase 7 $EXPERIMENT incomplete after patch" >&2
-		exit 1
+	if [[ "$EXPERIMENT" == irq-delivery-trace ]]; then
+		[[ -f "$SRC/sound/soc/amd/ps/pci-ps.c.rej" ]] && {
+			echo "ERROR: Phase 7 pci-ps patch left .rej" >&2
+			exit 1
+		}
+		phase7_irq_delivery_present || {
+			echo "ERROR: Phase 7 irq-delivery-trace incomplete after patch" >&2
+			exit 1
+		}
+	elif [[ "$EXPERIMENT" == irq-stat-correlate ]]; then
+		for rej in \
+			"$SRC/drivers/soundwire/amd_manager.c.rej" \
+			"$SRC/sound/soc/amd/ps/pci-ps.c.rej" \
+			"$SRC/sound/soc/amd/ps/ps-common.c.rej"; do
+			[[ -f "$rej" ]] && {
+				echo "ERROR: Phase 7 correlate patch left $rej" >&2
+				exit 1
+			}
+		done
+		phase7_present "$EXPERIMENT" || {
+			echo "ERROR: Phase 7 irq-stat-correlate incomplete after patch" >&2
+			exit 1
+		}
+	else
+		if [[ -f "$SRC/drivers/soundwire/amd_manager.c.rej" ]]; then
+			echo "ERROR: Phase 7 patch left .rej (partial apply)" >&2
+			exit 1
+		fi
+		if ! phase7_present "$EXPERIMENT"; then
+			echo "ERROR: Phase 7 $EXPERIMENT incomplete after patch" >&2
+			exit 1
+		fi
 	fi
 fi
 
@@ -184,16 +317,30 @@ date -Is >>"$STAMP_P7"
 
 KVER="$(uname -r)"
 BUILD="$KERNEL_BUILD"
-echo "==> Rebuilding soundwire-amd (Phase 7 $EXPERIMENT)"
+echo "==> Rebuilding modules (Phase 7 $EXPERIMENT)"
 make -C "$BUILD" M="$(pwd)/drivers/soundwire" CONFIG_SOUNDWIRE=m CONFIG_SOUNDWIRE_AMD=m modules
 
 ko="drivers/soundwire/soundwire-amd.ko"
 name="$(basename "$ko")"
 dest="/lib/modules/$KVER/kernel/drivers/soundwire/${name}.zst"
+ko_ps="sound/soc/amd/ps/snd-pci-ps.ko"
+name_ps="$(basename "$ko_ps")"
+dest_ps="/lib/modules/$KVER/kernel/sound/soc/amd/ps/${name_ps}.zst"
 
 [[ -f "$ko" ]] || { echo "Missing $ko" >&2; exit 1; }
 
-if strings "$ko" | grep -q 'fn=manual_irq_schedule'; then
+if phase7_needs_pci_ps "$EXPERIMENT"; then
+	kernel_make_pci_ps_modules
+	[[ -f "$ko_ps" ]] || { echo "Missing $ko_ps" >&2; exit 1; }
+fi
+
+if strings "$ko_ps" 2>/dev/null | grep -q 'PHASE7 ctx=acp fn=irq_handler_enter'; then
+	if strings "$ko" 2>/dev/null | grep -q 'fn=intr_decode'; then
+		echo "OK: phase7 irq-stat-correlate (0006b + 0007 + correlate) present"
+	else
+		echo "OK: phase7 0007 pci-ps IRQ delivery trace present"
+	fi
+elif strings "$ko" | grep -q 'fn=manual_irq_schedule'; then
 	echo "OK: phase7 0006a manual_irq_schedule present"
 elif strings "$ko" | grep -q 'phase7_delay_ms'; then
 	echo "OK: phase7_delay_ms module param present"
@@ -206,6 +353,11 @@ fi
 zstd -19 -f "$ko" -o "/tmp/$name.zst"
 echo "==> Installing $dest (requires sudo)"
 sudo cp "/tmp/$name.zst" "$dest"
+if phase7_needs_pci_ps "$EXPERIMENT"; then
+	zstd -19 -f "$ko_ps" -o "/tmp/$name_ps.zst"
+	echo "==> Installing $dest_ps (requires sudo)"
+	sudo cp "/tmp/$name_ps.zst" "$dest_ps"
+fi
 sudo depmod -a
 
 STATE="${REPO_ROOT}/validation/.state"
@@ -265,5 +417,30 @@ validate-manager-mask)
 	echo "  systemctl suspend"
 	echo "  ${SCRIPT_DIR}/phase6-hunt.sh post-suspend --save-window"
 	echo "  journalctl -k -b 0 | grep -E 'manual_irq_schedule|irq_thread_enter|fn=completion'"
+	;;
+irq-delivery-trace)
+	echo ""
+	echo "Run: see research/phase-7/experiments/0007-irq-delivery-trace.md"
+	echo "  sudo reboot"
+	echo "  ${SCRIPT_DIR}/phase6-hunt.sh post-reboot --notes p7-0007-boot"
+	echo "  systemctl suspend"
+	echo "  ${SCRIPT_DIR}/phase6-hunt.sh post-suspend --save-window"
+	echo "  journalctl -k -b 0 | grep 'PHASE7 ctx=acp fn='"
+	echo ""
+	echo "Compare boot (resume=0 handler hits) vs post-suspend (resume=1) window."
+	;;
+irq-stat-correlate)
+	echo ""
+	echo "Run: see research/phase-7/experiments/0007-irq-delivery-trace.md (combined protocol)"
+	echo "  ${SCRIPT_DIR}/phase7-irq-snapshot.sh pre-suspend"
+	echo "  ${SCRIPT_DIR}/phase7-sweep-pre.sh ${DELAY_MS:-50}   # delay before post_delay snapshot"
+	echo "  sudo reboot"
+	echo "  ${SCRIPT_DIR}/phase6-hunt.sh post-reboot --notes p7-correlate-d50"
+	echo "  systemctl suspend"
+	echo "  ${SCRIPT_DIR}/phase7-irq-snapshot.sh post-resume"
+	echo "  ${SCRIPT_DIR}/phase6-hunt.sh post-suspend --save-window"
+	echo "  journalctl -k -b 0 | grep -E 'PHASE7 ctx=(acp|amd) fn='"
+	echo ""
+	echo "Close delivery if: t~50ms STAT&mask=0x4 (amd) + no irq_handler_enter (pci) + IRQ164 unchanged."
 	;;
 esac

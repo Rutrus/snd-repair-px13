@@ -1,0 +1,143 @@
+From: snd-repair phase7 <snd-repair@local>
+Date: Sat, 11 Jul 2026 02:06:00 +0200
+Subject: [PATCH phase7] IRQ delivery trace (0007.1–0007.4, pci-ps)
+
+Observation only — trace acp63_irq_handler, request_irq, and system resume
+(MSI/STAT/CNTL). Applies on Phase 6 trace base (0003–0007).
+
+Signed-off-by: snd-repair phase7 <snd-repair@local>
+---
+--- a/sound/soc/amd/ps/pci-ps.c
++++ b/sound/soc/amd/ps/pci-ps.c
+@@ -21,6 +21,42 @@
+ 
+ #include "acp63.h"
+ 
++/* Phase 7 / 0007: IRQ delivery trace (pci-ps) — observation only, no behaviour change. */
++static unsigned int snd_repair_phase7_acp_resume_n;
++static int p7_trace_pci_irq;
++static bool p7_trace_pci_msi;
++
++static u32 snd_repair_phase7_acp_resume_id(void)
++{
++	return snd_repair_phase7_acp_resume_n;
++}
++
++static void snd_repair_phase7_log_irq_regs(struct acp63_dev_data *adata,
++					   u32 *stat0, u32 *stat1,
++					   u32 *cntl0, u32 *cntl1, u32 *enb)
++{
++	*stat0 = readl(adata->acp63_base + ACP_EXTERNAL_INTR_STAT);
++	*stat1 = readl(adata->acp63_base + ACP_EXTERNAL_INTR_STAT1);
++	*cntl0 = readl(adata->acp63_base + ACP_EXTERNAL_INTR_CNTL);
++	*cntl1 = readl(adata->acp63_base + ACP_EXTERNAL_INTR_CNTL1);
++	*enb = readl(adata->acp63_base + ACP_EXTERNAL_INTR_ENB);
++}
++
++static void snd_repair_phase7_pm_resume_trace(struct device *dev,
++					      struct acp63_dev_data *adata, int ret)
++{
++	struct pci_dev *pci = to_pci_dev(dev);
++	u32 stat0 = 0, stat1 = 0, cntl0 = 0, cntl1 = 0, enb = 0;
++
++	if (adata && adata->acp63_base)
++		snd_repair_phase7_log_irq_regs(adata, &stat0, &stat1, &cntl0, &cntl1, &enb);
++	pr_info("PHASE7 ctx=acp fn=pm_resume_done resume=%u ret=%d irq=%d msi=%d stat0=0x%x stat1=0x%x cntl0=0x%x cntl1=0x%x enb=0x%x\n",
++		snd_repair_phase7_acp_resume_id(), ret, pci->irq,
++		pci_dev_msi_enabled(pci) ? 1 : 0,
++		stat0, stat1, cntl0, cntl1, enb);
++}
++
++
+ static void handle_acp70_sdw_wake_event(struct acp63_dev_data *adata)
+ {
+ 	struct amd_sdw_manager *amd_manager;
+@@ -206,8 +242,17 @@
+ 	 * effect.
+ 	 * Bit by bit checking of IRQ field is implemented.
+ 	 */
+-	ext_intr_stat = readl(adata->acp63_base + ACP_EXTERNAL_INTR_STAT);
+-	pr_info("PHASE6 ctx=acp fn=irq_handler_enter stat=0x%x\n", ext_intr_stat);
++	{
++		u32 cntl0, cntl1, enb;
++
++		ext_intr_stat = readl(adata->acp63_base + ACP_EXTERNAL_INTR_STAT);
++		ext_intr_stat1 = readl(adata->acp63_base + ACP_EXTERNAL_INTR_STAT1);
++		snd_repair_phase7_log_irq_regs(adata, &ext_intr_stat, &ext_intr_stat1,
++						       &cntl0, &cntl1, &enb);
++		pr_info("PHASE7 ctx=acp fn=irq_handler_enter irq=%d resume=%u stat0=0x%x stat1=0x%x cntl0=0x%x cntl1=0x%x enb=0x%x msi=%d\n",
++			irq, snd_repair_phase7_acp_resume_id(), ext_intr_stat, ext_intr_stat1,
++			cntl0, cntl1, enb, p7_trace_pci_msi ? 1 : 0);
++	}
+ 	if (ext_intr_stat & ACP_SDW0_STAT) {
+ 		pr_info("PHASE6 ctx=acp fn=sdw0_irq link=0 stat=0x%x\n", ext_intr_stat);
+ 		writel(ACP_SDW0_STAT, adata->acp63_base + ACP_EXTERNAL_INTR_STAT);
+@@ -217,8 +262,9 @@
+ 		irq_flag = 1;
+ 	}
+ 
+-	ext_intr_stat1 = readl(adata->acp63_base + ACP_EXTERNAL_INTR_STAT1);
+ 	if (ext_intr_stat1 & ACP_SDW1_STAT) {
++		pr_info("PHASE7 ctx=acp fn=sdw1_irq resume=%u stat1=0x%x ack=0x%x\n",
++			snd_repair_phase7_acp_resume_id(), ext_intr_stat1, ACP_SDW1_STAT);
+ 		writel(ACP_SDW1_STAT, adata->acp63_base + ACP_EXTERNAL_INTR_STAT1);
+ 		amd_manager = dev_get_drvdata(&adata->sdw->pdev[1]->dev);
+ 		if (amd_manager)
+@@ -247,13 +293,22 @@
+ 	}
+ 
+ 	sdw_dma_irq_flag = check_and_handle_sdw_dma_irq(adata, ext_intr_stat, ext_intr_stat1);
+-	if (sdw_dma_irq_flag)
++	if (sdw_dma_irq_flag) {
++		pr_info("PHASE7 ctx=acp fn=irq_handler_exit resume=%u ret=WAKE_THREAD dma=1\n",
++			snd_repair_phase7_acp_resume_id());
+ 		return IRQ_WAKE_THREAD;
++	}
+ 
+-	if (irq_flag | wake_irq_flag)
++	if (irq_flag | wake_irq_flag) {
++		pr_info("PHASE7 ctx=acp fn=irq_handler_exit resume=%u ret=HANDLED sdw0=%d sdw1=%d wake=%d dma=%d\n",
++			snd_repair_phase7_acp_resume_id(), !!(ext_intr_stat & ACP_SDW0_STAT),
++			!!(ext_intr_stat1 & ACP_SDW1_STAT), wake_irq_flag, sdw_dma_irq_flag);
+ 		return IRQ_HANDLED;
+-	else
+-		return IRQ_NONE;
++	}
++	pr_info("PHASE7 ctx=acp fn=irq_handler_exit resume=%u ret=NONE sdw0=%d sdw1=%d wake=%d dma=%d\n",
++		snd_repair_phase7_acp_resume_id(), !!(ext_intr_stat & ACP_SDW0_STAT),
++		!!(ext_intr_stat1 & ACP_SDW1_STAT), wake_irq_flag, sdw_dma_irq_flag);
++	return IRQ_NONE;
+ }
+ 
+ #if IS_ENABLED(CONFIG_SND_SOC_AMD_SOUNDWIRE)
+@@ -645,6 +700,11 @@
+ 		dev_err(&pci->dev, "ACP PCI IRQ request failed\n");
+ 		goto de_init;
+ 	}
++	p7_trace_pci_irq = pci->irq;
++	p7_trace_pci_msi = pci_dev_msi_enabled(pci);
++	pr_info("PHASE7 ctx=acp fn=request_irq irq=%d flags=0x%x msi=%d resume=%u\n",
++		pci->irq, irqflags, p7_trace_pci_msi ? 1 : 0,
++		snd_repair_phase7_acp_resume_id());
+ 	ret = get_acp63_device_config(pci, adata);
+ 	/* ACP PCI driver probe should be continued even PDM or SoundWire Devices are not found */
+ 	if (ret) {
+@@ -696,7 +756,17 @@
+ 
+ static int snd_acp_resume(struct device *dev)
+ {
+-	return acp_hw_resume(dev);
++	struct acp63_dev_data *adata = dev_get_drvdata(dev);
++	struct pci_dev *pci = to_pci_dev(dev);
++	int ret;
++
++	snd_repair_phase7_acp_resume_n++;
++	pr_info("PHASE7 ctx=acp fn=pm_resume_enter resume=%u irq=%d msi=%d\n",
++		snd_repair_phase7_acp_resume_id(), pci->irq,
++		pci_dev_msi_enabled(pci) ? 1 : 0);
++	ret = acp_hw_resume(dev);
++	snd_repair_phase7_pm_resume_trace(dev, adata, ret);
++	return ret;
+ }
+ 
+ static const struct dev_pm_ops acp63_pm_ops = {

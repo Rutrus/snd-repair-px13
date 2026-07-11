@@ -1,0 +1,92 @@
+From: snd-repair phase7 <snd-repair@local>
+Subject: [PATCH phase7] IRQ/STAT correlate (t_ms, cntl_write)
+
+--- a/drivers/soundwire/amd_manager.c
++++ drivers/soundwire/amd_manager.c	2026-07-11 02:30:59.311167598 +0200
+@@ -71,6 +71,17 @@
+ 	return ktime_to_ms(ktime_sub(ktime_get_boottime(), amd_phase6_reset_ts[li]));
+ }
+ 
++/* Phase 7 correlate: shared t_ms since manager_reset (instance index). */
++s64 snd_repair_phase7_t_mgr_reset_ms(unsigned int instance)
++{
++	if (instance >= AMD_PHASE6_MAX_LINKS ||
++	    !ktime_to_ns(amd_phase6_reset_ts[instance]))
++		return -1;
++	return ktime_to_ms(ktime_sub(ktime_get_boottime(),
++				     amd_phase6_reset_ts[instance]));
++}
++EXPORT_SYMBOL_GPL(snd_repair_phase7_t_mgr_reset_ms);
++
+ static void amd_phase6_mark_reset(struct amd_sdw_manager *amd_manager)
+ {
+ 	int li = amd_manager->instance;
+@@ -174,6 +185,12 @@
+ 	mutex_lock(amd_manager->acp_sdw_lock);
+ 	val = sdw_manager_reg_mask_array[amd_manager->instance];
+ 	amd_updatel(amd_manager->acp_mmio, ACP_EXTERNAL_INTR_CNTL(amd_manager->instance), val, val);
++	dev_info(amd_manager->dev,
++		 "PHASE7 ctx=amd fn=cntl_write who=amd_manager inst=%u mask=0x%x cntl_after=0x%x t_ms=%lld\n",
++		 amd_manager->instance, val,
++		 readl(amd_manager->acp_mmio +
++		       ACP_EXTERNAL_INTR_CNTL(amd_manager->instance)),
++		 (long long)amd_phase6_since_reset_ms(amd_manager));
+ 	mutex_unlock(amd_manager->acp_sdw_lock);
+ 
+ 	writel(AMD_SDW_IRQ_MASK_0TO7, amd_manager->mmio +
+--- a/sound/soc/amd/ps/ps-common.c
++++ sound/soc/amd/ps/ps-common.c	2026-07-11 02:28:56.163057702 +0200
+@@ -292,9 +292,14 @@
+ {
+ 	u32 ext_intr_cntl1;
+ 
+-	ext_intr_cntl1 = readl(acp_base + ACP_EXTERNAL_INTR_CNTL1);
+-	ext_intr_cntl1 |= ACP70_SDW_HOST_WAKE_MASK;
+-	writel(ext_intr_cntl1, acp_base + ACP_EXTERNAL_INTR_CNTL1);
++	{
++		u32 old_cntl1 = readl(acp_base + ACP_EXTERNAL_INTR_CNTL1);
++
++		ext_intr_cntl1 = old_cntl1 | ACP70_SDW_HOST_WAKE_MASK;
++		writel(ext_intr_cntl1, acp_base + ACP_EXTERNAL_INTR_CNTL1);
++		pr_info("PHASE7 ctx=acp fn=cntl1_write who=acp70_host_wake old=0x%x new=0x%x\n",
++			old_cntl1, ext_intr_cntl1);
++	}
+ }
+ 
+ static void acp70_enable_interrupts(void __iomem *acp_base)
+--- a/sound/soc/amd/ps/pci-ps.c
++++ sound/soc/amd/ps/pci-ps.c	2026-07-11 02:28:56.163250934 +0200
+@@ -21,6 +21,8 @@
+ 
+ #include "acp63.h"
+ 
++extern s64 snd_repair_phase7_t_mgr_reset_ms(unsigned int instance);
++
+ /* Phase 7 / 0007: IRQ delivery trace (pci-ps) — observation only, no behaviour change. */
+ static unsigned int snd_repair_phase7_acp_resume_n;
+ static int p7_trace_pci_irq;
+@@ -50,9 +52,10 @@
+ 
+ 	if (adata && adata->acp63_base)
+ 		snd_repair_phase7_log_irq_regs(adata, &stat0, &stat1, &cntl0, &cntl1, &enb);
+-	pr_info("PHASE7 ctx=acp fn=pm_resume_done resume=%u ret=%d irq=%d msi=%d stat0=0x%x stat1=0x%x cntl0=0x%x cntl1=0x%x enb=0x%x\n",
++	pr_info("PHASE7 ctx=acp fn=pm_resume_done resume=%u ret=%d irq=%d msi=%d t_mgr_ms=%lld stat0=0x%x stat1=0x%x cntl0=0x%x cntl1=0x%x enb=0x%x\n",
+ 		snd_repair_phase7_acp_resume_id(), ret, pci->irq,
+ 		pci_dev_msi_enabled(pci) ? 1 : 0,
++		(long long)snd_repair_phase7_t_mgr_reset_ms(1),
+ 		stat0, stat1, cntl0, cntl1, enb);
+ }
+ 
+@@ -249,8 +252,10 @@
+ 		ext_intr_stat1 = readl(adata->acp63_base + ACP_EXTERNAL_INTR_STAT1);
+ 		snd_repair_phase7_log_irq_regs(adata, &ext_intr_stat, &ext_intr_stat1,
+ 						       &cntl0, &cntl1, &enb);
+-		pr_info("PHASE7 ctx=acp fn=irq_handler_enter irq=%d resume=%u stat0=0x%x stat1=0x%x cntl0=0x%x cntl1=0x%x enb=0x%x msi=%d\n",
+-			irq, snd_repair_phase7_acp_resume_id(), ext_intr_stat, ext_intr_stat1,
++		pr_info("PHASE7 ctx=acp fn=irq_handler_enter irq=%d resume=%u t_mgr_ms=%lld stat0=0x%x stat1=0x%x cntl0=0x%x cntl1=0x%x enb=0x%x msi=%d\n",
++			irq, snd_repair_phase7_acp_resume_id(),
++			(long long)snd_repair_phase7_t_mgr_reset_ms(1),
++			ext_intr_stat, ext_intr_stat1,
+ 			cntl0, cntl1, enb, p7_trace_pci_msi ? 1 : 0);
+ 	}
+ 	if (ext_intr_stat & ACP_SDW0_STAT) {

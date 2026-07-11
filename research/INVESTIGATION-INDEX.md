@@ -1,13 +1,17 @@
 # Investigation index — PX13 snd_repair
 
-> **Canonical state (EN):** [`../docs/PROJECT-STATE.md`](../docs/PROJECT-STATE.md) · **ES:** [`../docs/es/ESTADO-PROYECTO.md`](../docs/es/ESTADO-PROYECTO.md)  
+> **Canonical journey (EN):** [`JOURNEY.md`](JOURNEY.md) · **State:** [`../docs/PROJECT-STATE.md`](../docs/PROJECT-STATE.md) · **ES:** [`../docs/es/ESTADO-PROYECTO.md`](../docs/es/ESTADO-PROYECTO.md)  
 > **Machine:** ASUS ProArt PX13 HN7306EAC · kernel `7.0.0-27-generic`
 
 **Phase 4:** only **suspend/resume** (`:8` / `-110`) remains. Cold boot stereo, capture A, ch_mask C — resolved.
 
-**Phase 5 (branch `research/suspend-lifecycle`):** TAS2783 lifecycle traced; 0003 **on hold**. → [`phase-5/INDEX.md`](phase-5/INDEX.md)
+**Phase 5** (branch `research/suspend-lifecycle`): → [`phase-5/INDEX.md`](phase-5/INDEX.md)
 
-**Phase 6:** ACP70 SoundWire resume — **observation complete** (0015). Upstream draft + [Phase 7 experiments](../phase-7/INDEX.md). → [`phase-6/INDEX.md`](phase-6/INDEX.md)
+**Phase 6:** observation **closed** (0015). → [`phase-6/INDEX.md`](phase-6/INDEX.md)
+
+**Phase 7 (frozen):** delivery boundary closed. → [`phase-7/INDEX.md`](phase-7/INDEX.md) · [`UPSTREAM-REPORT-DRAFT.md`](phase-6/UPSTREAM-REPORT-DRAFT.md)
+
+**Phase 8 (planned):** ACP platform IRQ restore after s2idle.
 
 Líneas **independientes**. No mezclar evidencia entre tracks salvo correlación explícita en logs.
 

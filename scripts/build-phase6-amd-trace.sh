@@ -68,6 +68,16 @@ cleanup_rejects() {
 	rm -f "$SRC/sound/soc/amd/ps/pci-ps.c.rej"
 }
 
+phase7_amd_contamination() {
+	grep -qE 'phase7_delay_ms|fn=intr_decode|fn=delay_after_D0' \
+		"$SRC/drivers/soundwire/amd_manager.c" 2>/dev/null
+}
+
+if phase7_amd_contamination && [[ ! -f "$STAMP" ]]; then
+	echo "==> Phase 7 leftovers in amd_manager.c — restoring vanilla base"
+	"$SCRIPT_DIR/reset-phase6-amd-manager.sh"
+fi
+
 if [[ -f "$STAMP" ]]; then
 	echo "==> Re-applying from upstream base (prior phase6 AMD stamp found)"
 	"$SCRIPT_DIR/reset-kernel-tree.sh"
@@ -161,9 +171,14 @@ date -Is >"$STAMP5"
 date -Is >"$STAMP6"
 date -Is >"$STAMP7"
 
+if [[ "${PHASE6_SKIP_BUILD:-0}" == 1 ]]; then
+	echo "==> PHASE6_SKIP_BUILD=1 — patches only (module build deferred to caller)"
+	exit 0
+fi
+
 echo "==> Building soundwire-amd + snd-pci-ps (phase6 AMD/ACP trace)"
 make -C "$BUILD" M="$(pwd)/drivers/soundwire" CONFIG_SOUNDWIRE=m CONFIG_SOUNDWIRE_AMD=m modules
-make -C "$BUILD" M="$(pwd)/sound/soc/amd/ps" CONFIG_SND_SOC_AMD_PS=m modules
+kernel_make_pci_ps_modules
 
 ko="drivers/soundwire/soundwire-amd.ko"
 ko_ps="sound/soc/amd/ps/snd-pci-ps.ko"

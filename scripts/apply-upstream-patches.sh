@@ -31,6 +31,30 @@ fi
 
 cd "$SRC"
 
+cleanup_upstream_rejects() {
+	find . -name '*.rej' -delete 2>/dev/null || true
+}
+
+patch_already_applied() {
+	local patch="$1"
+	patch -p1 --reverse --dry-run <"$patch" >/dev/null 2>&1
+}
+
+apply_upstream_patch() {
+	local patch="$1"
+	if patch -p1 --forward <"$patch"; then
+		cleanup_upstream_rejects
+		return 0
+	fi
+	cleanup_upstream_rejects
+	if patch_already_applied "$patch"; then
+		echo "    already applied — skip"
+		return 0
+	fi
+	echo "Failed to apply $patch" >&2
+	return 1
+}
+
 if [[ -f "$KVER_STAMP" && "$(cat "$KVER_STAMP")" != "$KVER" ]]; then
 	echo "==> Kernel changed ($(cat "$KVER_STAMP") → $KVER); resetting patched tree"
 	rm -f "$STAMP"
@@ -45,10 +69,7 @@ echo "==> Applying upstream series (A + B + C) in $SRC"
 while IFS= read -r patch; do
 	[[ -n "$patch" ]] || continue
 	echo "    $(basename "$(dirname "$patch")")/$(basename "$patch")"
-	patch -p1 --forward <"$patch" || {
-		echo "Failed to apply $patch" >&2
-		exit 1
-	}
+	apply_upstream_patch "$patch" || exit 1
 done < <(upstream_patch_files)
 
 date -Is >"$STAMP"

@@ -8,7 +8,8 @@ Material for diagnosis and **active investigation** on the PX13.
 
 | Document | Contents |
 |----------|----------|
-| **[INVESTIGATION-INDEX.md](INVESTIGATION-INDEX.md)** | Track index A–D |
+| **[JOURNEY.md](JOURNEY.md)** | **End-to-end thread** — boot → Phase 6 → Phase 7 → resolution |
+| **[INVESTIGATION-INDEX.md](INVESTIGATION-INDEX.md)** | Track index A–D (historical) |
 | **[PRIORITY-DEBUG.md](PRIORITY-DEBUG.md)** | Active P0–P3 status and test protocol |
 | **[SUDO-RUNBOOK.md](SUDO-RUNBOOK.md)** | Commands requiring root |
 | [track-A-serie-b-suspend.md](track-A-serie-b-suspend.md) | FW `:8` + suspend (P0) |

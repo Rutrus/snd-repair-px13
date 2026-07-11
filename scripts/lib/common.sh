@@ -30,3 +30,35 @@ upstream_patch_files() {
 	find "$UPSTREAM/series-B-firmware" -maxdepth 1 -name '*.patch' 2>/dev/null | sort
 	find "$UPSTREAM/series-C-channel-map" -maxdepth 1 -name '*.patch' 2>/dev/null | sort
 }
+
+# pci-ps may import snd_repair_phase7_t_mgr_reset_ms from soundwire-amd (phase7 correlate).
+kernel_pci_ps_needs_amd_symvers() {
+	[[ -f "${1:-$KERNEL_SRC}/sound/soc/amd/ps/pci-ps.c" ]] &&
+		grep -q 'snd_repair_phase7_t_mgr_reset_ms' \
+			"${1:-$KERNEL_SRC}/sound/soc/amd/ps/pci-ps.c" 2>/dev/null
+}
+
+kernel_amd_symvers_has_phase7_export() {
+	local symvers="${1:-${KERNEL_SRC}/drivers/soundwire/Module.symvers}"
+	[[ -f "$symvers" ]] &&
+		grep -q 'snd_repair_phase7_t_mgr_reset_ms' "$symvers" 2>/dev/null
+}
+
+# Build snd-pci-ps.ko; pass KBUILD_EXTRA_SYMBOLS when correlate import is present.
+kernel_make_pci_ps_modules() {
+	local src="${KERNEL_SRC:?}"
+	local build="${KERNEL_BUILD:?}"
+	local ps_make_args=(M="${src}/sound/soc/amd/ps" CONFIG_SND_SOC_AMD_PS=m modules)
+
+	if kernel_pci_ps_needs_amd_symvers "$src"; then
+		local symvers="${src}/drivers/soundwire/Module.symvers"
+		if kernel_amd_symvers_has_phase7_export "$symvers"; then
+			ps_make_args+=(KBUILD_EXTRA_SYMBOLS="$symvers")
+		else
+			echo "ERROR: pci-ps imports snd_repair_phase7_t_mgr_reset_ms but $symvers lacks it" >&2
+			echo "  Build soundwire-amd after phase7 correlate, or use PHASE6_SKIP_BUILD=1 from build-phase7.sh" >&2
+			return 1
+		fi
+	fi
+	make -C "$build" "${ps_make_args[@]}"
+}
