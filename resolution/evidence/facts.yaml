@@ -1,0 +1,79 @@
+# Volatile facts and open observations only.
+# Stable measurements → evidence/invariants.yaml (I001…)
+# Hypotheses → hypotheses.yaml
+
+version: 1
+machine: ASUS ProArt PX13
+pci_dev: "0000:c4:00.5"
+last_updated: "2026-07-11"
+
+facts:
+  F004:
+    name: runtime_usage
+    value: 0
+    tier: volatile
+    status: proven
+    source: I01
+    inspector: snapshot
+    campaign: C04-runtime-pm
+
+  F005:
+    name: runtime_status
+    value: active
+    tier: volatile
+    status: proven
+    source: I01
+    inspector: snapshot
+    campaign: C04-runtime-pm
+
+  F010:
+    name: runtime_pm_never_reached_suspended
+    value: true
+    tier: volatile
+    status: proven
+    source: E09
+    inspector: timeline
+    notes: "R09 D1 active 45s — domain BLOCKED"
+    campaign: C04-runtime-pm
+
+  F012:
+    name: io_page_fault_observed_s2_resume_window
+    value: correlated
+    tier: volatile
+    status: observed
+    source: I01
+    inspector: timeline
+    notes: "Optional — I02 post-E07-08 run: (none); see F013"
+    campaign: C01-intx-bridge
+
+  F013:
+    name: iommu_fault_required_for_audio_fail
+    value: false
+    tier: volatile
+    status: proven
+    source: "I02 post-E07 RUN-08"
+    inspector: timeline
+    campaign: C01-intx-bridge
+    notes: "Boot window after E07 — no IO_PAGE_FAULT; fail persists"
+
+observations:
+  O_IOMMU:
+    name: iommu_io_page_fault_characterization
+    tier: volatile
+    status: closed
+    source: I02
+    inspector: timeline
+    conclusion: "No faults this boot post-E07 — H_DMA further weakened"
+    campaign: C01-intx-bridge
+
+  O_E07_DIFF:
+    name: e07_differential_snapshot
+    tier: volatile
+    status: closed
+    source: "E07 RUN-09"
+    inspector: snapshot
+    conclusion: "G1–G4 pass; RELEVANT_UNCHANGED — C02 KILLED"
+    campaign: C02-pci-reprobe
+
+# Promoted to invariants:
+# I010 pci_reprobe_relevant_state_unchanged (RUN-09, C02 gate)

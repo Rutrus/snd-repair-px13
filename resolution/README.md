@@ -6,6 +6,16 @@ English (canonical). **Hypothesis generator** for upstream — not Phase 9.
 
 ---
 
+## Fundamental unit
+
+> **The fundamental unit of the project is no longer an experiment; it is a change of confidence in a node of the causal model.**
+
+An experiment ends when it modifies exactly one of: a **fact** · a **hypothesis** · an **edge** · or **confidence / evidence_debt**.
+
+Evidence: [evidence/README.md](evidence/README.md) · Debt: `scripts/evidence/evidence-debt.sh`
+
+---
+
 ## Core question
 
 Not *"what fails?"* but:
@@ -72,6 +82,38 @@ If R09 fails: `runtime_resume` shares the bug → go deeper (R07, R08, [firmware
 
 ---
 
+## Weekly principle
+
+> **Kill one big hypothesis per week** — not ten small facts.
+
+Active campaigns (max 2): [campaigns/README.md](campaigns/README.md)
+
+```bash
+~/snd_repair/resolution/scripts/campaigns/campaign-status.sh
+```
+
+Metrics: [METRICS.md](METRICS.md) (Cost · Knowledge · **EIG**) · Exit: [EXIT-CRITERIA.md](EXIT-CRITERIA.md)
+
+---
+
+## Three dimensions
+
+```text
+research/     frozen archaeology
+resolution/   campaigns → edges → inspectors
+evidence/     invariants → facts → hypotheses
+negative/     rejected fixes (patches + recoveries)
+```
+
+| Layer | Role |
+|-------|------|
+| [campaigns/](campaigns/README.md) | What we prove **this week** (≤2 active) |
+| [evidence/invariants.yaml](evidence/invariants.yaml) | Stable measurements |
+| [evidence/facts.yaml](evidence/facts.yaml) | Volatile only |
+| [negative/rejected-fixes.yaml](negative/rejected-fixes.yaml) | Do not repeat |
+
+---
+
 ## Branches
 
 | Branch | When | Entry |
@@ -84,14 +126,14 @@ If R09 fails: `runtime_resume` shares the bug → go deeper (R07, R08, [firmware
 
 ---
 
-## When PASS → research reactivates (Stable Edge only)
+## Gates (exploration first)
 
-| Gate | Requirement |
-|------|-------------|
-| PASS ×1 | Repeat same edge — **do not** switch |
-| 5/5 full signature | incl. suspend #2 on each counted run |
-| Stable Edge | `edges/state.json` status `stable` |
-| Research | **one** question from edge definition |
+| Goal | Threshold |
+|------|-----------|
+| **Research** (Option A) | PROMISING + confidence ≥ **0.85** |
+| **Workaround** (Option B) | **STABLE** — consolidation sprint ×3 |
+
+One PASS on E09 (research-coherent) may reach 0.85 **without** five repeats.
 
 Details: [EDGE-FRAMEWORK.md](EDGE-FRAMEWORK.md) · [edges/E09.md](edges/E09.md)
 
@@ -112,16 +154,21 @@ Details: [EDGE-FRAMEWORK.md](EDGE-FRAMEWORK.md) · [edges/E09.md](edges/E09.md)
 ```
 resolution/
 ├── README.md
-├── EDGE-FRAMEWORK.md    ← closure ladder, signature, saturation
-├── edges/               ← E09… formal contracts + state.json
-├── DEPTH-MATRIX.md      ← Cost × Knowledge
-├── TRACKER.md           ← transition log
-├── UPSTREAM-VALUE.md
-├── recovery/PROTOCOL.md
-├── firmware/            ← Windows handoff (FW01+)
-├── firmware/            ← Windows handoff FW01+
-├── experiments/         ← replay + mutation sequences
-└── scripts/recovery/    ← R01–R10
+├── campaigns/           ← C01, C02 active (max 2)
+├── evidence/
+│   ├── invariants.yaml
+│   ├── facts.yaml       ← volatile only
+│   ├── hypotheses.yaml
+│   └── confidence.yaml
+├── negative/            ← rejected-fixes.yaml
+├── METRICS.md           ← EIG
+├── EXIT-CRITERIA.md
+├── observability/
+├── EDGE-TYPES.md
+└── scripts/
+    ├── campaigns/campaign-status.sh
+    ├── evidence/evidence-debt.sh
+    └── inspectors/
 ```
 
 ---

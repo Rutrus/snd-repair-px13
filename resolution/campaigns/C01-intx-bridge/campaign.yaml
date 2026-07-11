@@ -1,0 +1,40 @@
+id: C01-intx-bridge
+name: INTx observability gap — cause
+
+status: active
+phase: confirmatory_cause
+priority: 1
+
+goal: >
+  H_INTX_CAUSE: why observability is lost between STAT1 latch and PCI_STATUS on resume.
+  M_INTX_CORE is accepted_model (observation + inference) — not under test.
+
+success_condition: >
+  Maintainer confirms mechanism, mandatory sequence, or erratum OR falsification experiment refines model.
+
+kill_condition: >
+  M_INTX_CORE falsified (see accepted_models.yaml) OR H_DMA gains positive proof.
+
+accepted_model: M_INTX_CORE
+
+parallel_tracks:
+  - id: maintainer
+    action: open_upstream_thread
+    eig: enormous
+    doc: resolution/experiments/C01-upstream-handoff.md
+    do_not_wait_for: perfect_explanation
+  - id: falsify
+    action: directed_experiments_only
+    eig: medium
+    doc: resolution/experiments/C01-falsification-protocol.md
+    avoid: exploratory_driver_patches
+
+estimated_cost: 2
+expected_information_gain: enormous
+
+weekly_kill_target: maintainer_response_or_falsify_M_INTX_CORE
+
+notes: |
+  Language: "loss of observability" not "propagation broken".
+  Alt A (clock gating) and Alt D (fabric dereg) prioritized over Alt B (transient bit).
+  Risk: treating accepted_model as certainty before AMD input.

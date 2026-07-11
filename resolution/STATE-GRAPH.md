@@ -18,6 +18,8 @@ English (canonical). Resolution does **not** run "experiments." It discovers **m
 
 Research closed **S1 → S2** (system resume breaks). Resolution maps **S2 → S3** edges.
 
+**S2 oracle (v2.1):** `-110 ∧ handler_since_pm=0 ∧ STAT1=0x4` — see [WITNESS-QUALITY.md](WITNESS-QUALITY.md). Recovery runs only when witness **VALID**.
+
 ---
 
 ## Boot chain (always reaches S0)
@@ -67,9 +69,20 @@ STAT1 interrupt pending  (STAT&0x4 @ ~50 ms)        ✓ FACT
 Timeout                  (RT721 -110)               → S2
 ```
 
-**Missing transition (hypothesis):** `STAT1 pending → PCI INTx delivered → handler → schedule_work`
+**Missing transition (post-E04):** Not manager probe — enumeration works. Missing edge is **below ATTACHED → audio usable**. See [RECOVERY-DOMAINS.md](RECOVERY-DOMAINS.md).
 
-0006a proved the chain **after** `schedule_work` is intact.
+---
+
+## Post-E04: manager domain closed
+
+```text
+manager reprobe
+      │
+      ▼
+RT721 ATTACHED ──► enumeration OK
+      │
+      └──► audio usable  ✗ (missing edge)
+```
 
 ---
 
@@ -99,10 +112,10 @@ Record **which transition** each action adds — not only PASS/FAIL.
 
 | Recovery | Adds transition | Result | Missing transition implied |
 |------------|-------------------|--------|----------------------------|
-| R09 | runtime_suspend → runtime_resume on ACP PCI | `?` | system PM skips what runtime PM does |
-| R07 | PCI driver teardown → full probe | `?` | pm_resume ≠ probe |
-| R08 | PCI remove → rescan → re-probe | `?` | need plug-level re-init |
-| R04 | manager unbind → bind (probe path) | `?` | manager pm_resume ≠ probe |
+| R09 | runtime_suspend → runtime_resume on ACP PCI | `?` | **retest** — RUN-02 never suspended |
+| R07 | PCI driver teardown → full probe | `?` | retest with VALID S2 |
+| R08 | PCI remove → rescan → re-probe | `?` | explored (ambiguous) |
+| R04 | manager unbind → bind (probe path) | **FAIL** | probe → RT721 ATTACHED; ALSA still broken — **L2 closed** |
 | R01 | userspace daemon restart | `?` | none expected (low knowledge) |
 
 ---

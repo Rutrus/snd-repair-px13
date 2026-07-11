@@ -1,0 +1,30 @@
+id: C04-runtime-pm
+name: Runtime PM missing transition
+
+status: parked
+priority: 4
+
+goal: >
+  Runtime PM performs a transition that system PM omits (runtime_suspend → runtime_resume → S3).
+
+success_condition: >
+  E09/R09 reaches runtime_suspend then S3 ALSA PASS.
+
+kill_condition: >
+  Runtime PM never executes (E09 BLOCKED) OR reproduces same INTx failure as system resume.
+
+hypothesis: H_INTERNAL_PM
+
+estimated_cost: 3
+estimated_knowledge: 5
+expected_information_gain: high
+
+edges: [E09]
+recoveries: [R09]
+inspectors: [I01]
+
+facts: [F004, F005, F010]
+
+notes: |
+  RUN-07 BLOCKED — not killed formally until campaign reactivated.
+  I01 closed refcnt hypothesis; driver internal active remains open.

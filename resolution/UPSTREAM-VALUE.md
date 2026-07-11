@@ -1,8 +1,8 @@
 # Upstream value — resolution feeds research
 
-English (canonical). Resolution is a **hypothesis generator**. Research re-activates **only** after a **Stable Edge** (5/5 full Recovery Signature).
+English (canonical). Resolution is a **hypothesis generator**. Research re-activates at confidence ≥ **0.85** (PROMISING). Workarounds ship at **STABLE** (consolidation ×3).
 
-**Gate:** [EDGE-FRAMEWORK.md](EDGE-FRAMEWORK.md) — not PASS ×1, not 3/5.
+**Gate:** [EDGE-FRAMEWORK.md](EDGE-FRAMEWORK.md) — exploration first, no 5/5 during mapping.
 
 ---
 
@@ -22,12 +22,27 @@ From *"my laptop fails"* to *"fails until transition X"*:
 
 ---
 
-## Resolution → research handoff
+## Resolution → research handoff (post-C02, 2026-07-12)
+
+| Outcome | Maintainer-facing claim |
+|---------|-------------------------|
+| **C02 KILLED** | PCI unbind+bind does **not** restore audio; relevant PCI/PM snapshot unchanged (I010) |
+| **E04 FAIL** | Manager reprobe enumerates RT721; audio still broken (L2 closed) |
+| **M_INTX_CORE** | **Observations:** STAT1=0x4, intx_status=0, handler=0. **Inference:** loss of observability before PCI config — not proven internal mechanism |
+| **Next** | **Open maintainer thread now** — see [experiments/C01-upstream-handoff.md](experiments/C01-upstream-handoff.md) |
+
+Do **not** wait for perfect explanation. Questions Q1–Q6 in handoff doc are answerable in minutes by AMD.
+
+Parallel: [C01-falsification-protocol.md](experiments/C01-falsification-protocol.md) — falsify model only; no exploratory patches.
+
+---
+
+## Historical handoff table
 
 | Stable edge | Research question (one only) | Do not |
 |-------------|------------------------------|--------|
 | **E09** Stable | What does **runtime PM** do that **system PM** does not? | Re-open IRQ archaeology broadly |
-| **E07** Stable | Diff `probe()` vs `pm_resume()` for ACP PCI | Re-test SoundWire codecs |
+| ~~**E07** Stable~~ | ~~Diff probe vs pm_resume~~ | **CLOSED** — C02 KILLED; reprobe insufficient |
 | **E04** Stable | Diff manager `probe()` vs `pm_resume()` | More STAT printk |
 | **E08** Stable | What does re-enumeration reset that unbind+bind does not? | |
 | **FW01** PASS | What does **Windows resume** program that Linux skips? | |

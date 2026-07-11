@@ -176,7 +176,7 @@ Research is **frozen**. [`../resolution/`](../resolution/) is a **hypothesis gen
 
 **Unit of work:** state **transition**, not experiment.  
 **Prioritize:** E09 to **Stable Edge 5/5** before switching.  
-**Gate:** research re-opens only on Stable Edge — [../resolution/EDGE-FRAMEWORK.md](../resolution/EDGE-FRAMEWORK.md).
+**Gate:** research at confidence ≥ **0.85** (PROMISING); workaround at **STABLE** (consolidation ×3) — [../resolution/EDGE-FRAMEWORK.md](../resolution/EDGE-FRAMEWORK.md).
 
 See [../resolution/STATE-GRAPH.md](../resolution/STATE-GRAPH.md) · [../resolution/TRACKER.md](../resolution/TRACKER.md).
 

@@ -1,0 +1,72 @@
+# Graph edges — relations between invariants and volatile facts.
+
+version: 1
+last_updated: "2026-07-11"
+
+edges:
+  - from: I001
+    to: I002
+    relation: co_observed_fail_resume
+    confidence: 0.90
+    source: "0010"
+
+  - from: I001
+    to: I003
+    relation: same_stat1_different_intx_boot_vs_resume
+    confidence: 0.90
+    source: "0010"
+
+  - from: I002
+    to: I004
+    relation: intx_zero_implies_no_handler
+    confidence: 0.85
+    source: "0010"
+
+  - from: I004
+    to: I005
+    relation: handler_gap_causes_rt721_timeout
+    confidence: 0.90
+    source: phase-6
+
+  - from: I006
+    to: I007
+    relation: attached_without_alsa
+    confidence: 0.85
+    source: E04
+
+  - from: F004
+    to: F010
+    relation: usage_zero_yet_pm_blocked
+    confidence: 0.80
+    source: I01
+
+  - from: I008
+    to: F012
+    relation: fault_optional_on_fail
+    confidence: 0.90
+    source: research-FACT-6
+
+hypothesis_links:
+  M_INTX_CORE: [I001, I002, I003, I004]
+  H_INTX_CAUSE: [M_INTX_CORE]
+  H_CAUSE_CLK: [M_INTX_CORE]
+  H_CAUSE_FABRIC: [M_INTX_CORE, I010]
+  H_CAUSE_TRANSIENT: [M_INTX_CORE]
+  H_DMA: [M_INTX_CORE, F013]
+  H_PROBE_PCI: [I010, I006, I007]
+
+evidence_debt_summary:
+  order:
+    - id: H_INTX_CAUSE
+      debt: low
+      campaign: C01-intx-bridge
+      next_actions: [maintainer_contact, upstream_report]
+    - id: H_DMA
+      debt: high
+      campaign: C01-intx-bridge
+      next_actions: [park_unless_new_positive_fault]
+
+active_campaigns:
+  max: 2
+  current: [C01-intx-bridge]
+  killed: [C02-pci-reprobe]

@@ -1,0 +1,44 @@
+# Implicit assumptions — not demonstrated; maintainer may challenge these.
+# English (canonical). Linked from accepted_models.yaml (M_INTX_CORE).
+
+version: 1
+last_updated: "2026-07-12"
+
+assumptions:
+  A001:
+    name: intr_block_reset_resets_full_chain
+    statement: "Resetting INTR CNTL/STAT block reprograms entire STAT1→PCI path"
+    status: falsified
+    source: "Patch B FAIL"
+
+  A002:
+    name: pci_reprobe_reinitializes_acp_fully
+    statement: "PCI driver unbind/bind reinitializes all ACP resume state"
+    status: falsified
+    source: "C02 KILLED RUN-09 / RF004"
+
+  A003:
+    name: stat1_implies_irq_must_exit_pci
+    statement: "STAT1=0x4 necessarily implies PCI_STATUS.Interrupt Status must be 1"
+    status: inference_only
+    notes: >
+      Observed pairing on boot; not proven as hardware law. Resume shows STAT1 without intx_status.
+      Model says loss of observability at PCI config read — not that STAT1 'should' always propagate.
+
+  A004:
+    name: pci_status_reflects_physical_intx_pin
+    statement: "PCI_STATUS bit 3 always reflects physical INTx# assertion on ACP70"
+    status: plausible_not_demonstrated
+    notes: "Boot correlation supports; no oscilloscope / chipset doc"
+
+  A005:
+    name: no_intermediate_acp_register_visible
+    statement: "No undocumented MMIO register exists between STAT1 and PCI config"
+    status: open
+    notes: "Maintainer may answer in minutes — do not assume negative"
+
+  A006:
+    name: reprobe_touches_interrupt_fabric_registration
+    statement: "snd_pci_ps probe() registers ACP→PCI interrupt fabric same as boot"
+    status: open
+    notes: "C02 shows reprobe does not fix symptom — does not prove registration unchanged"

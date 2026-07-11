@@ -1,0 +1,95 @@
+# Rejected fixes and recovery paths — negative knowledge.
+# Prevents re-proposing disproven interventions months later.
+# Links to research runs and negative/ entries.
+
+version: 1
+last_updated: "2026-07-12"
+
+patches:
+  PF001:
+    name: stat1_preclear_before_enb
+    patch: A
+    layer: acp_mmio
+    reason: "FAIL identical to baseline — event reproduced at ~51ms, handler still 0"
+    confidence: very_high
+    source: "0009-run-falsify-A-fail"
+    kills_hypothesis: stat_pending_before_unmask
+
+  PF002:
+    name: intr_block_cold_reset
+    patch: B
+    layer: acp_mmio
+    reason: "MMIO zeroed and reprogrammed — STAT1=0x4 still no handler"
+    confidence: very_high
+    source: "0009-run-falsify-B-fail"
+
+  PF003:
+    name: pme_before_enable
+    patch: C
+    layer: acp_pm
+    reason: "Order change did not restore INTx delivery"
+    confidence: high
+    source: "0009-falsification-matrix"
+
+  PF004:
+    name: pci_set_master_on_resume
+    patch: D
+    layer: pci_config
+    reason: "Did not restore handler delivery post-resume"
+    confidence: high
+    source: "0009-falsification-matrix"
+
+  PF005:
+    name: linux_enable_irq_on_resume
+    patch: E
+    layer: linux_irq
+    reason: "Descriptor path ruled out — boot delivery OK, resume gap persists"
+    confidence: very_high
+    source: "0009-run-falsify-E-fail"
+    invariant: I009
+
+recoveries:
+  RF001:
+    name: manager_platform_reprobe
+    edge: E04
+    recovery: R04
+    reason: "RT721 ATTACHED — ALSA still fail; probe enumerates not audio-usable"
+    confidence: very_high
+    source: RUN-06
+    invariant: [I006, I007]
+    closes_domain: L2
+
+  RF002:
+    name: runtime_pm_cycle_from_userspace
+    edge: E09
+    recovery: R09
+    reason: "45s active — runtime_suspend never executed; domain BLOCKED not FAIL"
+    confidence: high
+    source: RUN-07
+    note: "Campaign C04 parked — not killable yet, not executable from userspace"
+
+  RF003:
+    name: userspace_pipewire_restart
+    recovery: R01
+    reason: "L0 — does not reach kernel resume gap"
+    confidence: very_high
+    source: DEPTH-MATRIX
+
+  RF004:
+    name: pci_full_reprobe_unbind_bind
+    edge: E07
+    recovery: R07
+    reason: >
+      VALID S2 + R07 complete + relevant diff unchanged (runtime_pm, PMCSR D0,
+      PCI_STATUS 0x0006) — ALSA still fail; missing transition not rebuilt by reprobe
+    confidence: very_high
+    source: RUN-09
+    invariant: [I010]
+    closes_domain: L4
+    campaign: C02-pci-reprobe
+
+workarounds_rejected:
+  WW001:
+    name: clear_stat1_from_driver
+    reason: "Same class as PF001 — preclear does not fix propagation"
+    see: PF001

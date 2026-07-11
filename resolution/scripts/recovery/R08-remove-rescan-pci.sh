@@ -28,5 +28,5 @@ for _ in $(seq 1 60); do
 done
 
 start_pipewire_all
-witness_audio
-log "R08 done — record PASS/FAIL in resolution/TRACKER.md"
+[[ "${RESOLUTION_ORCHESTRATED:-0}" == "1" ]] || witness_audio
+log "R08 done"

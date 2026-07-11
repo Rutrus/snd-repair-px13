@@ -1,0 +1,94 @@
+# Mechanism hypotheses — causes of H_INTX_CAUSE only.
+# M_INTX_CORE = accepted model (observation + inference) — see accepted_models.yaml
+
+version: 1
+last_updated: "2026-07-12"
+
+hypotheses:
+  H_INTX_CAUSE:
+    name: why_observability_lost_stat1_to_pci_intx
+    status: open
+    confidence: 0.70
+    campaign: C01-intx-bridge
+    depends: [M_INTX_CORE]
+    evidence_debt:
+      score: low
+      missing: [maintainer_answer]
+      eig_if_resolved: enormous
+    parallel_tracks:
+      - maintainer_outreach
+      - falsification_directed_only
+
+  H_CAUSE_CLK:
+    name: alt_a_clock_power_gated_routing
+    status: competitor
+    priority: high
+    confidence: 0.45
+    statement: >
+      Always-on logic latches STAT1; clock-gated interrupt routing fabric not alive post-resume.
+    compatible_with: [M_INTX_CORE, I001, I002]
+
+  H_CAUSE_FABRIC:
+    name: alt_d_acp_pci_fabric_deregistration
+    status: competitor
+    priority: high
+    confidence: 0.40
+    statement: >
+      ACP internal router / interrupt fabric registration lost on resume — init failure not logic bug.
+      Fits: resume-only, reprobe ineffective, partial reset ineffective.
+    compatible_with: [M_INTX_CORE, I010, RF004]
+
+  H_CAUSE_TRANSIENT:
+    name: alt_b_transient_int_bit_cleared
+    status: deprioritized
+    priority: low
+    confidence: 0.12
+    statement: >
+      intx_status pulses 1 then cleared before Linux observes — requires very narrow timing + unknown agent.
+    notes: >
+      Linux does not routinely clear PCI_STATUS during resume; heavy instrumentation saw no handler.
+      1ms polling insufficient if pulse is ~50µs — not primary hypothesis.
+
+  H_DMA:
+    name: dma_iommu_inconsistency_poison_intx
+    status: competitor
+    confidence: 0.15
+    depends: [M_INTX_CORE, F013]
+
+  H_INTERNAL_PM:
+    name: driver_internal_pm_stuck_active
+    status: parked
+    confidence: 0.55
+    campaign: C04-runtime-pm
+
+falsified:
+  H_PROBE_PCI:
+    name: pci_full_reprobe_rebuilds_lost_state
+    confidence: 0.05
+    falsified_by: [I010]
+    source: RUN-09
+
+  H_REFCNT:
+    name: runtime_usage_gt_zero_blocks_runtime_pm
+    confidence: 0.05
+    falsified_by: [F004, F005]
+
+  H_DESC:
+    name: linux_irq_descriptor_broken
+    confidence: 0.05
+    falsified_by: [I009]
+
+  H_FAULT_REQ:
+    name: io_page_fault_required_for_fail
+    confidence: 0.05
+    falsified_by: [I008, F013]
+
+  H_PROBE_MANAGER:
+    name: manager_reprobe_restores_audio
+    confidence: 0.05
+    falsified_by: [I006, I007]
+
+experiments_deprioritized:
+  EXP_PCI_POLL_1MS_ONLY:
+    reason: "May miss µs transient; search ACP intermediate register first"
+    see: experiments/C01-falsification-protocol.md

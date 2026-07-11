@@ -1,0 +1,67 @@
+# Accepted models — observation vs inference separated.
+# Confidence is calibrated; overturn via falsification candidates only.
+
+version: 1
+last_updated: "2026-07-12"
+
+accepted_models:
+  M_INTX_CORE:
+    name: stat1_observable_pci_intx_not_observable
+    status: accepted_model
+    confidence: 0.85
+    campaign: C01-intx-bridge
+
+    # --- OBSERVATION (facts / invariants) — submit to maintainers as primary ---
+    observations:
+      - id: I001
+        text: "After system resume, ACP_EXTERNAL_INTR_STAT1=0x4 (~51ms post-D0)"
+      - id: I002
+        text: "At same witness window, PCI_STATUS.Interrupt Status = 0 (INTX_DISABLE=0)"
+      - id: I003
+        text: "On boot with same STAT1=0x4, PCI_STATUS.Interrupt Status = 1 and handler runs"
+      - id: I004
+        text: "handler_since_pm=0; /proc/interrupts delta=0 on IRQ 160"
+
+    # --- INFERENCE (model) — not a fact ---
+    inference:
+      statement: >
+        Loss of observability occurs between STAT1 latch (ACP MMIO) and PCI config-space
+        interrupt status on resume. We do not claim to have proven where inside the black box
+        propagation stops — only that Linux does not observe INTx assertion when STAT1 is set.
+      language_preference: "loss of observability" not "boundary is broken"
+      confidence_note: >
+        Model is best available; not certainty. Risk is over-interpreting correlation as mechanism.
+
+    depends: [I001, I002, I003, I004]
+    assumptions: evidence/assumptions.yaml
+
+    consistent_with:
+      - "0010"
+      - patches_A_B_E
+      - C02_KILLED
+      - negative/rejected-fixes.yaml
+
+    falsification:
+      question: "What observation would overturn M_INTX_CORE?"
+      priority_experiments:
+        - id: EXP_ACP_INTERMEDIATE_REG
+          description: "Find ACP MMIO register upstream of PCI_STATUS (before 1ms PCI polling)"
+          rationale: "Polling PCI alone at 1ms may miss µs pulses — intermediate reg higher EIG"
+        - id: EXP_NOT_POLL_ONLY
+          description: "Do not rely on 1ms PCI_STATUS polling alone as falsification"
+      candidates:
+        - id: FALSIFY_1
+          observation: "intx_status=1 at post_delay, STAT1=0x4, handler still 0"
+          reachable_from_linux: possible
+          notes: "Would move loss of observability downstream of PCI config read"
+        - id: FALSIFY_2
+          observation: "STAT1≠0x4 on FAIL resume while audio broken"
+          reachable_from_linux: possible
+        - id: FALSIFY_3
+          observation: "Maintainer documents different observation point"
+          reachable_from_linux: false
+          eig: enormous
+
+      local_limit: >
+        If FALSIFY_1/2 do not occur, further Linux driver patches have low EIG.
+        Remaining work is H_INTX_CAUSE (maintainer / errata / undocumented sequence).

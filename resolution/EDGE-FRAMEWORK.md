@@ -1,164 +1,168 @@
-# Edge framework — closure discipline
+# Edge framework — exploration first, consolidate last
 
-English (canonical). Prevents `resolution/` from becoming another open-ended `research/`.
+English (canonical). Optimizes **investigator time**, not CPU. Each suspend/reboot cycle is expensive.
+
+**v2.1:** Recovery runs only after **Witness VALID** (see [WITNESS-QUALITY.md](WITNESS-QUALITY.md)).
 
 ---
 
-## Closure ladder (mandatory)
+## Edge types (v2.2)
 
-A single PASS is **not** enough to re-open research.
+Recover · Replay · Reprobe · Reconstruct — see [EDGE-TYPES.md](EDGE-TYPES.md).
+
+---
+
+## Witness gate (v2.1)
+
+Before any recovery:
 
 ```text
-Hypothesis          edge defined, Confidence 0/5
-    ↓
-PASS ×1             one successful Recovery Signature
-    ↓
-Reproducible PASS   ≥5/5 full signatures (incl. suspend #2)
-    ↓
-Stable Edge         research/ re-activates — ONE question only
+S0 → suspend → Witness oracle (W0–W4)
+                    │
+         INVALID ───┴─── VALID (≥ W2)
+              │              │
+     NOT_EXECUTABLE      run Rxx + signature
 ```
 
-| Level | Criteria | Action |
-|-------|----------|--------|
-| **Hypothesis** | Edge documented in `edges/` | May run |
-| **PASS ×1** | Signature ≥3/4 (no suspend #2 required) | Repeat same edge |
-| **Reproducible** | Confidence **5/5** with full signature | Mark candidate Stable |
-| **Stable Edge** | 5/5 + no regression on suspend #2 in all 5 | **Re-open research** |
+| Witness | Edge result |
+|---------|-------------|
+| **INVALID** | **NOT_EXECUTABLE** — no confidence update |
+| **VALID** | PASS / PARTIAL / FAIL — measures S2→S3 |
+
+Prior E09/E07/E08 **PARTIAL** results without VALID witness are **ambiguous** — re-run after `s2-reproduce.sh`.
 
 ---
 
-## Formal edge (not "a script")
+## Two phases
 
-Each edge is a **transition contract**. Example: [edges/E09.md](edges/E09.md)
-
-```yaml
-Edge: E09
-Pre: S2
-Action: runtime_suspend → runtime_resume (ACP PCI)
-Expected: S3
-Layer: L4
-Knowledge Gain: 5
-Recovery Cost: 3
-Unlocked Question: What does runtime PM do that system PM does not?
-Next on FAIL: E07
-```
-
-Scripts implement edges; edges define success.
-
----
-
-## Confidence
-
-Tracked in [edges/state.json](edges/state.json). Updated by `scripts/recovery/update-confidence.sh`.
+| Phase | Goal | Repeat? |
+|-------|------|---------|
+| **Exploration** | Map transitions — maximize new information per cycle | **No** — one PASS → next edge |
+| **Consolidation sprint** | Robustness on best candidates only | **Yes** — ×3 per PROMISING edge |
 
 ```text
-Confidence: 0/5  →  1/5  →  …  →  5/5
-Status: hypothesis | pass_x1 | reproducible | stable
-```
+Exploration:
+  E09 → PASS? → E07 → PASS? → E08 → … → no higher-priority branches left
 
-**Increment** only when Recovery Signature passes (see below).  
-**Reset to 0** on any signature failure mid-streak.
+Consolidation sprint:
+  best PROMISING edge ×3
+  (optional) second-best ×3 if workaround candidate
+```
 
 ---
 
-## Recovery Signature (not "it sounds")
+## Edge lifecycle (not 5/5)
 
-Partial recovery is not PASS. Full signature for **Reproducible PASS**:
+```text
+NEW        never PASS, or only FAIL
+    ↓
+PROMISING  PASS ×1 (signature S1–S4) OR confidence ≥ 0.60
+    ↓
+STABLE     consolidation ×3 complete OR confidence ≥ 0.95
+```
 
-| # | Check | How |
-|---|-------|-----|
-| S1 | RT721 enumerated | journal: no fresh `-110`; or `Attached` in SDW sysfs |
-| S2 | ALSA card present | `grep amd-soundwire /proc/asound/cards` |
-| S3 | Userspace device | `pactl`/`pw-cli` lists sink (not only Dummy) |
-| S4 | Playback | `speaker-test -c2 -t wav -l 1` |
-| S5 | **Suspend #2** | `systemctl suspend` → resume → S4 still passes |
+| Status | Meaning |
+|--------|---------|
+| **NEW** | Hypothesis; run once in exploration |
+| **PROMISING** | Evidence of S2→S3; **do not repeat** during exploration |
+| **STABLE** | Consolidated; research gate or production hook |
 
-| Signature level | Required checks |
-|-----------------|-----------------|
-| Partial (PASS ×1) | S1–S4 |
-| **Full (counts toward 5/5)** | S1–S5 |
+Research may open on **PROMISING** if Option A (unlocks question).  
+Workaround hooks need **STABLE** (Option B).
+
+---
+
+## Dynamic confidence (0.0–1.0)
+
+Not all confidence comes from repetition. **Coherence with prior research counts.**
+
+| Evidence | Confidence |
+|----------|------------|
+| PASS once (S1–S4) | **0.60** |
+| + coherent with frozen research | **0.75** |
+| + unlocks focused research question | **0.85** |
+| + consolidation repeat (each) | **+0.05** (cap **0.95**) |
+| Consolidation ×3 complete | → status **STABLE** |
+
+Example: **E09 PASS once** + research already delimited system PM vs IRQ → **0.75–0.85** without five repeats.
+
+Tracked in [edges/state.json](edges/state.json) as `confidence` (float).
+
+---
+
+## Exploration-first rule
+
+> While a **higher-priority unexplored** edge exists, **do not repeat** a PROMISING edge.
+
+```text
+E09 PASS
+    ↓
+Any edge in queue still NEW (not saturated)?
+    yes → run next in queue (E07)
+    no  → consolidation sprint on PROMISING edges
+```
+
+Queue (default): **E09 → E07 → E08 → E04 → FW01**
+
+**Paused** until witness gate passes. Then re-test edges in order **E04 → E07 → E08 → E09** (or resume queue) with VALID S2.
+
+Breadth-first with K/C heuristic — widen the map before confirming one path.
+
+---
+
+## When to freeze an edge
+
+### Option A — Research advance (PROMISING enough)
+
+PASS unlocks a **single** new research question → mark `research_ready: true` → may re-open research at **0.85** confidence without STABLE.
+
+### Option B — Workaround candidate
+
+PASS is usable daily → run **consolidation sprint ×3** (incl. suspend #2 on last run) → **STABLE** → ship hook.
+
+---
+
+## Recovery Signature
+
+| Level | Checks | When |
+|-------|--------|------|
+| Exploration PASS | S1–S4 | Enough to advance queue |
+| Consolidation | S1–S5 (incl. suspend #2) | STABLE / workaround |
 
 Witness: `scripts/recovery/witness-signature.sh`
 
 ---
 
-## Multi-cycle dimension
+## Information saturation
 
-True workaround must survive **second** suspend:
-
-```text
-S0
-  ↓ suspend #1
-S1 → resume #1 → S2
-  ↓ recovery (edge action)
-S3
-  ↓ suspend #2
-S1 → resume #2 → S0 or S2?
-```
-
-If suspend #2 lands in S2, edge is **not** Stable — confidence does not increment (or resets).
-
-Enable full cycle: `EDGE_FULL_SIGNATURE=1` or `witness-signature.sh --full`
+3 consecutive FAIL (zero Knowledge Gain) on one edge → branch **saturated** → skip in queue.
 
 ---
 
-## Structured output (framework decides next step)
-
-Every run prints:
+## Structured report
 
 ```text
 === RESOLUTION EDGE REPORT ===
-Edge:           E09
-Result:         PASS | FAIL | PARTIAL
-Confidence:     2/5
-Recovered Layer: L4
-Transition:     S2 → S3 | S2 → S2
-Signature:      4/5 (S5 skip) | 5/5
-Unlocked Question: ...
-Next Candidate: E09 (repeat) | E07 | firmware/FW01
-Branch Status:  active | saturated
+Phase:           exploration | consolidation
+Witness:         VALID (W3) | INVALID (W1)
+Witness Detail:  research S2: -110 + handler_since_pm=0 + STAT1=0x4
+Edge:            E09
+Result:          PASS | PARTIAL | FAIL | NOT_EXECUTABLE
+Status:          NEW → PROMISING
+Confidence:      0.75 (research-coherent)
+Transition:      S2 → S3
+Next Candidate:  s2-reproduce.sh | E04
 ==============================
 ```
 
-Generated by `run-recovery.sh` after witness.
-
 ---
 
-## Information saturation (stop branches)
+## Research gate
 
-Track consecutive runs where **Knowledge Gain = 0** (edge FAIL, no new transition learned).
-
-| Rule | Action |
-|------|--------|
-| 3 consecutive zero-knowledge on same branch | Mark branch **saturated** — stop |
-| E09 saturated | Move to E07 only |
-| E09+E07+E08 saturated | Move to [firmware/](firmware/) |
-
-Recorded in `edges/state.json` → `consecutive_zero_knowledge`.
-
-**No new instrumentation** on saturated branches.
-
----
-
-## Execution order (strict)
-
-1. **E09** — highest Knowledge/Cost
-2. If PASS ×1 → repeat until **5/5** full signature (same edge, no switching)
-3. At **Stable Edge** → research ONE question from edge definition
-4. If E09 saturated (3× zero K or 5 failures without PASS ×1) → **E07**, same ladder
-5. E07 saturated → E08 → firmware/
-
----
-
-## Research reactivation gate
-
-Research re-opens **only** when:
-
-```text
-edges/state.json: E09.status == "stable"
-```
-
-Not on PASS ×1. Not on 3/5. Not on partial signature.
+| Gate | Threshold |
+|------|-----------|
+| Open research (narrow question) | PROMISING + `research_ready` + confidence ≥ **0.85** |
+| Ship workaround hook | **STABLE** (consolidation ×3) |
 
 Handoff: [UPSTREAM-VALUE.md](UPSTREAM-VALUE.md)
 
@@ -168,7 +172,6 @@ Handoff: [UPSTREAM-VALUE.md](UPSTREAM-VALUE.md)
 
 | Doc | Role |
 |-----|------|
-| [edges/INDEX.md](edges/INDEX.md) | Edge catalog |
+| [edges/state.json](edges/state.json) | Machine state |
+| [scripts/recovery/next-edge.sh](scripts/recovery/next-edge.sh) | Queue navigation |
 | [TRACKER.md](TRACKER.md) | Human log |
-| [recovery/PROTOCOL.md](recovery/PROTOCOL.md) | Run procedure |
-| [scripts/edge-cycle.sh](scripts/edge-cycle.sh) | Full S0→S2→recover→S5 cycle |

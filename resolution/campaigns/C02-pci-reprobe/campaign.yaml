@@ -1,0 +1,57 @@
+id: C02-pci-reprobe
+name: PCI full reprobe recovery
+
+status: killed
+phase: confirmatory
+priority: 2
+closed_at: "2026-07-12"
+closed_by_run: RUN-09
+
+goal: >
+  Close (kill or succeed): does destroying and recreating the PCI function rebuild the state lost after system resume?
+
+success_condition: >
+  E07 ALSA PASS from certified S2 witness (S2→S3 via Reprobe).
+
+kill_condition: >
+  All four kill_closure gates pass (see kill_closure below).
+
+kill_statement: >
+  C02 KILLED: destroying and recreating the PCI function (unbind/bind) does not modify
+  relevant state associated with the failure. The missing transition is not rebuilt by
+  standard PCI driver reprobe.
+
+kill_closure:
+  description: "All four required — Edge FAIL alone is insufficient"
+  gates:
+    - id: G1
+      name: s2_certified
+      requirement: "Witness VALID W2+"
+      run_09: pass
+    - id: G2
+      name: r07_complete
+      requirement: "R07 pci_reset OK"
+      run_09: pass
+    - id: G3
+      name: snapshot_valid
+      requirement: "BEFORE and AFTER captured (DIFF_CAPTURED=1)"
+      run_09: pass
+    - id: G4
+      name: diff_unchanged
+      requirement: "Relevant fields unchanged (DIFF_RELEVANT_UNCHANGED=1)"
+      run_09: pass
+  relevant_fields:
+    - runtime_pm
+    - pci_dstate
+    - pci_status_word
+
+hypothesis: H_PROBE_PCI
+depends_invariants: [I006, I007, I010]
+
+edges: [E07]
+recoveries: [R07]
+
+notes: |
+  RUN-09 (2026-07-12): All gates pass. Edge FAIL, Campaign C02 KILLED.
+  Differential: runtime_pm unchanged, PMCSR D0, PCI_STATUS 0x0006, iommu=0.
+  L4 PCI probe domain CLOSED — see RF004.

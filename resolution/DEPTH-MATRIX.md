@@ -24,7 +24,19 @@ Practical price: depth + disruption + time.
 
 ### Priority score
 
-`Knowledge Gain ÷ Recovery Cost` — higher = run sooner when **exploring** (not when executing cheap ladder for production workaround).
+`Knowledge Gain ÷ Recovery Cost` — exploration ordering.
+
+### Expected Information Gain (EIG)
+
+Expected **uncertainty reduction** (includes informative FAIL). See [METRICS.md](METRICS.md).
+
+**Prefer highest EIG** within active campaigns — not highest K/C alone.
+
+| Action | Cost | K/C | EIG |
+|--------|------|-----|-----|
+| I02 (single) | 1 | high | low |
+| **E07** | 4 | 1.25 | **very_high** |
+| Maintainer | 0 | ∞ | enormous |
 
 ---
 

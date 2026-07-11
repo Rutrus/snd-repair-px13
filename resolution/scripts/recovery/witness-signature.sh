@@ -14,12 +14,14 @@ RESULT_FILE="${RESOLUTION_WITNESS_FILE:-}"
 log() { echo "[witness] $*" >&2; }
 
 s1_rt721_ok() {
-	# No fresh -110 in last 2 min; prefer positive attach witness
-	if journalctl -b -k --no-pager --since "2 min ago" 2>/dev/null \
-		| grep -qE 'rt721.*(-110|wait_init_timeout|failed to resume)'; then
+	local since
+	since="$(witness_journal_since "2 min ago")"
+	# No fresh -110 since last resume
+	if journalctl -k -b 0 --no-pager --since "$since" 2>/dev/null \
+		| grep -qE 'rt721.*(-110|wait_init_timeout|failed to resume)|wait_init_timeout|error -110'; then
 		return 1
 	fi
-	if journalctl -b -k --no-pager --since "2 min ago" 2>/dev/null \
+	if journalctl -k -b 0 --no-pager --since "$since" 2>/dev/null \
 		| grep -qiE 'sdw.*attach|rt721.*probe|initialization_complete'; then
 		return 0
 	fi
@@ -34,24 +36,21 @@ s1_rt721_ok() {
 }
 
 s2_alsa_card() {
-	grep -q "$CARD_MATCH" /proc/asound/cards 2>/dev/null
+	alsa_card_present
 }
 
 s3_userspace_sink() {
-	if command -v pactl >/dev/null 2>&1; then
-		pactl list sinks short 2>/dev/null | grep -qiE 'speaker|proart|alsa' && return 0
-		! pactl list sinks short 2>/dev/null | grep -qi dummy
-	fi
-	if command -v pw-cli >/dev/null 2>&1; then
-		pw-cli ls Node 2>/dev/null | grep -qiE 'speaker|audio' && return 0
-	fi
-	# fallback: card exists
+	local st
+	st="$(userspace_sink_state)"
+	[[ "$st" == ok ]] && return 0
+	# Post-recovery: dummy-only or no sink = userspace still broken
+	[[ "$st" == dummy || "$st" == none ]] && return 1
+	# unknown: fall back to ALSA card
 	s2_alsa_card
 }
 
 s4_playback() {
-	command -v speaker-test >/dev/null 2>&1 || return 0
-	timeout 6 speaker-test -c2 -t wav -l 1 >/dev/null 2>&1
+	witness_playback
 }
 
 s5_suspend2() {

@@ -1,0 +1,23 @@
+id: C03-firmware
+name: Firmware / ACPI path
+
+status: parked
+priority: 3
+
+goal: >
+  Determine whether BIOS/ACPI/firmware sequencing explains INTx gap when C01 software boundary is closed.
+
+success_condition: >
+  Windows vs Linux diff OR ACPI trace shows missing transition reproducible in firmware domain.
+
+kill_condition: >
+  C01 succeeds with maintainer software fix OR C02 provides stable S3 without firmware work.
+
+hypothesis: null
+
+estimated_cost: 6
+estimated_knowledge: 4
+expected_information_gain: high
+
+edges: [FW01]
+notes: Park until C01 + C02 resolve.

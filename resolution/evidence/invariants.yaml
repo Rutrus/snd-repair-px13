@@ -1,0 +1,95 @@
+# Invariants — stable measurements (promoted from facts.yaml).
+# Promotion rule: ≥10 runs without value change, or research gate closed.
+# Volatile measurements stay in facts.yaml.
+
+version: 1
+promotion_rule:
+  min_runs: 10
+  or: research_gate_closed
+
+last_updated: "2026-07-12"
+
+invariants:
+  I001:
+    name: stat1_after_resume
+    value: "0x4"
+    runs: 12
+    stable_since: "0010"
+    source: "0010"
+    was: F001
+
+  I002:
+    name: pci_intx_status_after_resume
+    value: 0
+    runs: 12
+    stable_since: "0010"
+    source: "0010"
+    was: F002
+
+  I003:
+    name: pci_intx_status_at_boot_with_stat1
+    value: 1
+    runs: 12
+    stable_since: "0010"
+    source: "0010"
+    was: F003
+
+  I004:
+    name: handler_since_pm_zero_post_resume
+    value: true
+    runs: 12
+    stable_since: "0010"
+    source: "0010"
+    was: F006
+
+  I005:
+    name: rt721_wait_init_timeout
+    value: "-110"
+    runs: 15
+    stable_since: phase-6
+    source: phase-6
+    was: F007
+
+  I006:
+    name: manager_reprobe_rt721_attached
+    value: true
+    runs: 3
+    stable_since: E04
+    source: E04
+    was: F008
+    notes: "L2 closed — stable for manager domain"
+
+  I007:
+    name: manager_reprobe_alsa_fail
+    value: true
+    runs: 3
+    stable_since: E04
+    source: E04
+    was: F009
+
+  I008:
+    name: io_page_fault_absent_in_some_fail_runs
+    value: true
+    runs: 10
+    stable_since: research-FACT-6
+    source: "0010, 0012"
+    was: F011
+
+  I009:
+    name: linux_irq_descriptor_delivers_at_boot
+    value: true
+    runs: 10
+    stable_since: "0010"
+    source: patch-E
+    was: F013
+
+  I010:
+    name: pci_reprobe_relevant_state_unchanged
+    value: true
+    runs: 1
+    stable_since: RUN-09
+    source: "E07 RUN-09"
+    campaign_gate: C02
+    notes: >
+      Post-R07: runtime_pm, PMCSR D0, PCI_STATUS 0x0006 intx=0 unchanged;
+      ALSA still fail — reprobe does not rebuild missing transition
