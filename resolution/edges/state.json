@@ -1,0 +1,56 @@
+{
+  "framework_version": 1,
+  "stable_threshold": 5,
+  "saturation_threshold": 3,
+  "active_edge": "E09",
+  "edges": {
+    "E09": {
+      "recovery_id": "R09",
+      "confidence": 0,
+      "max_confidence": 5,
+      "status": "hypothesis",
+      "consecutive_zero_knowledge": 0,
+      "branch_saturated": false,
+      "layer": "L4",
+      "cost": 3,
+      "knowledge_gain": 5,
+      "next_on_fail": "E07"
+    },
+    "E07": {
+      "recovery_id": "R07",
+      "confidence": 0,
+      "max_confidence": 5,
+      "status": "hypothesis",
+      "consecutive_zero_knowledge": 0,
+      "branch_saturated": false,
+      "layer": "L4",
+      "cost": 4,
+      "knowledge_gain": 5,
+      "next_on_fail": "E08"
+    },
+    "E08": {
+      "recovery_id": "R08",
+      "confidence": 0,
+      "max_confidence": 5,
+      "status": "hypothesis",
+      "consecutive_zero_knowledge": 0,
+      "branch_saturated": false,
+      "layer": "L4",
+      "cost": 5,
+      "knowledge_gain": 3,
+      "next_on_fail": "E04"
+    },
+    "E04": {
+      "recovery_id": "R04",
+      "confidence": 0,
+      "max_confidence": 5,
+      "status": "hypothesis",
+      "consecutive_zero_knowledge": 0,
+      "branch_saturated": false,
+      "layer": "L2",
+      "cost": 2,
+      "knowledge_gain": 3,
+      "next_on_fail": "FW01"
+    }
+  }
+}

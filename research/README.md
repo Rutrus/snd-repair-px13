@@ -2,13 +2,18 @@
 
 > **English** | [Español](../docs/es/README.md#referencia-técnica)
 
-Material for diagnosis and **active investigation** on the PX13.
+Material for diagnosis and **scientific investigation** on the PX13 — *what happens exactly?*
+
+**Engineering / workarounds** — separate project: [`../resolution/README.md`](../resolution/README.md) (state graph, Recovery Cost, change-don't-observe rule)
+
+**Upstream proof (frozen):** [`frozen/upstream-proof/README.md`](frozen/upstream-proof/README.md)
 
 ---
 
 | Document | Contents |
 |----------|----------|
-| **[JOURNEY.md](JOURNEY.md)** | **End-to-end thread** — boot → Phase 6 → Phase 7 → resolution |
+| **[JOURNEY.md](JOURNEY.md)** | **End-to-end thread** — boot → Phase 6 → Phase 7 → Phase 8 (frozen) |
+| **[frozen/upstream-proof/](frozen/upstream-proof/)** | Research complete — maintainer deliverable |
 | **[INVESTIGATION-INDEX.md](INVESTIGATION-INDEX.md)** | Track index A–D (historical) |
 | **[PRIORITY-DEBUG.md](PRIORITY-DEBUG.md)** | Active P0–P3 status and test protocol |
 | **[SUDO-RUNBOOK.md](SUDO-RUNBOOK.md)** | Commands requiring root |

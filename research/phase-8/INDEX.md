@@ -6,7 +6,7 @@ English (canonical). **Phase 7 is frozen** — no SoundWire manager experiments 
 
 **Strategy (post–8.3):** Experimental reduction **complete** (0010 Case B). **Upstream report:** [UPSTREAM-REPORT.md](UPSTREAM-REPORT.md).
 
-**Local investigation frozen** unless a maintainer requests a specific register/step.
+**Local investigation frozen** — see [../frozen/upstream-proof/README.md](../frozen/upstream-proof/README.md). Engineering: [../../resolution/README.md](../../resolution/README.md).
 
 **Upstream send:** [UPSTREAM-EMAIL-DRAFT.txt](UPSTREAM-EMAIL-DRAFT.txt) · [UPSTREAM-SEND-CHECKLIST.md](UPSTREAM-SEND-CHECKLIST.md) · report [UPSTREAM-REPORT.md](UPSTREAM-REPORT.md)
 
@@ -57,7 +57,7 @@ Three witnesses: STAT pending + `handler_since_pm=0` + `/proc/interrupts` delta=
 
 ---
 
-### 8.2 — Hypothesis falsification (patches A–D) — **active**
+### 8.2 — Hypothesis falsification (patches A–D) — **frozen** (A FAIL; B/E/D maintainer-only)
 
 **No new instrumentation.** One patch per reboot. Protocol: [experiments/0009-falsification-matrix.md](experiments/0009-falsification-matrix.md)
 

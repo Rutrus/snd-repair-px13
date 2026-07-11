@@ -4,7 +4,7 @@ English (canonical). Single thread from **no audio** to **resolution criteria** 
 
 **Machine:** ASUS ProArt PX13 HN7306EAC · kernel `7.0.0-27-generic`  
 **Branch:** `research/suspend-lifecycle`  
-**Last updated:** 2026-07-11 (Phase 7 frozen · upstream draft updated)
+**Last updated:** 2026-07-11 (Phase 8 frozen · resolution lab opened)
 
 ---
 
@@ -15,7 +15,8 @@ English (canonical). Single thread from **no audio** to **resolution criteria** 
 | Boot / stereo | **Resolved** | Can both TAS2783 amps play on cold boot? **Yes** |
 | Suspend/resume (kernel) | **Delimited** | IRQ delivery: STAT pending, handler missing — downstream OK if worker runs |
 | Phase 7 | **Frozen** | 0005–0007 complete — [phase-7/INDEX.md](phase-7/INDEX.md) |
-| Phase 8 (next) | **Active** | STAT → `acp63_irq_handler` gap — [phase-8/INDEX.md](phase-8/INDEX.md) |
+| Phase 8 | **Frozen** | IRQ delivery delimited — [frozen/upstream-proof/](frozen/upstream-proof/) |
+| Resolution lab | **Active** | Transition discovery S2→S3 — [../resolution/STATE-GRAPH.md](../resolution/STATE-GRAPH.md) |
 | Userspace (PipeWire) | **Secondary** | Not kernel root cause |
 
 **Kernel witness (FAIL-1 vanilla):** RT721 `-110`, no `completion`, no `irq_handler_enter`.
@@ -41,9 +42,9 @@ Phase 6  ACP70 observation — FAIL path delimited (run 0015)
     ↓
 Phase 7  Controlled experiments — delivery boundary closed (0007)
     ↓
-Phase 8  ACP platform IRQ restore (planned)
+Phase 8  ACP platform IRQ path — delimited (frozen)
     ↓
-Fix      Minimal upstream patch + validation matrix
+resolution/  Engineering — workarounds, recovery, mutations
     ↓
 Done     ≥6/6 real suspend/resume OK without reboot
 ```
@@ -169,15 +170,15 @@ rm -f linux-source-7.0.0/.snd-repair-phase6-*
 
 ---
 
-## Resolution (not yet reached)
+## Resolution lab (active — transition discovery)
 
-**Definition of done** for daily use:
+Research is **frozen**. [`../resolution/`](../resolution/) is a **hypothesis generator** — re-opens research only when a stable S2→S3 edge is found.
 
-1. Kernel patch (upstream-ready) that restores SoundWire enumeration after s2idle resume on PX13.
-2. Validation: **≥6/6** real suspend/resume cycles with both UIDs OK in `validation/fw-matrix.csv` without reboot between cycles.
-3. Document rollback: `./scripts/build-from-upstream.sh` + reboot.
+**Unit of work:** state **transition**, not experiment.  
+**Prioritize:** E09 to **Stable Edge 5/5** before switching.  
+**Gate:** research re-opens only on Stable Edge — [../resolution/EDGE-FRAMEWORK.md](../resolution/EDGE-FRAMEWORK.md).
 
-**Until then:** treat any Phase 7 experiment as **falsification**, not production fix.
+See [../resolution/STATE-GRAPH.md](../resolution/STATE-GRAPH.md) · [../resolution/TRACKER.md](../resolution/TRACKER.md).
 
 ---
 
@@ -330,8 +331,11 @@ See [phase-6/UPSTREAM-REPORT-DRAFT.md](phase-6/UPSTREAM-REPORT-DRAFT.md).
 
 ---
 
-## Future work (Phase 8)
+## Future work
 
-Focus on ACP platform interrupt restore after s2idle — not SoundWire manager experiments.
+| Tree | When |
+|------|------|
+| **research/** | Only if upstream maintainer requests a specific register/step |
+| **resolution/** | Default — parallel tracks A–H in [../resolution/TRACKER.md](../resolution/TRACKER.md) |
 
-**Not justified** unless new evidence: RT721, TAS2783, slave drivers, PipeWire, further Phase 7 sweeps.
+**Not justified** in research unless new evidence: RT721, TAS2783, slave drivers, PipeWire, further Phase 7 sweeps.
