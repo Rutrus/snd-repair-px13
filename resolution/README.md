@@ -116,13 +116,15 @@ negative/     rejected fixes (patches + recoveries)
 
 ## Branches
 
-| Branch | When | Entry |
-|--------|------|-------|
-| **Recovery** | always | [recovery/PROTOCOL.md](recovery/PROTOCOL.md) |
-| **Boot replay** | R04/R07 partial PASS | [experiments/R002-boot-sequence-replay.md](experiments/R002-boot-sequence-replay.md) |
-| **Mutation** | need in-resume fix | [experiments/R005-mutation-sequences.md](experiments/R005-mutation-sequences.md) |
-| **Firmware** | R09+R07+R08 fail | [firmware/README.md](firmware/README.md) |
-| **ACPI/Windows** | parallel | [reverse-engineering/](reverse-engineering/) |
+| Branch / line | Goal | Entry |
+|---------------|------|-------|
+| `resolution/lab` | Causal model, evidence, C01 maintainer | [campaigns/](campaigns/) |
+| **`resolution/bruteforce`** | **Practical recovery — first PASS** | [bruteforce/README.md](bruteforce/README.md) |
+| Recovery ladder | R04–R10 state transitions | [recovery/PROTOCOL.md](recovery/PROTOCOL.md) |
+| Boot replay | R04/R07 partial PASS | [experiments/R002-boot-sequence-replay.md](experiments/R002-boot-sequence-replay.md) |
+| Mutation | in-resume fix | [experiments/R005-mutation-sequences.md](experiments/R005-mutation-sequences.md) |
+| Firmware | R09+R07+R08 fail | [firmware/README.md](firmware/README.md) |
+| ACPI/Windows | parallel | [reverse-engineering/](reverse-engineering/) |
 
 ---
 

@@ -1,0 +1,61 @@
+# Strategy index — bruteforce recovery
+
+version: 1
+branch: resolution/bruteforce
+default_order:
+  - R200
+  - R300
+  - R500
+  - R100
+  - R400
+  - R700
+  - R600
+
+campaigns:
+  R100:
+    name: software_restart
+    strategies: [S001, S002]
+  R200:
+    name: alsa_module_stack
+    strategies: [S010]
+  R300:
+    name: nuclear_sequences
+    strategies: [S020]
+  R400:
+    name: runtime_pm_modules
+    strategies: [S030]
+  R500:
+    name: pci_flr
+    strategies: [S040]
+  R600:
+    name: recover_then_suspend
+    strategies: [S060]
+  R700:
+    name: acpi_d3d0
+    strategies: [S050]
+
+strategies:
+  S001:
+    script: S001-pipewire-restart.sh
+    cost: 1
+  S002:
+    script: S002-software-full.sh
+    cost: 1
+  S010:
+    script: S010-module-stack-reload.sh
+    cost: 3
+  S020:
+    script: S020-nuclear-pci-modules.sh
+    cost: 5
+  S030:
+    script: S030-runtime-pm-after-unload.sh
+    cost: 4
+  S040:
+    script: S040-pci-flr-reload.sh
+    cost: 5
+  S050:
+    script: S050-acpi-d3d0-reload.sh
+    cost: 4
+  S060:
+    script: S060-recover-then-suspend.sh
+    cost: 6
