@@ -17,7 +17,7 @@ Legend: **Fact** = repeated kernel witness · **Inference** = reasonable conclus
 | Running kernel | `7.0.0-27-generic` (Ubuntu) |
 | Kernel source package | `linux-source-7.0.0` **7.0.0-27.27** (distro tarball, not a git clone) |
 | Instrumented tree | `linux-source-7.0.0/` — vanilla Ubuntu source + local patches only |
-| Investigation repo commit | `d6a445a827724719aa00b38fc6550ebbd0b5ccc6` — branch `research/suspend-lifecycle` |
+| Investigation repo commit | `ebf2258edf7ab52fbe32ce599cdf6d839ec76b3e` — branch `research/suspend-lifecycle` (patches + report) |
 | Definitive 0010 run | 2026-07-11 19:12:32 local time |
 
 Patches applied on top of the vanilla tree are listed under `research/phase-6/proposed/`, `research/phase-7/proposed/`, and `research/phase-8/proposed/` in the investigation repository.
