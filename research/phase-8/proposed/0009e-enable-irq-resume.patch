@@ -1,0 +1,14 @@
+From: snd-repair phase8 <snd-repair@local>
+Subject: [PATCH phase8 0009e] Falsify: enable_irq on system resume (patch E)
+
+--- a/sound/soc/amd/ps/pci-ps.c
++++ b/sound/soc/amd/ps/pci-ps.c
+@@ -790,6 +790,8 @@
+ 	pr_info("PHASE7 ctx=acp fn=pm_resume_enter resume=%u irq=%d msi=%d\n",
+ 		snd_repair_phase7_acp_resume_id(), pci->irq,
+ 		pci_dev_msi_enabled(pci) ? 1 : 0);
++	enable_irq(pci->irq);
++	pr_info("PHASE9 ctx=acp fn=falsify patch=E irq=%d\n", pci->irq);
+ 	ret = acp_hw_resume(dev);
+ 	snd_repair_phase7_pm_resume_trace(dev, adata, ret);
+ 	return ret;

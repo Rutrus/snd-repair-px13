@@ -36,6 +36,24 @@ detect_acp_irq() {
 	echo "$irq"
 }
 
+irq_desc_snapshot() {
+	local irq="$1"
+	local f
+
+	for f in spurious smp_affinity effective_affinity; do
+		echo "# /proc/irq/${irq}/${f}:"
+		cat "/proc/irq/${irq}/${f}" 2>/dev/null || echo "(missing)"
+	done
+	if [[ -d "/sys/kernel/irq/${irq}" ]]; then
+		for f in actions name chip_name hwirq type wakeup per_cpu_count; do
+			echo "# /sys/kernel/irq/${irq}/${f}:"
+			cat "/sys/kernel/irq/${irq}/${f}" 2>/dev/null || echo "(missing)"
+		done
+	else
+		echo "# /sys/kernel/irq/${irq}: (missing)"
+	fi
+}
+
 snapshot() {
 	local label="$1"
 	local irq
@@ -49,6 +67,9 @@ snapshot() {
 		echo "# ---"
 		echo "# grep IRQ ${irq} (ACP_PCI_IRQ):"
 		grep -E "^[[:space:]]*${irq}:" /proc/interrupts || echo "(no line for IRQ ${irq})"
+		echo "# ---"
+		echo "# Linux IRQ descriptor (proc + sysfs):"
+		irq_desc_snapshot "$irq"
 	} >"$out"
 
 	echo "$out"

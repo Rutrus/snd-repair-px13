@@ -1,0 +1,27 @@
+From: snd-repair phase8 <snd-repair@local>
+Subject: [PATCH phase8 0009b] Falsify: INTR block cold-reset before enable (patch B)
+
+--- a/sound/soc/amd/ps/ps-common.c
++++ b/sound/soc/amd/ps/ps-common.c
+@@ -306,6 +306,21 @@
+ {
+ 	u32 sdw0_wake_en, sdw1_wake_en;
+ 
++	/* Phase 9 / patch B: cold-reset INTR block before reprogram (falsification). */
++	writel(0, acp_base + ACP_EXTERNAL_INTR_ENB);
++	writel(0, acp_base + ACP_EXTERNAL_INTR_CNTL);
++	writel(0, acp_base + ACP_EXTERNAL_INTR_CNTL1);
++	writel(ACP_EXT_INTR_STAT_CLEAR_MASK, acp_base + ACP_EXTERNAL_INTR_STAT1);
++	writel(ACP_EXT_INTR_STAT_CLEAR_MASK, acp_base + ACP_EXTERNAL_INTR_STAT);
++	readl(acp_base + ACP_EXTERNAL_INTR_STAT1);
++	readl(acp_base + ACP_EXTERNAL_INTR_CNTL1);
++	pr_info("PHASE9 ctx=acp fn=falsify patch=B stat0=0x%x stat1=0x%x cntl0=0x%x cntl1=0x%x enb=0x%x\n",
++		readl(acp_base + ACP_EXTERNAL_INTR_STAT),
++		readl(acp_base + ACP_EXTERNAL_INTR_STAT1),
++		readl(acp_base + ACP_EXTERNAL_INTR_CNTL),
++		readl(acp_base + ACP_EXTERNAL_INTR_CNTL1),
++		readl(acp_base + ACP_EXTERNAL_INTR_ENB));
++
+ 	writel(1, acp_base + ACP_EXTERNAL_INTR_ENB);
+ 	writel(ACP_ERROR_IRQ, acp_base + ACP_EXTERNAL_INTR_CNTL);
+ 	sdw0_wake_en = readl(acp_base + ACP_SW0_WAKE_EN);

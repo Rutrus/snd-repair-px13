@@ -1,0 +1,49 @@
+# Proposed 0010 — PCI INTx status at post_delay (observation)
+
+English (canonical). **Design sketch** — apply manually at the `post_delay` call site from Phase 7 `0006b-stat-decode.patch` (`snd_repair_phase7_intr_decode` or immediately after `"post_delay"` decode).
+
+**Binary question:** When `STAT1=0x4` at `post_delay`, is PCI config **`PCI_STATUS_INTERRUPT`** (bit 8) set?
+
+---
+
+## Insert (conceptual)
+
+After existing `intr_decode` log for `when == "post_delay"`:
+
+```c
+struct pci_dev *pci = to_pci_dev(bus->dev->parent);
+u16 pci_status;
+
+if (pci && !pci_read_config_word(pci, PCI_STATUS, &pci_status))
+    dev_info(dev,
+             "PHASE10 ctx=amd fn=pci_intx when=%s stat1=0x%x pci_status=0x%04x intx=%u\n",
+             when, stat1, pci_status,
+             !!(pci_status & PCI_STATUS_INTERRUPT));
+```
+
+Requires `#include <linux/pci.h>` if not already present.
+
+---
+
+## Interpretation
+
+| Boot @ first SDW1 IRQ | Resume @ post_delay |
+|-----------------------|---------------------|
+| `stat1=0x4 intx=1` | `stat1=0x4 intx=0` → pin **not** asserted; gap inside ACP/firmware |
+| `stat1=0x4 intx=1` | `stat1=0x4 intx=1` → pin asserted; gap **after** PCI (IO-APIC/Linux) |
+
+Capture boot baseline in same build (`journalctl -k -b 0 | grep pci_intx`).
+
+---
+
+## Build
+
+Observation-only on Phase 6 + 0007 + 0008 base. **No** falsification patch stacked.
+
+One suspend cycle: `pre-suspend` → suspend → `post-resume` → grep `PHASE10.*pci_intx`.
+
+---
+
+## Related
+
+[../STAT1-TO-PCI-BOUNDARY.md](../STAT1-TO-PCI-BOUNDARY.md)

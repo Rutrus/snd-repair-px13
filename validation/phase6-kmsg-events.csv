@@ -502,3 +502,160 @@ run_id,offset_ms,layer,component,event,detail
 0016,259000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
 0016,262000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
 0016,265000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0017,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=0 disable_irq=0 hw_init=1
+0017,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+7ms ret=0
+0017,0,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0017,0,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0017,0,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=1 status=0
+0017,0,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0017,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=1 disable_irq=1 hw_init=0
+0017,0,hardware,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_timeout t=+5050ms remaining_ms=0
+0017,0,kernel,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: Initialization not complete; timed out
+0017,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+5066ms ret=-110
+0017,0,kernel,rt721,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PM: failed to resume: error -110
+0017,0,kernel,tas2783_8,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PM: failed to resume: error -110
+0017,0,kernel,tas2783_b,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PM: failed to resume: error -110
+0017,0,PM,core,suspend_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend exit
+0017,13000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0017,16000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0017,19000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0017,22000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0017,25000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0017,28000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0017,31000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0017,34000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0017,36000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0017,36000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0017,36000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0017,36000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0017,63000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0017,70000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0017,70000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0017,70000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0017,70000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0018,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=0 disable_irq=0 hw_init=1
+0018,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+6ms ret=0
+0018,0,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0018,0,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0018,0,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=1 status=0
+0018,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=1 disable_irq=1 hw_init=0
+0018,0,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0018,0,hardware,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_timeout t=+5496ms remaining_ms=0
+0018,0,kernel,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: Initialization not complete; timed out
+0018,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+5512ms ret=-110
+0018,0,kernel,rt721,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PM: failed to resume: error -110
+0018,0,kernel,tas2783_8,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PM: failed to resume: error -110
+0018,0,kernel,tas2783_b,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PM: failed to resume: error -110
+0018,0,PM,core,suspend_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend exit
+0018,13000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0018,15000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0018,15000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0018,15000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0018,15000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0018,23000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0018,33000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0018,49000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0018,49000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0018,49000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0018,49000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0018,63000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0019,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=0 disable_irq=0 hw_init=1
+0019,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+6ms ret=0
+0019,0,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0019,0,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0019,0,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=1 status=0
+0019,0,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0019,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=1 disable_irq=1 hw_init=0
+0019,0,hardware,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_timeout t=+5441ms remaining_ms=0
+0019,0,kernel,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: Initialization not complete; timed out
+0019,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+5457ms ret=-110
+0019,0,kernel,rt721,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PM: failed to resume: error -110
+0019,0,kernel,tas2783_8,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PM: failed to resume: error -110
+0019,0,kernel,tas2783_b,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PM: failed to resume: error -110
+0019,0,PM,core,suspend_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend exit
+0019,13000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0019,15000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0019,15000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0019,15000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0019,15000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0019,23000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0019,33000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0019,49000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0019,49000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0019,49000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0019,49000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0019,63000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=0 disable_irq=0 hw_init=1
+0020,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+6ms ret=0
+0020,0,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0020,0,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0020,0,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=1 status=0
+0020,0,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0020,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=1 disable_irq=1 hw_init=0
+0020,0,SDW,tas2783_b,attached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_attached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0020,0,SDW,tas2783_8,attached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_attached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0020,0,kernel,tas2783_8,tas_io_init,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=init fn=tas_io_init uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0020,0,kernel,tas2783_8,fw_ready_done,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=fw fn=tas2783_fw_ready_done uid=0x8 hw_init=0 fw_done=1 fw_ok=1
+0020,0,SDW,rt721,attached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_attached t=+2677ms hw_init=0 status=1
+0020,0,kernel,rt721,io_init_done,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=init fn=io_init_done t=+2690ms hw_init=1
+0020,0,kernel,rt721,pm_wait_ok,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_ok t=+2690ms remaining_ms=2309
+0020,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+2704ms ret=0
+0020,0,PM,core,suspend_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend exit
+0020,15000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0020,15000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0020,15000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0020,15000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0020,23000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,31000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0020,31000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0020,31000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0020,31000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0020,47000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,50000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,53000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,56000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,59000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,62000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,65000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,68000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,71000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,74000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,77000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,80000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,83000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,86000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,89000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,92000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,95000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0020,98000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0021,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=0 disable_irq=0 hw_init=1
+0021,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+7ms ret=0
+0021,0,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0021,0,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0021,0,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=1 status=0
+0021,0,kernel,rt721,pm_resume_enter,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_enter t=+0ms first_hw_init=1 unattach_req=1 disable_irq=1 hw_init=0
+0021,0,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0021,0,hardware,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_timeout t=+5476ms remaining_ms=0
+0021,0,kernel,rt721,init_timeout,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: Initialization not complete; timed out
+0021,0,kernel,rt721,pm_resume_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=resume_exit t=+5491ms ret=-110
+0021,0,kernel,rt721,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PM: failed to resume: error -110
+0021,0,kernel,tas2783_8,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PM: failed to resume: error -110
+0021,0,kernel,tas2783_b,pm_fail_110,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PM: failed to resume: error -110
+0021,0,PM,core,suspend_exit,Colosal3-ProArt-PX13-HN7306EAC kernel: PM: suspend exit
+0021,13000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0021,15000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0021,15000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0021,15000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0021,15000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0021,23000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0021,33000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0021,49000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0021,49000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0021,49000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0021,49000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0021,63000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download
+0021,84000,SDW,rt721,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=update_status_unattached hw_init=0 status=0
+0021,84000,SDW,tas2783_8,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: PHASE5 ctx=sdw fn=update_status_unattached uid=0x8 hw_init=0 fw_done=0 fw_ok=0
+0021,84000,SDW,tas2783_b,unattached,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: PHASE5 ctx=sdw fn=update_status_unattached uid=0xb hw_init=0 fw_done=0 fw_ok=0
+0021,84000,kernel,acp,io_page_fault,Colosal3-ProArt-PX13-HN7306EAC kernel: snd_pci_ps 0000:c4:00.5: AMD-Vi: Event logged [IO_PAGE_FAULT domain=0x0018 address=0xfffffffffffffffc flags=0x0030]
+0021,118000,kernel,tas2783_8,playback_without_fw,Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: error playback without fw download

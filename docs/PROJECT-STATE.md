@@ -118,27 +118,20 @@ Asymmetry (`:b` stable, `:8` fails) fits left amp / `1714-1-8.bin` being more fr
 
 ## Current priority
 
-Do **not** spend more effort on:
+**Active work:** Phase 7 bring-up on ACP70 SoundWire resume. See **[research/JOURNEY.md](../research/JOURNEY.md)**.
 
-- routing / ch_map
-- capture / UCM
-- PipeWire policy (already hardened; does not fix `:8 done=0` after `-110`)
-
-**Do:**
-
-```
-Series B upstream patches (0006 + 0007)
-        ↓
-./scripts/build-from-upstream.sh
-        ↓
-sudo ./scripts/install-tas2783-ko.sh && reboot
-        ↓
-3–5 suspend/resume cycles
-        ↓
-validation/fw-matrix.csv — target: suspend OK without reboot
+```bash
+./scripts/prepare-kernel-tree.sh
+./scripts/build-phase7.sh --experiment stat-decode   # 0006b (observation)
+sudo reboot
+./scripts/phase6-hunt.sh post-reboot --notes p7-0006b
+systemctl suspend
+./scripts/phase6-hunt.sh post-suspend --save-window
 ```
 
-If Series B fixes resume `-110` / `:8 done=0`, the system is effectively complete for daily use.
+If Phase 6/7 patches fail to apply: `./scripts/regenerate-phase6-amd-patches.sh`
+
+**Resolution target:** ≥6/6 real suspend/resume OK in `validation/fw-matrix.csv` without reboot.
 
 ---
 

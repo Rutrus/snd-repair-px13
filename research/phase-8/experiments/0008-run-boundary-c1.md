@@ -105,7 +105,7 @@ RT721 attach                                ✓ boot / ✗ resume
 | More SoundWire experiments | **Stop** — SDW path saturated |
 | Broad boot vs resume diff | **Narrow** — last `writel()` to ACP IRQ registers before STAT1; register ownership map |
 
-Next: [ACP-IRQ-FLOW.md](../ACP-IRQ-FLOW.md) (8.2 + 8.3) — code audit, not new delays or STAT sweeps.
+Next: [ACP-BOOT-VS-RESUME-REGISTERS.md](../ACP-BOOT-VS-RESUME-REGISTERS.md) — code archaeology, not new delays or STAT sweeps.
 
 ---
 

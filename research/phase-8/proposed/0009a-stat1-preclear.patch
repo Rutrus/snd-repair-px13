@@ -1,0 +1,21 @@
+From: snd-repair phase8 <snd-repair@local>
+Subject: [PATCH phase8 0009a-stat1-preclear] Falsify patch
+
+--- a/sound/soc/amd/ps/ps-common.c
++++ b/sound/soc/amd/ps/ps-common.c
+@@ -306,7 +306,14 @@
+ {
+ 	u32 sdw0_wake_en, sdw1_wake_en;
+ 
+-	writel(1, acp_base + ACP_EXTERNAL_INTR_ENB);
++
++	/* Phase 9 / patch A: W1C clear SDW1 manager bit before global enable (falsification). */
++	writel(ACP_SDW1_STAT, acp_base + ACP_EXTERNAL_INTR_STAT1);
++	readl(acp_base + ACP_EXTERNAL_INTR_STAT1);
++	pr_info("PHASE9 ctx=acp fn=falsify patch=A stat1_after=0x%x\n",
++		readl(acp_base + ACP_EXTERNAL_INTR_STAT1));
++	
++		writel(1, acp_base + ACP_EXTERNAL_INTR_ENB);
+ 	writel(ACP_ERROR_IRQ, acp_base + ACP_EXTERNAL_INTR_CNTL);
+ 	sdw0_wake_en = readl(acp_base + ACP_SW0_WAKE_EN);
+ 	sdw1_wake_en = readl(acp_base + ACP_SW1_WAKE_EN);

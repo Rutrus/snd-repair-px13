@@ -1,0 +1,69 @@
+To: linux-sound@vger.kernel.org
+Cc: Vijendar Mukunda <Vijendar.Mukunda@amd.com>,
+    Venkata Prasad Potturu <venkataprasad.potturu@amd.com>
+Subject: ACP70 SoundWire: s2idle resume — STAT1 set but PCI Interrupt Status clear (ASUS PX13)
+
+Hello,
+
+I've been investigating a reproducible SoundWire resume failure on an ASUS
+ProArt PX13 (AMD ACP70 platform) and would appreciate guidance from the ACP
+maintainers.
+
+The observed failure is:
+
+  * Cold boot works reliably.
+  * After an s2idle suspend/resume cycle, the RT721 codec times out with
+    -ETIMEDOUT (-110) during attach.
+  * The failure is fully reproducible.
+
+After instrumenting both the ACP PCI driver and the AMD SoundWire manager,
+the investigation consistently narrows the problem to the interrupt delivery
+path.
+
+On cold boot:
+
+  ACP_EXTERNAL_INTR_STAT1 = ACP_SDW1_STAT (0x4)
+  PCI Interrupt Status    = 1  (INTX_DISABLE = 0)
+  acp63_irq_handler()     is entered
+  SoundWire enumeration   succeeds
+
+After s2idle resume:
+
+  ACP_EXTERNAL_INTR_STAT1 = ACP_SDW1_STAT (0x4)   (~51 ms after manager reset)
+  PCI Interrupt Status    = 0  (INTX_DISABLE = 0)
+  acp63_irq_handler()     never executes
+  RT721 attach            times out (-110)
+
+Additional observations:
+
+  * The SoundWire manager path is functional: manually scheduling the existing
+    worker restores enumeration (experimental validation only; not proposed
+    as a fix).
+  * /proc/interrupts does not increment during the failing resume window.
+  * The shared IRQ descriptor remains registered.
+  * Several resume-side hypotheses were falsified without changing the outcome
+    (STAT1 preclear, full INTR block reset, explicit enable_irq on resume).
+    Details are in the attached report appendix.
+
+On the investigated platform, after s2idle resume, we consistently observe
+ACP_EXTERNAL_INTR_STAT1 = ACP_SDW1_STAT while PCI Interrupt Status remains
+clear and the registered interrupt handler is never invoked. We were unable
+to identify the missing propagation step within the publicly available
+ACP70 driver.
+
+Attachments (separate files, no tarball):
+
+  UPSTREAM-REPORT.md           — main report (falsification A/B/E in appendix)
+  0010-journal-excerpt.txt     — optional short log excerpt from the 0010 run
+
+Our main question:
+
+  On ACP70, is there any platform-specific interrupt re-arm, bridge,
+  firmware interaction, or undocumented resume sequence required after s2idle
+  so that SDW1 events are propagated onto the PCI legacy interrupt beyond
+  what acp70_enable_interrupts() currently performs?
+
+If there is a register or resume path we should instrument next, I can test
+patches and provide additional logs.
+
+Thank you for your time.

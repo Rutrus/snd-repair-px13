@@ -1,0 +1,16 @@
+From: snd-repair phase8 <snd-repair@local>
+Subject: [PATCH phase8 0009c-pme-before-enable] Falsify patch
+
+--- a/sound/soc/amd/ps/ps-common.c
++++ b/sound/soc/amd/ps/ps-common.c
+@@ -337,8 +337,9 @@
+ 		return ret;
+ 	}
+ 	writel(0, acp_base + ACP_ZSC_DSP_CTRL);
+-	acp70_enable_interrupts(acp_base);
+ 	writel(0x1, acp_base + ACP_PME_EN);
++	pr_info("PHASE9 ctx=acp fn=falsify patch=C\n");
++	acp70_enable_interrupts(acp_base);
+ 	return 0;
+ }
+ 

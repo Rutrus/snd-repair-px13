@@ -1,0 +1,14 @@
+# 0010 run — journal excerpt (boot 0, 2026-07-11)
+# Machine: ASUS ProArt PX13, kernel 7.0.0-27-generic
+# Full command: journalctl -k -b 0 | grep -E 'PHASE10|intr_decode when=post_delay|handler_since|irq_stats|wait_init_timeout|pm_suspend_enter|pm_resume_enter'
+
+# --- Boot baseline (STAT1=0x4 → intx_status=1 → handler runs) ---
+jul 11 19:11:09 kernel: PHASE10 ctx=acp fn=pci_intx when=irq_handler resume=0 irq=160 stat1=0x4 intx_disable=0 intx_status=1 t_mgr_ms=-1
+
+# --- s2idle suspend / resume window ---
+jul 11 19:12:32 kernel: PHASE8 ctx=acp fn=pm_suspend_enter irq=160 resume=0
+jul 11 19:12:32 kernel: PHASE7 ctx=acp fn=pm_resume_enter resume=1 irq=160 msi=0
+jul 11 19:12:32 kernel: PHASE8 ctx=acp fn=irq_stats resume=1 handler_total=31 since_pm=0 last_stat0=0x0 last_stat1=0x4
+jul 11 19:12:32 kernel: amd_sdw_manager amd_sdw_manager.1: PHASE7 ctx=amd fn=intr_decode when=post_delay link=1 resume=1 manager=1 t_since_post_D0_ms=50 t_since_manager_reset_ms=51 manager_mask=0x4 STAT0=0x0 STAT1=0x4 STATi=0x4 STAT&mask=0x4 CNTL0=0x20010000 CNTL1=0x400004
+jul 11 19:12:32 kernel: snd_pci_ps 0000:c4:00.5: PHASE10 ctx=acp fn=pci_intx when=post_delay resume=1 irq=160 stat1=0x4 intx_disable=0 intx_status=0 t_mgr_ms=51
+jul 11 19:12:32 kernel: rt721-sdca sdw:0:1:025d:0721:01: PHASE6 ctx=pm fn=wait_init_timeout t=+5272ms remaining_ms=0

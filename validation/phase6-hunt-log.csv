@@ -6,3 +6,6 @@ ts,boot_id,notes,kernel_witness,fail_class,resume_n,intr_stat_d0,irq_handler,com
 2026-07-11T00:27:32+02:00,95b5f8ba-65e4-4659-9c85-61daba392a65,p7-0006b,FAIL-1,FAIL-1,1,0,N,N,Y,-110,?
 2026-07-11T00:54:10+02:00,632ef390-0637-4ce7-b49d-fa373b8e89d3,p7-0006b-d50,FAIL-1,FAIL-1,1,0,N,N,Y,-110,?
 2026-07-11T01:21:40+02:00,eebcde6d-bae4-4511-b89e-6880bcc32d7c,p7-0006a-d50,PASS-0006a,,1,0,N,Y,N,0,?
+2026-07-11T01:44:17+02:00,eebcde6d-bae4-4511-b89e-6880bcc32d7c,p7-0006a-d50,FAIL-2,FAIL-2,2,0,N,Y,N,,*
+2026-07-11T02:18:48+02:00,4f10e33f-dfac-4cbc-88c8-668616f9dd49,p7-0007-boot,FAIL-1,FAIL-1,1,0,N,N,Y,-110,?
+2026-07-11T03:08:04+02:00,28be3d07-8b1f-40fd-830b-854f1195b149,p7-correlate-d50,FAIL-1,FAIL-1,1,0,N,N,Y,-110,

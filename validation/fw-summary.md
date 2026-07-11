@@ -1,26 +1,26 @@
 # FW validation summary
 
-Generado: 2026-07-10T15:55:01
+Generado: 2026-07-11T19:14:18
 Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 
-## Boots analizados: **73**
+## Boots analizados: **118**
 
 ### Éxito global FW (ambos UIDs OK)
 
-- **39/73** (53.4%)
+- **59/118** (50.0%)
 
 ### UID `:8` (tas2783-1 / Left)
 
-- `OK`: 39
-- `WARN`: 34
+- `OK`: 59
+- `WARN`: 59
 
 ### UID `:b` (tas2783-2 / Right)
 
-- `OK`: 73
+- `OK`: 118
 
 ### Regresión capture (Problema A)
 
-- `REGRESSION_CAPTURE=YES`: **0/73**
+- `REGRESSION_CAPTURE=YES`: **0/118**
 
 ### Audio L+R (entradas con --audio)
 
@@ -28,16 +28,16 @@ Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 
 ### Por contexto (`suspend_resume`)
 
-- **boot**: 28/29 OK global
-- **suspend_resume**: 11/44 OK global
+- **boot**: 48/49 OK global
+- **suspend_resume**: 11/69 OK global
 
 ### Por frecuencia (`rate`)
 
-- **48000 Hz**: 39/73 OK global
+- **48000 Hz**: 59/118 OK global
 
 ### Kernels
 
-- `7.0.0-27-generic`: 73 boots
+- `7.0.0-27-generic`: 118 boots
 
 ## Tabla completa
 
@@ -116,6 +116,51 @@ Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 | 71 | 2026-07-10T15:24 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
 | 72 | 2026-07-10T15:30 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
 | 73 | 2026-07-10T15:55 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 74 | 2026-07-10T16:08 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 75 | 2026-07-10T16:12 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 76 | 2026-07-10T16:13 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 77 | 2026-07-10T18:27 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 78 | 2026-07-10T18:44 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 79 | 2026-07-10T19:03 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 80 | 2026-07-10T19:34 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 81 | 2026-07-10T19:44 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 82 | 2026-07-10T19:46 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 82 | 2026-07-10T19:46 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 83 | 2026-07-10T19:51 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 84 | 2026-07-10T20:37 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 85 | 2026-07-10T20:40 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 86 | 2026-07-10T21:47 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 87 | 2026-07-10T22:55 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 88 | 2026-07-11T00:12 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 89 | 2026-07-11T00:15 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 90 | 2026-07-11T00:22 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 91 | 2026-07-11T00:29 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 92 | 2026-07-11T00:51 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 93 | 2026-07-11T00:56 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 94 | 2026-07-11T01:20 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 95 | 2026-07-11T01:23 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 96 | 2026-07-11T01:42 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 97 | 2026-07-11T01:45 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 98 | 2026-07-11T02:16 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 99 | 2026-07-11T02:21 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 100 | 2026-07-11T02:53 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 101 | 2026-07-11T03:06 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 102 | 2026-07-11T03:09 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 103 | 2026-07-11T10:59 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 104 | 2026-07-11T11:04 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 105 | 2026-07-11T13:50 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 106 | 2026-07-11T17:09 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 107 | 2026-07-11T17:11 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 108 | 2026-07-11T17:20 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 109 | 2026-07-11T18:02 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 110 | 2026-07-11T18:04 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 111 | 2026-07-11T18:17 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 112 | 2026-07-11T18:20 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 113 | 2026-07-11T18:31 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 114 | 2026-07-11T18:33 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 115 | 2026-07-11T19:08 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 116 | 2026-07-11T19:11 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 117 | 2026-07-11T19:14 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
 
 ## Criterio RFC Serie B (objetivo)
 
