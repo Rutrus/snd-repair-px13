@@ -1,0 +1,59 @@
+From: snd-repair phase8 <snd-repair@local>
+Subject: [PATCH phase8] IRQ boundary trace (handler counter, 8.1)
+
+--- a/sound/soc/amd/ps/pci-ps.c
++++ sound/soc/amd/ps/pci-ps.c	2026-07-11 03:26:33.853768086 +0200
+@@ -13,6 +13,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/acpi.h>
+ #include <linux/interrupt.h>
++#include <linux/atomic.h>
+ #include <sound/pcm_params.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/iopoll.h>
+@@ -23,6 +24,23 @@
+ 
+ extern s64 snd_repair_phase7_t_mgr_reset_ms(unsigned int instance);
+ 
++
++/* Phase 8 / 0008: handler invocation counter (observation only). */
++static atomic64_t snd_repair_p8_irq_handler_total;
++static atomic64_t snd_repair_p8_irq_handler_since_pm;
++static u32 snd_repair_p8_irq_last_stat0;
++static u32 snd_repair_p8_irq_last_stat1;
++
++static void snd_repair_p8_log_irq_stats(unsigned int resume_id)
++{
++	pr_info("PHASE8 ctx=acp fn=irq_stats resume=%u handler_total=%lld since_pm=%lld last_stat0=0x%x last_stat1=0x%x
++",
++		resume_id,
++		(long long)atomic64_read(&snd_repair_p8_irq_handler_total),
++		(long long)atomic64_read(&snd_repair_p8_irq_handler_since_pm),
++		snd_repair_p8_irq_last_stat0, snd_repair_p8_irq_last_stat1);
++}
++
+ /* Phase 7 / 0007: IRQ delivery trace (pci-ps) — observation only, no behaviour change. */
+ static unsigned int snd_repair_phase7_acp_resume_n;
+ static int p7_trace_pci_irq;
+@@ -240,6 +258,8 @@
+ 	adata = dev_id;
+ 	if (!adata)
+ 		return IRQ_NONE;
++	atomic64_inc(&snd_repair_p8_irq_handler_total);
++	atomic64_inc(&snd_repair_p8_irq_handler_since_pm);
+ 	/* ACP interrupts will be cleared by reading particular bit and writing
+ 	 * same value to the status register. writing zero's doesn't have any
+ 	 * effect.
+@@ -751,6 +771,12 @@
+ 
+ static int snd_acp_suspend(struct device *dev)
+ {
++	struct pci_dev *pci = to_pci_dev(dev);
++
++	atomic64_set(&snd_repair_p8_irq_handler_since_pm, 0);
++	pr_info("PHASE8 ctx=acp fn=pm_suspend_enter irq=%d resume=%u
++",
++		pci->irq, snd_repair_phase7_acp_resume_id());
+ 	return acp_hw_suspend(dev);
+ }
+ 

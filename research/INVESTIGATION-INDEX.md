@@ -11,7 +11,7 @@
 
 **Phase 7 (frozen):** delivery boundary closed. → [`phase-7/INDEX.md`](phase-7/INDEX.md) · [`UPSTREAM-REPORT-DRAFT.md`](phase-6/UPSTREAM-REPORT-DRAFT.md)
 
-**Phase 8 (planned):** ACP platform IRQ restore after s2idle.
+**Phase 8 (active):** ACP IRQ path 8.1–8.3. → [`phase-8/INDEX.md`](phase-8/INDEX.md)
 
 Líneas **independientes**. No mezclar evidencia entre tracks salvo correlación explícita en logs.
 

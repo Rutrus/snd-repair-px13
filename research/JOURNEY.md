@@ -15,7 +15,7 @@ English (canonical). Single thread from **no audio** to **resolution criteria** 
 | Boot / stereo | **Resolved** | Can both TAS2783 amps play on cold boot? **Yes** |
 | Suspend/resume (kernel) | **Delimited** | IRQ delivery: STAT pending, handler missing — downstream OK if worker runs |
 | Phase 7 | **Frozen** | 0005–0007 complete — [phase-7/INDEX.md](phase-7/INDEX.md) |
-| Phase 8 (next) | **Planned** | ACP70 platform IRQ restore after s2idle (`acp_hw_resume`, `pci-ps.c`) |
+| Phase 8 (next) | **Active** | STAT → `acp63_irq_handler` gap — [phase-8/INDEX.md](phase-8/INDEX.md) |
 | Userspace (PipeWire) | **Secondary** | Not kernel root cause |
 
 **Kernel witness (FAIL-1 vanilla):** RT721 `-110`, no `completion`, no `irq_handler_enter`.
@@ -126,17 +126,26 @@ systemctl suspend
 
 ---
 
-## Phase 8 — ACP IRQ restore (planned)
+## Phase 8 — ACP IRQ path (active)
 
-**Goal:** *Why does pending `STAT1` not reach `acp63_irq_handler` on resume?*
+**Goal:** *Where between `STAT1` pending and `acp63_irq_handler()` does resume diverge from boot?*
 
-First functions to inspect (boot vs resume diff):
+| Doc | Role |
+|-----|------|
+| [phase-8/INDEX.md](phase-8/INDEX.md) | **8.1–8.3** mini-objectives, out-of-scope, roadmap |
+| [phase-8/ACP-IRQ-FLOW.md](phase-8/ACP-IRQ-FLOW.md) | Top-down IRQ diagram (8.3, fill from code) |
 
-- `acp_hw_resume()` · `acp70_enable_interrupts()`
-- `acp70_enable_sdw_host_wake_interrupts()` · `check_and_handle_acp70_sdw_wake_irq()`
-- Shared IRQ enable in `pci-ps.c`
+### Mini-objectives
 
-Upstream context: [phase-6/UPSTREAM-REPORT-DRAFT.md](phase-6/UPSTREAM-REPORT-DRAFT.md).
+| Id | Question |
+|----|----------|
+| **8.1** | CPU/handler never runs vs IRQ lost before Linux? (`/proc/interrupts`, handler counter) |
+| **8.2** | Boot vs resume diff in `pci-ps.c` / `ps-common.c` only |
+| **8.3** | Document intended ACP70 IRQ flow top-down |
+
+**Parallel:** upstream outreach with [UPSTREAM-REPORT-DRAFT.md](phase-6/UPSTREAM-REPORT-DRAFT.md) — not a bug report yet.
+
+**Do not repeat:** Phase 7 delays, manual schedule, STAT sweeps.
 
 ---
 
