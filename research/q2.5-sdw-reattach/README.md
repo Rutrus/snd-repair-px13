@@ -28,6 +28,8 @@ Q3   which is the first SoundWire re-attach transition  [OPEN — active P0]
 
 > **What is the first transition in the SoundWire re-attach flow that does not occur after resume?**
 
+**Answer for 2026-07-12 cycle (~85–90%):** AMD **IRQ worker / handle_status** path after `manager_reset` — STAT1 latched, no re-attach. Witness: [../experiments/q3-sdw-reattach-witness-20260712.md](../experiments/q3-sdw-reattach-witness-20260712.md).
+
 Not: “why does `manager_reset` fail?” — that would pre-judge the break site.
 
 ---
@@ -101,8 +103,8 @@ resume → … → wait initialization_complete → timeout (-110)
 manager_reset → enumeration → status stays UNATTACHED
 ```
 
-**Observed:** `status=0`, `manager_reset` on suspend.  
-**Not proven:** enumeration ran and failed vs never ran.
+**Observed:** `status=0`, `manager_reset` on suspend; **no** `state_change new=ATTACHED` post-reset (2026-07-12 Q3 witness).  
+**Not proven:** whether enumeration started and stalled vs never invoked — IRQ worker absent supports stall/non-delivery hypothesis.
 
 ### Model C — slave enumerated but `tas_update_status(ATTACHED)` never called
 
@@ -182,11 +184,13 @@ Archive under `validation/q3-sdw-reattach/`.
 ### Collect + analyze (preferred)
 
 ```bash
-# Kernel: PHASE6 0002+0003 (manager/bus) + optional build-q2-fw-trace.sh
+# Kernel: PHASE6 + Q2 (or ./scripts/build-q3-trace.sh)
 systemctl suspend && sleep 5
 ./scripts/q3-sdw-reattach-collect.sh --label after-resume
 ./scripts/q3-sdw-reattach-analyze.sh
 ```
+
+Or one-shot build: `./scripts/build-q3-trace.sh` → reboot → suspend → collect/analyze.
 
 The analyzer prints `[OK]` / `[MISSING]` per ladder step and hints at the **first missing transition** (does not assume `manager_reset` is the break site).
 

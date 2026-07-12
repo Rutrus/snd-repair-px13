@@ -130,8 +130,11 @@ These may be cited as **facts** in upstream mail.
 | F12 | **No observable FW async start before hw_params timeout (2026-07-12 cycle)** | No `io_init` / `nowait` / `fw_ready`; `success=0 done=0` at wait — [experiments/q2-fw-trace-witness-20260712.md](experiments/q2-fw-trace-witness-20260712.md) |
 | F13 | **Resume init timeout on both TAS2783 UIDs** | `initialization timed out` / PM -110 on `:8` and `:b` same cycle |
 | F14 | **Slaves UNATTACHED when codec recovery paths skip** | `status=0` → `skip_reinit` / `skip_io_init`; no `hw_params reinit` |
+| F15 | **AMD manager_reset + D0 bring-up complete on failing resume (2026-07-12)** | PHASE6 resume_enter → manager_reset → init/irq/D0 all ret=0 — [experiments/q3-sdw-reattach-witness-20260712.md](experiments/q3-sdw-reattach-witness-20260712.md) |
+| F16 | **No ATTACHED re-attach after manager_reset this cycle** | No `state_change new=ATTACHED` / `fn=completion`; no `irq_thread`/`handle_status` resume=1 post-reset |
+| F17 | **STAT1=0x4 latched post-reset but worker absent** | PHASE7 intr_decode post_delay; contrast S0 same boot where worker runs |
 
-Facts F1–F7, F10–F11 from PCM trace. F12–F14 from Q2 trace. F9 independent. **Do not** state F9 → F12 as proven without correlated same-boot capture.
+Facts F1–F7, F10–F11 from PCM trace. F12–F14 from Q2 trace. F15–F17 from Q3 collect (same boot as F12–F14). F9 independent.
 
 ---
 
@@ -169,7 +172,9 @@ hw_params wait → timeout → -EINVAL
 
 `skip_io_init` / `skip_reinit` are **observed branch outcomes**, not asserted root causes.
 
-**Not demonstrated:** which layer fails re-attach (AMD manager vs SoundWire core vs ASoC machine vs IRQ interaction).
+**Not demonstrated (pre-Q3):** which layer fails re-attach (AMD manager vs SoundWire core vs ASoC machine vs IRQ interaction).
+
+**Q3 update (2026-07-12, same boot):** first missing transition = **AMD IRQ worker path after manager_reset** (no `ping_irq`/`handle_status` resume=1; no UNATTACHED→ATTACHED). See [experiments/q3-sdw-reattach-witness-20260712.md](experiments/q3-sdw-reattach-witness-20260712.md).
 
 Full witness: [experiments/q2-fw-trace-witness-20260712.md](experiments/q2-fw-trace-witness-20260712.md)
 
@@ -215,7 +220,7 @@ See [track-PCM-smartamp-hwparams.md](track-PCM-smartamp-hwparams.md) § Dual-pat
 | Branch | Role in unified model | Status | Entry |
 |--------|----------------------|--------|-------|
 | **Track PCM2** | Q1 + Q2 codec ladder closed | **Closed** | [track-PCM-smartamp-hwparams.md](track-PCM-smartamp-hwparams.md) |
-| **Q2.5 SDW re-attach (Q3)** | First missing re-attach transition | **Active P0** | [q2.5-sdw-reattach/README.md](q2.5-sdw-reattach/README.md) |
+| **Q2.5 SDW re-attach (Q3)** | First missing re-attach transition | **Active P0 — break site ~IRQ worker post-reset** | [q2.5-sdw-reattach/README.md](q2.5-sdw-reattach/README.md) |
 | Phase 6–8 | Remote cause candidate (IRQ boundary) | **Frozen** — correlate same-boot if pursued | [frozen/upstream-proof/](frozen/upstream-proof/) |
 | Track A (FW `:8`) | Historical manifestation / same chain altitude | **Absorbed** — do not fork | [track-A-serie-b-suspend.md](track-A-serie-b-suspend.md) |
 | Track B (capture -22) | Unrelated playback blocker | **Closed** | [track-B-capture-pin4.md](track-B-capture-pin4.md) |
