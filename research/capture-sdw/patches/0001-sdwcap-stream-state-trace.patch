@@ -1,0 +1,224 @@
+--- a/drivers/soundwire/stream.c
++++ b/drivers/soundwire/stream.c
+@@ -18,6 +18,101 @@
+ #include <sound/soc.h>
+ #include "bus.h"
+ 
++/* SDWCAP — trace every stream->state transition (snd_repair capture P0) */
++static const char *sdwcap_state_name(enum sdw_stream_state st)
++{
++	switch (st) {
++	case SDW_STREAM_ALLOCATED:
++		return "ALLOCATED";
++	case SDW_STREAM_CONFIGURED:
++		return "CONFIGURED";
++	case SDW_STREAM_PREPARED:
++		return "PREPARED";
++	case SDW_STREAM_ENABLED:
++		return "ENABLED";
++	case SDW_STREAM_DISABLED:
++		return "DISABLED";
++	case SDW_STREAM_DEPREPARED:
++		return "DEPREPARED";
++	case SDW_STREAM_RELEASED:
++		return "RELEASED";
++	default:
++		return "?";
++	}
++}
++
++static const char *sdwcap_stream_dir(const struct sdw_stream_runtime *stream)
++{
++	if (!stream || !stream->name)
++		return "?";
++	if (strstr(stream->name, "Capture"))
++		return "capture";
++	if (strstr(stream->name, "Playback"))
++		return "playback";
++	return "?";
++}
++
++static void sdwcap_log_stream_ctx(const struct sdw_stream_runtime *stream, const char *tag)
++{
++	struct sdw_master_runtime *m_rt;
++	struct sdw_slave_runtime *s_rt;
++	struct sdw_port_runtime *p_rt;
++	bool any = false;
++
++	if (!stream)
++		return;
++
++	list_for_each_entry(m_rt, &stream->master_list, stream_node) {
++		list_for_each_entry(s_rt, &m_rt->slave_rt_list, m_rt_node) {
++			if (!s_rt->slave)
++				continue;
++			list_for_each_entry(p_rt, &s_rt->port_list, port_node) {
++				any = true;
++				pr_info("SDWCAP ctx tag=%s stream=%p name=%s dir=%s slave=%s uid=0x%x status=%u sdir=%d port=%d mdir=%d\n",
++					tag, stream,
++					stream->name ? stream->name : "?",
++					sdwcap_stream_dir(stream),
++					dev_name(&s_rt->slave->dev),
++					s_rt->slave->id.unique_id,
++					s_rt->slave->status,
++					s_rt->direction, p_rt->num,
++					m_rt->direction);
++			}
++		}
++	}
++	if (!any)
++		pr_info("SDWCAP ctx tag=%s stream=%p name=%s dir=%s (no slave/port yet)\n",
++			tag, stream,
++			stream->name ? stream->name : "?",
++			sdwcap_stream_dir(stream));
++}
++
++static void sdwcap_stream_set_state(struct sdw_stream_runtime *stream,
++				    enum sdw_stream_state new_state,
++				    void *caller)
++{
++	enum sdw_stream_state old_state;
++
++	if (!stream)
++		return;
++
++	old_state = stream->state;
++	if (old_state == new_state)
++		return;
++
++	stream->state = new_state;
++
++	pr_info("SDWCAP trans stream=%p name=%s dir=%s old=%u:%s new=%u:%s caller=%pS\n",
++		stream, stream->name ? stream->name : "?",
++		sdwcap_stream_dir(stream),
++		old_state, sdwcap_state_name(old_state),
++		new_state, sdwcap_state_name(new_state), caller);
++
++	if (old_state >= SDW_STREAM_CONFIGURED &&
++	    new_state == SDW_STREAM_ALLOCATED)
++		dump_stack();
++}
++
+ /*
+  * Array of supported rows and columns as per MIPI SoundWire Specification 1.1
+  *
+@@ -1514,7 +1609,8 @@
+ 		}
+ 	}
+ 
+-	stream->state = SDW_STREAM_PREPARED;
++	sdwcap_stream_set_state(stream, SDW_STREAM_PREPARED,
++				__builtin_return_address(0));
+ 
+ 	return ret;
+ 
+@@ -1540,6 +1636,11 @@
+ 		return -EINVAL;
+ 	}
+ 
++	pr_info("SDWCAP prepare_enter stream=%p name=%s dir=%s state=%u:%s update_params=%d caller=%pS\n",
++		stream, stream->name ? stream->name : "?",
++		sdwcap_stream_dir(stream), stream->state,
++		sdwcap_state_name(stream->state), update_params,
++		__builtin_return_address(0));
+ 	sdw_acquire_bus_lock(stream);
+ 
+ 	if (stream->state == SDW_STREAM_PREPARED) {
+@@ -1552,6 +1653,7 @@
+ 	    stream->state != SDW_STREAM_DISABLED) {
+ 		pr_err("%s: %s: inconsistent state state %d\n",
+ 		       __func__, stream->name, stream->state);
++		sdwcap_log_stream_ctx(stream, "prepare_fail");
+ 		ret = -EINVAL;
+ 		goto state_err;
+ 	}
+@@ -1605,7 +1707,8 @@
+ 		return ret;
+ 	}
+ 
+-	stream->state = SDW_STREAM_ENABLED;
++	sdwcap_stream_set_state(stream, SDW_STREAM_ENABLED,
++				__builtin_return_address(0));
+ 	return 0;
+ }
+ 
+@@ -1663,7 +1766,8 @@
+ 			return ret;
+ 		}
+ 	}
+-	stream->state = SDW_STREAM_DISABLED;
++	sdwcap_stream_set_state(stream, SDW_STREAM_DISABLED,
++				__builtin_return_address(0));
+ 
+ 	list_for_each_entry(m_rt, &stream->master_list, stream_node) {
+ 		struct sdw_bus *bus = m_rt->bus;
+@@ -1749,7 +1853,8 @@
+ 	 * first mark the state as DEPREPARED so that it is not taken into account
+ 	 * for bit allocation
+ 	 */
+-	stream->state = SDW_STREAM_DEPREPARED;
++	sdwcap_stream_set_state(stream, SDW_STREAM_DEPREPARED,
++				__builtin_return_address(0));
+ 
+ 	list_for_each_entry(m_rt, &stream->master_list, stream_node) {
+ 		bus = m_rt->bus;
+@@ -1758,7 +1863,8 @@
+ 		if (ret < 0) {
+ 			dev_err(bus->dev,
+ 				"De-prepare port(s) failed: %d\n", ret);
+-			stream->state = state;
++			sdwcap_stream_set_state(stream, state,
++						__builtin_return_address(0));
+ 			return ret;
+ 		}
+ 
+@@ -1785,7 +1891,8 @@
+ 			if (ret < 0) {
+ 				dev_err(bus->dev, "Compute params failed: %d\n",
+ 					ret);
+-				stream->state = state;
++				sdwcap_stream_set_state(stream, state,
++						__builtin_return_address(0));
+ 				return ret;
+ 			}
+ 		}
+@@ -1794,7 +1901,8 @@
+ 		ret = sdw_program_params(bus, false);
+ 		if (ret < 0) {
+ 			dev_err(bus->dev, "%s: Program params failed: %d\n", __func__, ret);
+-			stream->state = state;
++			sdwcap_stream_set_state(stream, state,
++						__builtin_return_address(0));
+ 			return ret;
+ 		}
+ 	}
+@@ -1881,7 +1989,8 @@
+ 
+ 	stream->name = stream_name;
+ 	INIT_LIST_HEAD(&stream->master_list);
+-	stream->state = SDW_STREAM_ALLOCATED;
++	sdwcap_stream_set_state(stream, SDW_STREAM_ALLOCATED,
++				__builtin_return_address(0));
+ 	stream->m_rt_count = 0;
+ 	stream->type = type;
+ 
+@@ -2093,7 +2202,8 @@
+ 	}
+ 
+ 	if (list_empty(&stream->master_list))
+-		stream->state = SDW_STREAM_RELEASED;
++		sdwcap_stream_set_state(stream, SDW_STREAM_RELEASED,
++					__builtin_return_address(0));
+ 
+ 	mutex_unlock(&bus->bus_lock);
+ 
+@@ -2198,7 +2308,8 @@
+ 	 * point so cannot depend on all Slave(s) to be added in order to
+ 	 * change stream state to CONFIGURED.
+ 	 */
+-	stream->state = SDW_STREAM_CONFIGURED;
++	sdwcap_stream_set_state(stream, SDW_STREAM_CONFIGURED,
++				__builtin_return_address(0));
+ 	goto unlock;
+ 
+ alloc_error:

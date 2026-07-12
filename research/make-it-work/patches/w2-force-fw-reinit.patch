@@ -1,0 +1,73 @@
+From: snd-repair make-it-work <snd-repair@local>
+Date: Sun, 12 Jul 2026 12:00:00 +0200
+Subject: [PATCH w2] ASoC: tas2783: force firmware reinit after system sleep
+
+Branch A experiment W2 — NOT for upstream as-is.
+
+Applies on upstream series B (0001–0003). After system suspend, set
+post_system_sleep and always invalidate FW bookkeeping. On the first
+ATTACHED (update_status or resume), unconditionally call tas2783_fw_reinit()
+even if hw_init stayed true (stale one-shot init from pre-suspend).
+
+Goal: answer "does forced FW reload restore PCM2 after S2?" — not explain
+every PM transition.
+
+Signed-off-by: snd-repair make-it-work <snd-repair@local>
+---
+ sound/soc/codecs/tas2783-sdw.c | 24 +++++++++++++++++++++++-
+ 1 file changed, 23 insertions(+), 1 deletion(-)
+
+diff --git a/sound/soc/codecs/tas2783-sdw.c b/sound/soc/codecs/tas2783-sdw.c
+--- a/sound/soc/codecs/tas2783-sdw.c
++++ b/sound/soc/codecs/tas2783-sdw.c
+@@ -101,6 +101,7 @@ struct tas2783_prv {
+ 	wait_queue_head_t fw_wait;
+ 	bool fw_dl_task_done;
+ 	bool fw_dl_success;
++	bool post_system_sleep;
+ };
+ 
+ static s32 tas_io_init(struct device *dev, struct sdw_slave *slave);
+@@ -1109,7 +1110,8 @@ static s32 tas2783_sdca_dev_system_suspend(struct device *dev)
+ {
+ 	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
+ 
+-	if (tas_dev && tas_dev->hw_init) {
++	if (tas_dev) {
++		tas_dev->post_system_sleep = true;
+ 		tas_dev->hw_init = false;
+ 		tas_dev->fw_dl_task_done = false;
+ 		tas_dev->fw_dl_success = false;
+@@ -1142,6 +1144,15 @@ regmap_sync:
+ 	regcache_cache_only(tas_dev->regmap, false);
+ 	regcache_sync(tas_dev->regmap);
+ 
++	if (tas_dev->post_system_sleep &&
++	    tas_dev->status == SDW_SLAVE_ATTACHED) {
++		dev_info(dev,
++			 "W2 ctx=tas fn=force_fw_reinit when=resume uid=%d\n",
++			 tas_dev->sdw_peripheral->id.unique_id);
++		tas_dev->post_system_sleep = false;
++		return tas2783_fw_reinit(dev, slave);
++	}
++
+ 	if (tas_dev->status == SDW_SLAVE_ATTACHED && !tas_dev->hw_init)
+ 		ret = tas2783_fw_reinit(dev, slave);
+ 	return ret;
+@@ -1257,6 +1268,16 @@ static s32 tas_update_status(struct sdw_slave *slave,
+ 	if (status == SDW_SLAVE_UNATTACHED)
+ 		tas_dev->hw_init = false;
+ 
++	if (status == SDW_SLAVE_ATTACHED && tas_dev->post_system_sleep) {
++		dev_info(dev,
++			 "W2 ctx=tas fn=force_fw_reinit when=update_status uid=%d\n",
++			 tas_dev->sdw_peripheral->id.unique_id);
++		tas_dev->post_system_sleep = false;
++		regcache_cache_only(tas_dev->regmap, false);
++		regcache_sync(tas_dev->regmap);
++		return tas2783_fw_reinit(&slave->dev, slave);
++	}
++
+ 	if (status == SDW_SLAVE_ATTACHED && tas_dev->hw_init &&
+ 	    (!tas_dev->fw_dl_success || !tas_dev->fw_dl_task_done))
+ 		tas_dev->hw_init = false;

@@ -1,0 +1,4 @@
+cycle,time,kpi_u,internal_mic,headset_mic,playback,witness_dir
+1,2026-07-12T15:10:54+02:00,PASS,1,1,1,/home/rutrus/snd_repair/validation/post-s2-user-witness/persist-20260712-150956-cycle1
+2,2026-07-12T15:11:54+02:00,PASS,1,1,1,/home/rutrus/snd_repair/validation/post-s2-user-witness/persist-20260712-150956-cycle2
+3,2026-07-12T15:12:54+02:00,PASS,1,1,1,/home/rutrus/snd_repair/validation/post-s2-user-witness/persist-20260712-150956-cycle3

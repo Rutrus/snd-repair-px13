@@ -16,9 +16,9 @@ The project has moved through four clear phases:
 1. **Restore basic audio** — brainchillz (firmware, UCM, rt721, systemd).
 2. **Remove structural kernel faults** — Problems A/B/C (patches 0004, 0006/0007, 0009).
 3. **Validate the pipeline** — instrumentation proved AMD → SoundWire → both TAS2783 → stereo on cold boot.
-4. **Isolate the last blocker** — **suspend/resume only**; cold boot is no longer the problem.
+4. **Close KPI-U** — **done 2026-07-12** (W1+W2+UCM, S2×3 PASS). Optional upstream: KPI-K RW copy path.
 
-From a kernel-debugging perspective: the search space collapsed from “no usable audio” to **one reproducible PM resume path** affecting UID `:8` (left SmartAmp).
+From a kernel-debugging perspective: user resume audio is **functional**; remaining work is **direct ALSA RW post-S2** (upstream), not desktop recovery.
 
 ---
 
@@ -74,7 +74,35 @@ No longer under investigation:
 
 ---
 
-## The only serious remaining issue
+## KPI-U closed (2026-07-12)
+
+**User desktop audio after S2: PASS** — 3/3 cycles, PipeWire untouched.
+
+| Component | Role |
+|-----------|------|
+| W1 | SoundWire IRQ / re-ATTACH on resume |
+| W2 | TAS2783 firmware reinit (playback) |
+| UCM | Internal Mic → DMIC via `install-ucm-px13.sh` |
+| PipeWire | MMAP capture path (default desktop) |
+
+**Closure doc:** [../research/SOLUTION-CLOSURE-KPI-U-20260712.md](../research/SOLUTION-CLOSURE-KPI-U-20260712.md)  
+**Witness:** [../research/experiments/kpi-u-s2x3-pass-20260712.md](../research/experiments/kpi-u-s2x3-pass-20260712.md)
+
+```bash
+./scripts/post-s2-persistence-run.sh 3   # expect KPI-U PASS
+```
+
+---
+
+## Optional upstream (KPI-K — not user-blocking)
+
+Direct `arecord` with **RW** access fails post-S2; **MMAP** (`arecord -M`) passes on DMIC and RT721. PipeWire uses MMAP — users are unaffected.
+
+See [../research/experiments/capture-access-matrix-20260712.md](../research/experiments/capture-access-matrix-20260712.md).
+
+---
+
+## Historical — suspend/resume investigation (superseded for KPI-U)
 
 ### Suspend / resume — unified model (2026-07-12)
 
@@ -102,18 +130,15 @@ Cold boot is resolved. The blocker is **resume-only SmartAmp state**, not global
 
 ---
 
-## Current work (dual track — July 2026)
+## Current work (July 2026)
 
-**KPI:** suspend → resume → **Speaker works** (≥6/6 in `validation/fw-matrix.csv`).
+| Track | Status |
+|-------|--------|
+| **A — KPI-U (make it work)** | **CLOSED** — S2×3 PASS |
+| **B — KPI-K upstream** | Optional — RW copy path post-S2 |
+| **SmartAmp PIN4** | Parked — structural, not user mic |
 
-| Track | Status | Entry |
-|-------|--------|-------|
-| **A — Make it work** | **P0** — try 0006a workaround (W1) | [../research/MAKE-IT-WORK.md](../research/MAKE-IT-WORK.md) |
-| **B — Root cause** | C1 closed; upstream packaging | [../research/q2.5-sdw-reattach/Q3.1-IRQ-CHECKPOINTS.md](../research/q2.5-sdw-reattach/Q3.1-IRQ-CHECKPOINTS.md) |
-
-**Closed layers:** Q1 (EINVAL site), Q2 (no FW async), Q3 (no ATTACHED), Q3.1 C1 (handler not entered + delta=0).
-
-Question for daily work: **“Which experiment is most likely to restore audio?”** — not only “which hypothesis closes today?”
+**Entry:** [../research/SOLUTION-CLOSURE-KPI-U-20260712.md](../research/SOLUTION-CLOSURE-KPI-U-20260712.md)
 
 ---
 
