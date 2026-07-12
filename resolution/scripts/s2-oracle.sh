@@ -23,10 +23,11 @@ cat <<EOF
 Quality:     ${RESOLUTION_WITNESS_QUALITY} ($(witness_quality_label))
 Valid:       ${valid_word} (min ${RESOLUTION_MIN_WITNESS:-W2})
 Reason:      ${RESOLUTION_WITNESS_REASON}
-Userspace:   ${RESOLUTION_USERSPACE_STATE:-$(userspace_sink_state)} (dummy simulates playback — not real audio)
-Default:     $(userspace_default_sink_is_dummy && echo dummy || echo hardware)
-ALSA:        $(witness_playback_alsa && echo pass || echo fail)
-Playback:    $(witness_playback && echo pass || echo fail) (never counts dummy as OK when card present)
+Userspace:   sink=$(userspace_sink_presence_quality) default=$(userspace_default_sink_quality) (dummy = no audible sound)
+ALSA primary: $(witness_playback_alsa_hw_primary && echo pass || echo fail) ($(alsa_hw_dev 2>/dev/null || echo ?); ${WITNESS_PCM_LAST_CLASS:-?})
+ALSA any:     $(witness_playback_alsa_hw && echo pass || echo fail) (incl. SimpleJack fallback)
+ALSA plughw:  $(witness_playback_alsa_plughw && echo pass || echo fail) (informational)
+Playback:     $(witness_playback && echo pass || echo fail) (primary PCM + no dummy sink)
 Research:    -110 ∧ handler_since_pm=0 ∧ STAT1=0x4 → W3+
 =========================
 EOF

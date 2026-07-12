@@ -1,7 +1,10 @@
 # Track A — Serie B: FW `:8` tras suspend/resume
 
-**Prioridad:** P0 · **Bloquea altavoces:** sí  
-**Estado:** investigación activa  
+> **Absorbed into unified model** (2026-07-12): [UNIFIED-CAUSAL-MODEL.md](UNIFIED-CAUSAL-MODEL.md)  
+> Track A logs (`:8 done=0`, `playback without fw download`) = **same chain**, earlier altitude.  
+> **Active P0:** [track-PCM-smartamp-hwparams.md](track-PCM-smartamp-hwparams.md) (Q1: rejecting callback).
+
+**Prioridad histórica:** P0 · **Estado:** absorbed — no fork new work here  
 **Última evidencia:** boot #14 (2026-07-09 20:05)
 
 ---

@@ -1,59 +1,63 @@
-# Witness Quality — S2 oracle before recovery
+# Witness Quality — audio chain layers
 
-English (canonical). Separates two questions:
+English (canonical). Separates:
 
 1. **Did we reproduce the broken state (S2)?**
-2. **Does the recovery fix it (S2 → S3)?**
-
-Without (1), edge results measure `S? ──R──► S?` and are not conclusive.
+2. **Does recovery restore a functional pipeline (S2 → S3)?**
 
 ---
 
-## Quality levels
-
-| Level | Meaning | Evidence |
-|-------|---------|----------|
-| **W0** | No suspend | No PM suspend / sleep target in journal window |
-| **W1** | Suspend only | Suspend observed; **audio still works** (bug not reproduced) |
-| **W2** | S2 certified | Kernel `-110` **or** post-resume **ALSA playback fail** (card present) |
-| **W3** | Research S2 signature | W2 **and** `handler_since_pm=0` **and** `STAT1=0x4` |
-| **W4** | Full S2 | W3 **and** userspace `dummy`/`none` sink (optional) |
-
-**Dummy Output trap:** After suspend, PipeWire may route to **Dummy Output**. `speaker-test` can **PASS** with zero audible sound. Witness uses **ALSA `plughw` only** when the card is present; dummy default sink ⇒ **S2 broken**.
-
-**Reboot** only when starting a new calibration run from S0, or card missing — not because audio is broken after suspend (that *is* S2).
-
-**VALID** for recovery execution: **≥ W2** (default). **Preferred:** **W3/W4** (requires Phase 7/8 printk in running kernel).
+## Chain model (authoritative)
 
 ```text
-S2 symptom (W2):  suspend → card present → ALSA playback fail
-S2 research (W3):  above + handler_since_pm=0 + STAT1=0x4 @ post_delay
+Kernel (L1)     card + aplay -l
+    ↓
+ALSA hw (L2)    speaker-test -D hw:X,Y  ← failure starts here
+    ↓           plughw PASS = open only, NOT success
+PipeWire (L3)   real sink (not Dummy Output)
+    ↓           Dummy = consequence of broken ALSA hw
+Default (L4)    default sink ≠ dummy
+Audible (L5)    manual listen
 ```
+
+**Dummy Output is not the cause.** WirePlumber creates it when no usable ALSA sink exists.
+
+**plughw trap:** `plughw` adds software format conversion. PASS means ALSA accepted the open call — not that DAPM/codec/SmartAmp reproduce sound.
 
 ---
 
-## Edge report semantics
+## Automated verdicts
 
-| Witness | Edge result | Meaning |
-|---------|-------------|---------|
-| **INVALID** | **NOT_EXECUTABLE** | Recovery skipped — initial state unknown |
-| **VALID** | PASS / PARTIAL / FAIL | Transition measured from certified S2 |
+| Result | Meaning |
+|--------|---------|
+| **PASS** | L1 + L2 hw + L3 real sink + L4 real default |
+| **PARTIAL** | L1 + L2 hw OK, but PipeWire still dummy / no real default |
+| **FALSE_PASS** | plughw opens, hw or userspace failed — historical strategies only |
+| **FAIL** | L1 or **primary** L2 (`hw:1,2`) broken |
 
-`PARTIAL 4/4` on **INVALID** witness is **not** evidence for S2→S3.
+L2 failure class matters: `set_params_fail` = `snd_pcm_hw_params()` rejected config (lower than playback fail).
+
+L5 (audible) is never automated.
+
+**Per-PCM probe:** [../research/pcm-s2-set-params-witness.md](../research/pcm-s2-set-params-witness.md)
 
 ---
 
-## Priority (framework v2.1)
+## S2 certification (W2)
 
-```text
-Reliable S2 (W2+, prefer W3)
-        ↓
-E04 → E07 → E08 → E09  (re-run with VALID witness)
-        ↓
-consolidation
+**S2 symptom:** suspend → card present → **ALSA hw playback fail**
+
+Valid even when:
+
+- RT721 sysfs attached
+- no journal `-110`
+- `plughw` speaker-test PASS
+- PipeWire shows Dummy Output only
+
+```bash
+sudo resolution/scripts/witness-audio-chain.sh
+sudo resolution/scripts/s2-oracle.sh
 ```
-
-Exploration queue is **paused** until witness gate passes. Prior E09/E07/E08 runs are marked **ambiguous** (explored without valid witness).
 
 ---
 
@@ -61,21 +65,47 @@ Exploration queue is **paused** until witness gate passes. Prior E09/E07/E08 run
 
 | Script | Role |
 |--------|------|
-| `scripts/s2-reproduce.sh` | Suspend loop — maximize W2/W3 hits |
-| `scripts/s2-oracle.sh` | Assess witness after last suspend (no recovery) |
-| `scripts/edge-cycle.sh` | S0 → suspend → oracle → recovery **only if VALID** |
+| `scripts/witness-pcm-probe.sh` | **Per-PCM** set_params / sysfs / stderr log |
+| `scripts/witness-audio-chain.sh` | Layer dump: pcm, hw/plughw, wpctl, amixer |
+| `scripts/s2-reproduce.sh` | Suspend loop — maximize W2 hits |
+| `scripts/s2-oracle.sh` | Post-suspend witness (no recovery) |
+| `scripts/bruteforce/_lib.sh` | `bf_witness_recovery_pass` — strict L1–L4 |
 
 Env:
 
 | Var | Default | Role |
 |-----|---------|------|
+| `PX13_ALSA_DEV` | `hw:1,2` (auto) | Hardware PCM device |
+| `PX13_ALSA_PCM` | `2` | PCM index when card auto-detected |
 | `RESOLUTION_MIN_WITNESS` | `W2` | Minimum quality to run recovery |
-| `PX13_S2_RESUME_WAIT_SEC` | `8` | Wait after resume before witness |
+
+---
+
+## Investigation focus (post-witness)
+
+When L1 PASS + primary PCM `set_params_fail`:
+
+```bash
+sudo resolution/scripts/witness-pcm-probe.sh
+```
+
+Captures per-PCM: sysfs `info/status/hw_params`, aplay stderr, error class (`set_params_fail`, `busy`, `einval`, …).
+
+Hypothesis chain:
+
+```text
+Suspend → snd_pcm_hw_params() fails on SmartAmp (hw:1,2)
+       → ALSA hw broken
+       → WirePlumber → Dummy Output (symptom only)
+```
+
+PASS requires **primary PCM** + **real sink**, not SimpleJack fallback alone.
 
 ---
 
 ## Related
 
-- [STATE-GRAPH.md](STATE-GRAPH.md) — S2 definition
-- [EDGE-FRAMEWORK.md](EDGE-FRAMEWORK.md) — exploration rules
-- `research/phase-8/` — handler_since_pm, STAT1 evidence
+- [PCM2-investigation-framing.md](../research/PCM2-investigation-framing.md) — **active framing** (PCM2 only)
+- [STATE-GRAPH.md](STATE-GRAPH.md)
+- [bruteforce/README.md](bruteforce/README.md)
+- `research/phase-8/` — handler_since_pm, STAT1

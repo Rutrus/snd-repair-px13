@@ -4,7 +4,9 @@ English (canonical). Single thread from **no audio** to **resolution criteria** 
 
 **Machine:** ASUS ProArt PX13 HN7306EAC · kernel `7.0.0-27-generic`  
 **Branch:** `research/suspend-lifecycle`  
-**Last updated:** 2026-07-11 (Phase 8 frozen · resolution lab opened)
+**Last updated:** 2026-07-12 (unified causal model · Track PCM2 active)
+
+**Canonical model:** [UNIFIED-CAUSAL-MODEL.md](UNIFIED-CAUSAL-MODEL.md) — facts vs inference, branch map.
 
 ---
 
@@ -12,12 +14,12 @@ English (canonical). Single thread from **no audio** to **resolution criteria** 
 
 | Stage | Status | Question answered |
 |-------|--------|-------------------|
-| Boot / stereo | **Resolved** | Can both TAS2783 amps play on cold boot? **Yes** |
-| Suspend/resume (kernel) | **Delimited** | IRQ delivery: STAT pending, handler missing — downstream OK if worker runs |
-| Phase 7 | **Frozen** | 0005–0007 complete — [phase-7/INDEX.md](phase-7/INDEX.md) |
-| Phase 8 | **Frozen** | IRQ delivery delimited — [frozen/upstream-proof/](frozen/upstream-proof/) |
-| Resolution lab | **Active** | Transition discovery S2→S3 — [../resolution/STATE-GRAPH.md](../resolution/STATE-GRAPH.md) |
-| Userspace (PipeWire) | **Secondary** | Not kernel root cause |
+| Boot / stereo | **Resolved** | Cold boot stereo? **Yes** |
+| Layer elimination (Phases 5–8, rescue) | **Closed** | PCI / bus / Dummy / re-init paths? **Ruled out or negative** |
+| Phase 6–8 (ACP IRQ) | **Frozen** | IRQ delivery boundary in FAIL runs — **demonstrated**; link to PCM2 EINVAL — **not demonstrated** |
+| **Track PCM2** | **Active** | Which callback returns `-EINVAL` on hw:1,2? **Open (Q1)** |
+| Resolution lab / bruteforce / rescue | **Paused / frozen** | Stable S2→S3 edge? **None found** |
+| Userspace (PipeWire) | **Secondary** | Root cause? **No** (consequence of PCM2) |
 
 **Kernel witness (FAIL-1 vanilla):** RT721 `-110`, no `completion`, no `irq_handler_enter`.
 
@@ -42,9 +44,9 @@ Phase 6  ACP70 observation — FAIL path delimited (run 0015)
     ↓
 Phase 7  Controlled experiments — delivery boundary closed (0007)
     ↓
-Phase 8  ACP platform IRQ path — delimited (frozen)
+Phase 8  ACP platform IRQ path — delimited (frozen; upstream candidate, not proven EINVAL cause)
     ↓
-resolution/  Engineering — workarounds, recovery, mutations
+Track PCM2  Q1: name rejecting hw_params callback (dual-path PCM0 vs PCM2)
     ↓
 Done     ≥6/6 real suspend/resume OK without reboot
 ```
@@ -328,6 +330,26 @@ schedule_work(amd_sdw_irq_thread)  [downstream OK if forced — 0006a]
 **Open question for maintainers:** what differs between boot and s2idle resume in ACP70 interrupt restore such that a pending `STAT1` condition never reaches `acp63_irq_handler()`?
 
 See [phase-6/UPSTREAM-REPORT-DRAFT.md](phase-6/UPSTREAM-REPORT-DRAFT.md).
+
+---
+
+## 2026-07-12 — Q2 witness consolidation
+
+**Witness:** [experiments/q2-fw-trace-witness-20260712.md](experiments/q2-fw-trace-witness-20260712.md)
+
+Q2 instrumentation (`TAS2783Q2`) on upstream series B closed the codec firmware ladder question **for the captured resume cycle**:
+
+- No observable `tas_io_init()` / `nowait` / `fw_ready` before hw_params timeout.
+- Slaves remain `status != ATTACHED` after `manager_reset`; `initialization timed out` on `:8` and `:b`.
+- H2–H4 ruled out; H1 supported with **cycle-qualified** wording.
+
+**Investigation handoff:** localize SoundWire **re-attach** after PM (Q2.5). TAS2783 is visibility, not primary defect class. Series B 0003 blocked when ATTACHED never returns.
+
+**Nature change:** State-based investigation — TAS2783 is visibility only. Q2 closed FW-never-starts; **Q3** localizes first missing SDW re-attach transition (not assumed at `manager_reset`).
+
+**Correlated:** init timeout (-110) + `master_port OK` → bus alive, slave init protocol incomplete (inference).
+
+See [q2.5-sdw-reattach/README.md](q2.5-sdw-reattach/README.md), [UNIFIED-CAUSAL-MODEL.md](UNIFIED-CAUSAL-MODEL.md).
 
 ---
 

@@ -1,6 +1,10 @@
 # Resolution lab — system recovery engineering
 
-English (canonical). **Hypothesis generator** for upstream — not Phase 9.
+English (canonical). **Hypothesis generator** for upstream — recovery lines **paused/frozen** (2026-07-12).
+
+**Unified model:** [../research/UNIFIED-CAUSAL-MODEL.md](../research/UNIFIED-CAUSAL-MODEL.md) — bruteforce/rescue negative results support "state not in PCI layer."
+
+**Active research:** [../research/track-PCM-smartamp-hwparams.md](../research/track-PCM-smartamp-hwparams.md) (Q1: rejecting `hw_params` callback).
 
 **Machine:** ASUS ProArt PX13 HN7306EAC · kernel `7.0.0-27-generic`
 
@@ -16,13 +20,17 @@ Evidence: [evidence/README.md](evidence/README.md) · Debt: `scripts/evidence/ev
 
 ---
 
-## Core question
+## Core question (2026-07-12)
 
-Not *"what fails?"* but:
+Primary (research — Q1):
 
-> **What minimal action returns the system to a functional state — and which transition was missing?**
+> **Which kernel callback returns `-EINVAL` on PCM2 (`hw:1,2`) after resume?**
 
-[`research/`](../research/frozen/upstream-proof/) answered *where* it breaks. [`resolution/`](../resolution/) finds *which edge restores S3*.
+Secondary (resolution — paused until Q1 closes):
+
+> What minimal action returns the system to a functional state — and which transition was missing?
+
+[`research/frozen/upstream-proof/`](../research/frozen/upstream-proof/) documented the **IRQ delivery boundary** (remote cause candidate). [`research/UNIFIED-CAUSAL-MODEL.md`](../research/UNIFIED-CAUSAL-MODEL.md) separates that evidence from PCM2 EINVAL.
 
 ---
 
@@ -116,15 +124,13 @@ negative/     rejected fixes (patches + recoveries)
 
 ## Branches
 
-| Branch / line | Goal | Entry |
-|---------------|------|-------|
-| `resolution/lab` | Causal model, evidence, C01 maintainer | [campaigns/](campaigns/) |
-| **`resolution/bruteforce`** | **Practical recovery — first PASS** | [bruteforce/README.md](bruteforce/README.md) |
-| Recovery ladder | R04–R10 state transitions | [recovery/PROTOCOL.md](recovery/PROTOCOL.md) |
-| Boot replay | R04/R07 partial PASS | [experiments/R002-boot-sequence-replay.md](experiments/R002-boot-sequence-replay.md) |
-| Mutation | in-resume fix | [experiments/R005-mutation-sequences.md](experiments/R005-mutation-sequences.md) |
-| Firmware | R09+R07+R08 fail | [firmware/README.md](firmware/README.md) |
-| ACPI/Windows | parallel | [reverse-engineering/](reverse-engineering/) |
+| Branch / line | Goal | Status | Entry |
+|---------------|------|--------|-------|
+| **Track PCM2** | Q1: rejecting hw_params callback | **Active** | [../research/track-PCM-smartamp-hwparams.md](../research/track-PCM-smartamp-hwparams.md) |
+| `resolution/lab` | Causal model, evidence, C01 | **Paused** | [campaigns/](campaigns/) |
+| **`resolution/bruteforce`** | Negative: rebuild ≠ fix | **Frozen** | [bruteforce/README.md](bruteforce/README.md) |
+| Recovery ladder | R04–R10 state transitions | **Paused** | [recovery/PROTOCOL.md](recovery/PROTOCOL.md) |
+| Phase 6–8 upstream | IRQ boundary mail | **Frozen** | [../research/frozen/upstream-proof/](../research/frozen/upstream-proof/) |
 
 ---
 

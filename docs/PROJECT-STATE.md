@@ -76,62 +76,46 @@ No longer under investigation:
 
 ## The only serious remaining issue
 
-### Suspend / resume
+### Suspend / resume — unified model (2026-07-12)
 
-After `systemctl suspend` (or lid close):
+**Canonical doc:** [../research/UNIFIED-CAUSAL-MODEL.md](../research/UNIFIED-CAUSAL-MODEL.md)
 
+**Demonstrated manifestation** after s2idle resume:
+
+```text
+PCM0 (RT721)  → hw_params PASS
+PCM2 (SmartAmp) → hw_params -EINVAL
+→ Dummy Output (consequence, not root cause)
 ```
-PM resume → -110 → :8 done=0 → Dummy Output
-```
 
-While `:b` usually survives.
+Historical logs (`:8 done=0`, `playback without fw download`) are the **same failure class** at an earlier observation altitude — likely `tas_sdw_hw_params()` in stock 7.0.0.
 
 **Pattern:**
 
 | Action | Outcome |
 |--------|---------|
 | Cold reboot | Speaker OK |
-| Suspend → resume | Often broken until reboot |
+| Suspend → resume | PCM2 EINVAL until reboot |
+| PCI remove/rescan / module reload | Reconverges to PCM2 EINVAL |
 
-### Matrix (corrected)
-
-| Context | Metric | Value |
-|---------|--------|-------|
-| **Cold boot** | `:b` FW | **20/20 OK** |
-| **Cold boot** | Both UIDs OK (global) | **9/10** boot rows (boot #2 WARN) |
-| **Cold boot** | Stereo L+R (manual `--audio`) | **1/1 OK** |
-| **Suspend/resume** | Both UIDs OK (real tests) | **0/9** (row #16 = false positive, no suspend) |
-
-The problem is **not cold boot**. It is exclusively the **resume path**.
+Cold boot is resolved. The blocker is **resume-only SmartAmp state**, not global PCI/SoundWire death.
 
 ---
 
-## Current hypothesis
+## Current work (Q2 closed · Q2.5 open)
 
-One primary hypothesis remains:
+**Q1 (2026-07-12):** `tas_sdw_hw_params()` on TAS2783 **`:8`** — FW wait timeout → `-EINVAL`.  
+Witness: [../research/experiments/pcm-dual-path-trace-20260712.md](../research/experiments/pcm-dual-path-trace-20260712.md)
 
-**H1 — PM resume:** The SoundWire / TAS2783 driver does not correctly restore the **left** SmartAmp (UID `:8`) on PM resume. Not at boot, not at probe — only after s2idle resume.
+**Q2 (2026-07-12 cycle):** No observable firmware async start before hw_params timeout — no `io_init` / `nowait` / `fw_ready`. H2–H4 ruled out.  
+Witness: [../research/experiments/q2-fw-trace-witness-20260712.md](../research/experiments/q2-fw-trace-witness-20260712.md)
 
-Asymmetry (`:b` stable, `:8` fails) fits left amp / `1714-1-8.bin` being more fragile on warm resume.
+**Q3 (active P0):** First missing SoundWire re-attach transition after resume — **do not assume `manager_reset`**.  
+Entry: [../research/q2.5-sdw-reattach/README.md](../research/q2.5-sdw-reattach/README.md)
 
----
+Question tree: Q1 (~100%) → Q2 (~90–95%) → Q2.5 layer (closed) → **Q3 (open)**.
 
-## Current priority
-
-**Active work:** Phase 7 bring-up on ACP70 SoundWire resume. See **[research/JOURNEY.md](../research/JOURNEY.md)**.
-
-```bash
-./scripts/prepare-kernel-tree.sh
-./scripts/build-phase7.sh --experiment stat-decode   # 0006b (observation)
-sudo reboot
-./scripts/phase6-hunt.sh post-reboot --notes p7-0006b
-systemctl suspend
-./scripts/phase6-hunt.sh post-suspend --save-window
-```
-
-If Phase 6/7 patches fail to apply: `./scripts/regenerate-phase6-amd-patches.sh`
-
-**Resolution target:** ≥6/6 real suspend/resume OK in `validation/fw-matrix.csv` without reboot.
+**Project target:** ≥6/6 real suspend/resume OK in `validation/fw-matrix.csv` without reboot.
 
 ---
 
@@ -139,8 +123,10 @@ If Phase 6/7 patches fail to apply: `./scripts/regenerate-phase6-amd-patches.sh`
 
 | Topic | Location |
 |-------|----------|
+| Unified causal model | [../research/UNIFIED-CAUSAL-MODEL.md](../research/UNIFIED-CAUSAL-MODEL.md) |
+| Active protocol | [../research/track-PCM-smartamp-hwparams.md](../research/track-PCM-smartamp-hwparams.md) |
+| IRQ boundary (frozen) | [../research/frozen/upstream-proof/README.md](../research/frozen/upstream-proof/README.md) |
 | Install (stage 1 + 2) | [INSTALL.md](INSTALL.md) |
 | FW validation | [FW-VALIDATION.md](FW-VALIDATION.md) |
-| Failure tracks (historical) | [../research/FAILURE-REPORT-2026-07-09.md](../research/FAILURE-REPORT-2026-07-09.md) |
-| Active debug checklist | [../research/PRIORITY-DEBUG.md](../research/PRIORITY-DEBUG.md) |
+| Journey | [../research/JOURNEY.md](../research/JOURNEY.md) |
 | Sudo commands | [../research/SUDO-RUNBOOK.md](../research/SUDO-RUNBOOK.md) |

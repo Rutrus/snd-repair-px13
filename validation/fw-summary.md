@@ -1,26 +1,26 @@
 # FW validation summary
 
-Generado: 2026-07-11T19:14:18
+Generado: 2026-07-12T10:35:05
 Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 
-## Boots analizados: **118**
+## Boots analizados: **126**
 
 ### Éxito global FW (ambos UIDs OK)
 
-- **59/118** (50.0%)
+- **63/126** (50.0%)
 
 ### UID `:8` (tas2783-1 / Left)
 
-- `OK`: 59
-- `WARN`: 59
+- `OK`: 63
+- `WARN`: 63
 
 ### UID `:b` (tas2783-2 / Right)
 
-- `OK`: 118
+- `OK`: 126
 
 ### Regresión capture (Problema A)
 
-- `REGRESSION_CAPTURE=YES`: **0/118**
+- `REGRESSION_CAPTURE=YES`: **0/126**
 
 ### Audio L+R (entradas con --audio)
 
@@ -28,16 +28,16 @@ Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 
 ### Por contexto (`suspend_resume`)
 
-- **boot**: 48/49 OK global
-- **suspend_resume**: 11/69 OK global
+- **boot**: 52/53 OK global
+- **suspend_resume**: 11/73 OK global
 
 ### Por frecuencia (`rate`)
 
-- **48000 Hz**: 59/118 OK global
+- **48000 Hz**: 63/126 OK global
 
 ### Kernels
 
-- `7.0.0-27-generic`: 118 boots
+- `7.0.0-27-generic`: 126 boots
 
 ## Tabla completa
 
@@ -161,6 +161,14 @@ Fuente: `/home/rutrus/snd_repair/validation/fw-matrix.csv`
 | 115 | 2026-07-11T19:08 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
 | 116 | 2026-07-11T19:11 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
 | 117 | 2026-07-11T19:14 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 118 | 2026-07-12T01:57 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 119 | 2026-07-12T02:07 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 120 | 2026-07-12T09:40 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 121 | 2026-07-12T10:00 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 122 | 2026-07-12T10:23 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 123 | 2026-07-12T10:26 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
+| 124 | 2026-07-12T10:29 | OK | OK |  |  | boot | 48000 | NO | auto@boot |
+| 125 | 2026-07-12T10:35 | WARN | OK |  |  | suspend_resume | 48000 | NO | auto@suspend |
 
 ## Criterio RFC Serie B (objetivo)
 

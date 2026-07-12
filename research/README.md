@@ -4,17 +4,21 @@
 
 Material for diagnosis and **scientific investigation** on the PX13 — *what happens exactly?*
 
-**Engineering / workarounds** — separate project: [`../resolution/README.md`](../resolution/README.md) (state graph, Recovery Cost, change-don't-observe rule)
+**Unified causal model (canonical):** [`UNIFIED-CAUSAL-MODEL.md`](UNIFIED-CAUSAL-MODEL.md) — single thread, facts vs inference, branch map.
 
-**Upstream proof (frozen):** [`frozen/upstream-proof/README.md`](frozen/upstream-proof/README.md)
+**Engineering / workarounds:** [`../resolution/README.md`](../resolution/README.md) — recovery lines **paused/frozen**; negative results feed unified model.
+
+**Upstream proof (frozen):** [`frozen/upstream-proof/README.md`](frozen/upstream-proof/README.md) — IRQ boundary; **not** proven cause of PCM2 EINVAL.
 
 ---
 
 | Document | Contents |
 |----------|----------|
-| **[JOURNEY.md](JOURNEY.md)** | **End-to-end thread** — boot → Phase 6 → Phase 7 → Phase 8 (frozen) |
-| **[frozen/upstream-proof/](frozen/upstream-proof/)** | Research complete — maintainer deliverable |
-| **[INVESTIGATION-INDEX.md](INVESTIGATION-INDEX.md)** | Track index A–D (historical) |
+| **[UNIFIED-CAUSAL-MODEL.md](UNIFIED-CAUSAL-MODEL.md)** | **Single thread** — demonstrated facts, inferred causes, branch status |
+| **[q2-fw-resume/HYPOTHESES.md](q2-fw-resume/HYPOTHESES.md)** | **Q2 active** — H1–H4, resolve fw async |
+| [PCM2-investigation-framing.md](PCM2-investigation-framing.md) | PCM2-only framing |
+| **[JOURNEY.md](JOURNEY.md)** | Historical timeline |
+| [INVESTIGATION-INDEX.md](INVESTIGATION-INDEX.md) | Track index + branch map |
 | **[PRIORITY-DEBUG.md](PRIORITY-DEBUG.md)** | Active P0–P3 status and test protocol |
 | **[SUDO-RUNBOOK.md](SUDO-RUNBOOK.md)** | Commands requiring root |
 | [track-A-serie-b-suspend.md](track-A-serie-b-suspend.md) | FW `:8` + suspend (P0) |
