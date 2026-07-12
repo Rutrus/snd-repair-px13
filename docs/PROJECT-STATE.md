@@ -138,7 +138,8 @@ Cold boot is resolved. The blocker is **resume-only SmartAmp state**, not global
 | **B — KPI-K upstream** | Optional — RW copy path post-S2 |
 | **SmartAmp PIN4** | Parked — structural, not user mic |
 
-**Entry:** [../research/SOLUTION-CLOSURE-KPI-U-20260712.md](../research/SOLUTION-CLOSURE-KPI-U-20260712.md)
+**Entry:** [../research/SOLUTION-CLOSURE-KPI-U-20260712.md](../research/SOLUTION-CLOSURE-KPI-U-20260712.md)  
+**Roadmap (post-closure):** [../research/ROADMAP-POST-KPI-U-20260712.md](../research/ROADMAP-POST-KPI-U-20260712.md)
 
 ---
 
@@ -146,6 +147,7 @@ Cold boot is resolved. The blocker is **resume-only SmartAmp state**, not global
 
 | Topic | Location |
 |-------|----------|
+| Post-KPI-U roadmap | [../research/ROADMAP-POST-KPI-U-20260712.md](../research/ROADMAP-POST-KPI-U-20260712.md) |
 | Unified causal model | [../research/UNIFIED-CAUSAL-MODEL.md](../research/UNIFIED-CAUSAL-MODEL.md) |
 | Active protocol | [../research/track-PCM-smartamp-hwparams.md](../research/track-PCM-smartamp-hwparams.md) |
 | IRQ boundary (frozen) | [../research/frozen/upstream-proof/README.md](../research/frozen/upstream-proof/README.md) |

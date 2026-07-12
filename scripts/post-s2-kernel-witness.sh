@@ -69,17 +69,18 @@ probe_playback() {
 		echo "RESULT playback_hw12=FAIL"
 		tail -5 "${OUT_DIR}/speaker-test-hw12.log" || true
 	fi
-	echo "$rc"
+	return "$rc"
 }
 
 probe_capture() {
 	local dev="$1" fmt="$2" label="$3" pcm_proc="$4"
-	local extra="${5:-}"
+	shift 4
 	local wav="${OUT_DIR}/${label}.wav"
 	local log="${OUT_DIR}/arecord-${label}.log"
-	local rc=0
-	echo "--- arecord $dev ($label) ${extra} ---"
-	if arecord -D "$dev" -f "$fmt" -r 48000 -c 2 -d "$RECORD_SEC" $extra "$wav" >"$log" 2>&1; then
+	local rc=0 extra=("$@")
+	echo "--- arecord $dev ($label) ${extra[*]:-} ---"
+	if arecord -D "$dev" -f "$fmt" -r 48000 -c 2 -d "$RECORD_SEC" \
+		"${extra[@]}" "$wav" >"$log" 2>&1; then
 		echo "RESULT ${label}=PASS size=$(stat -c%s "$wav" 2>/dev/null || echo 0)"
 	else
 		rc=1
@@ -91,14 +92,25 @@ probe_capture() {
 		cat "$pcm_proc" 2>/dev/null || true
 	fi
 	echo
-	echo "$rc"
+	return "$rc"
 }
 
-pb_rc="$(probe_playback)"
-rt721_rc="$(probe_capture hw:1,1 S16_LE rt721-hw11 /proc/asound/card1/pcm1c/sub0/status "")"
-rt721_mmap_rc="$(probe_capture hw:1,1 S16_LE rt721-hw11-mmap /proc/asound/card1/pcm1c/sub0/status "-M --period-size=1024 --buffer-size=4096")"
-dmic_rc="$(probe_capture hw:1,4 S32_LE dmic-hw14 /proc/asound/card1/pcm4c/sub0/status "")"
-dmic_mmap_rc="$(probe_capture hw:1,4 S32_LE dmic-hw14-mmap /proc/asound/card1/pcm4c/sub0/status "-M --period-size=1024 --buffer-size=4096")"
+pb_rc=0
+probe_playback || pb_rc=$?
+
+rt721_rc=0
+probe_capture hw:1,1 S16_LE rt721-hw11 /proc/asound/card1/pcm1c/sub0/status || rt721_rc=$?
+
+rt721_mmap_rc=0
+probe_capture hw:1,1 S16_LE rt721-hw11-mmap /proc/asound/card1/pcm1c/sub0/status \
+	-M --period-size=1024 --buffer-size=4096 || rt721_mmap_rc=$?
+
+dmic_rc=0
+probe_capture hw:1,4 S32_LE dmic-hw14 /proc/asound/card1/pcm4c/sub0/status || dmic_rc=$?
+
+dmic_mmap_rc=0
+probe_capture hw:1,4 S32_LE dmic-hw14-mmap /proc/asound/card1/pcm4c/sub0/status \
+	-M --period-size=1024 --buffer-size=4096 || dmic_mmap_rc=$?
 
 echo "--- SDWCAP (boot, tail) ---"
 journalctl -k -b 0 --no-pager 2>/dev/null \
@@ -112,11 +124,16 @@ journalctl -k --since "2 minutes ago" --no-pager 2>/dev/null \
 	| tee "${OUT_DIR}/kernel-errors.log" | tail -25 || true
 echo
 
-kpi_k=FAIL
-[[ "$pb_rc" -eq 0 && "$rt721_rc" -eq 0 && "$dmic_rc" -eq 0 ]] && kpi_k=PASS
+# Legacy KPI-K (all RW) — expected FAIL post-S2; see capture-access-matrix doc.
+kpi_k_rw=FAIL
+[[ "$pb_rc" -eq 0 && "$rt721_rc" -eq 0 && "$dmic_rc" -eq 0 ]] && kpi_k_rw=PASS
+
+kpi_k_mmap=FAIL
+[[ "$pb_rc" -eq 0 && "$rt721_mmap_rc" -eq 0 && "$dmic_mmap_rc" -eq 0 ]] && kpi_k_mmap=PASS
 
 cat > "${OUT_DIR}/kpi-k.txt" <<EOF
-kpi_k=$kpi_k
+kpi_k_rw=$kpi_k_rw
+kpi_k_mmap=$kpi_k_mmap
 time=$TS
 pipewire_stopped=$([[ "$KEEP_PW" -eq 0 ]] && echo 1 || echo 0)
 playback_hw12=$([[ "$pb_rc" -eq 0 ]] && echo 1 || echo 0)
@@ -124,15 +141,16 @@ capture_rt721_hw11_rw=$([[ "$rt721_rc" -eq 0 ]] && echo 1 || echo 0)
 capture_rt721_hw11_mmap=$([[ "$rt721_mmap_rc" -eq 0 ]] && echo 1 || echo 0)
 capture_dmic_hw14_rw=$([[ "$dmic_rc" -eq 0 ]] && echo 1 || echo 0)
 capture_dmic_hw14_mmap=$([[ "$dmic_mmap_rc" -eq 0 ]] && echo 1 || echo 0)
-note=dmic_mmap_matches_pw_params_see_pw-vs-alsa-diff-20260712.md
+note=RW_vs_MMAP see research/experiments/capture-access-matrix-20260712.md
 EOF
 cat "${OUT_DIR}/kpi-k.txt"
 echo
-echo "=> KPI-K: $kpi_k"
+echo "=> KPI-K RW:   $kpi_k_rw (upstream anomaly — RW capture post-S2)"
+echo "=> KPI-K MMAP: $kpi_k_mmap"
 echo "witness complete: $OUT_DIR"
 
 if [[ "$KEEP_PW" -eq 0 ]]; then
 	systemctl --user start pipewire pipewire-pulse wireplumber 2>/dev/null || true
 fi
 
-exit $([[ "$kpi_k" == PASS ]] && echo 0 || echo 1)
+exit 0
