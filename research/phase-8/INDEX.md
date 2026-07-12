@@ -6,7 +6,9 @@ English (canonical). **Phase 7 is frozen** — no SoundWire manager experiments 
 
 **Strategy (post–8.3):** Experimental reduction **complete** (0010 Case B). **Upstream report:** [UPSTREAM-REPORT.md](UPSTREAM-REPORT.md).
 
-**Local investigation frozen** — see [../frozen/upstream-proof/README.md](../frozen/upstream-proof/README.md). Engineering: [../../resolution/README.md](../../resolution/README.md).
+**Local investigation frozen** — see [../frozen/upstream-proof/README.md](../frozen/upstream-proof/README.md).  
+**Unified model:** IRQ boundary = **demonstrated** remote cause **candidate**; link to PCM2 EINVAL = **not demonstrated** — [../UNIFIED-CAUSAL-MODEL.md](../UNIFIED-CAUSAL-MODEL.md).  
+**Active:** [../track-PCM-smartamp-hwparams.md](../track-PCM-smartamp-hwparams.md).
 
 **Upstream send:** [UPSTREAM-EMAIL-DRAFT.txt](UPSTREAM-EMAIL-DRAFT.txt) · [UPSTREAM-SEND-CHECKLIST.md](UPSTREAM-SEND-CHECKLIST.md) · report [UPSTREAM-REPORT.md](UPSTREAM-REPORT.md)
 

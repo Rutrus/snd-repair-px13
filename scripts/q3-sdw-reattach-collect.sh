@@ -100,6 +100,10 @@ extract_lines() {
 	echo "$ALL" | grep -E 'master_port OK|sdw_program|ENZODBG.*slave_port OK' | head -40 || echo "(none)"
 	echo
 
+	echo "=== PHASE8 irq_stats (handler_since_pm — C1 boundary) ==="
+	echo "$ALL" | grep -E 'PHASE8 ctx=acp fn=irq_stats' || echo "(none — build-phase8.sh + reboot?)"
+	echo
+
 	echo "=== hw_params / FW timeout (:8) ==="
 	echo "$ALL" | grep -E 'fw download wait timeout|playback without fw|hw_params wait|TAS2783Q2 fn=hw_params' || echo "(none)"
 } | tee "$LOG"

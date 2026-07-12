@@ -102,20 +102,18 @@ Cold boot is resolved. The blocker is **resume-only SmartAmp state**, not global
 
 ---
 
-## Current work (Q2 closed · Q2.5 open)
+## Current work (dual track — July 2026)
 
-**Q1 (2026-07-12):** `tas_sdw_hw_params()` on TAS2783 **`:8`** — FW wait timeout → `-EINVAL`.  
-Witness: [../research/experiments/pcm-dual-path-trace-20260712.md](../research/experiments/pcm-dual-path-trace-20260712.md)
+**KPI:** suspend → resume → **Speaker works** (≥6/6 in `validation/fw-matrix.csv`).
 
-**Q2 (2026-07-12 cycle):** No observable firmware async start before hw_params timeout — no `io_init` / `nowait` / `fw_ready`. H2–H4 ruled out.  
-Witness: [../research/experiments/q2-fw-trace-witness-20260712.md](../research/experiments/q2-fw-trace-witness-20260712.md)
+| Track | Status | Entry |
+|-------|--------|-------|
+| **A — Make it work** | **P0** — try 0006a workaround (W1) | [../research/MAKE-IT-WORK.md](../research/MAKE-IT-WORK.md) |
+| **B — Root cause** | C1 closed; upstream packaging | [../research/q2.5-sdw-reattach/Q3.1-IRQ-CHECKPOINTS.md](../research/q2.5-sdw-reattach/Q3.1-IRQ-CHECKPOINTS.md) |
 
-**Q3 (active P0):** First missing SoundWire re-attach transition after resume — **do not assume `manager_reset`**.  
-Entry: [../research/q2.5-sdw-reattach/README.md](../research/q2.5-sdw-reattach/README.md)
+**Closed layers:** Q1 (EINVAL site), Q2 (no FW async), Q3 (no ATTACHED), Q3.1 C1 (handler not entered + delta=0).
 
-Question tree: Q1 (~100%) → Q2 (~90–95%) → Q2.5 layer (closed) → **Q3 (open)**.
-
-**Project target:** ≥6/6 real suspend/resume OK in `validation/fw-matrix.csv` without reboot.
+Question for daily work: **“Which experiment is most likely to restore audio?”** — not only “which hypothesis closes today?”
 
 ---
 

@@ -84,7 +84,7 @@ ladder = [
     ("PM suspend exit (resume complete)", r"PM: suspend exit"),
     ("AMD manager resume_enter (resume=1)", r"PHASE6 ctx=amd fn=resume_enter.*resume=1"),
     ("manager_reset → UNATTACHED detach", r"fn=state_change.*new=UNATTACHED.*reason=manager_reset"),
-    ("AMD IRQ path post-reset (resume=1)", r"PHASE6 ctx=amd fn=(irq_thread_enter|ping_irq|queue_work|handle_status).*resume=1"),
+    ("AMD worker path post-reset (not observed if missing)", r"PHASE6 ctx=amd fn=(irq_thread_enter|ping_irq|queue_work|handle_status)"),
     ("SDW ATTACHED re-attach post-reset", r"fn=state_change.*new=ATTACHED|fn=completion"),
     ("slave initialization_complete OK", r"wait_init_done|fn=resume_exit.*ret=0"),
     ("init timeout (-110) on slave", r"initialization timed out|wait_init_timeout|failed to resume: error -110"),
@@ -95,7 +95,7 @@ ladder = [
 
 # Pre-reset steps use full cycle window; post-reset steps use post_text only.
 post_reset_names = {
-    "AMD IRQ path post-reset (resume=1)",
+    "AMD worker path post-reset (not observed if missing)",
     "SDW ATTACHED re-attach post-reset",
     "slave initialization_complete OK",
     "init timeout (-110) on slave",
@@ -112,7 +112,7 @@ first_missing = None
 last_ok = None
 for name, pat in ladder:
     ok = seen_post(pat) if name in post_reset_names else seen(pat)
-    tag = "OK" if ok else "MISSING"
+    tag = "OBSERVED" if ok else "NOT_OBS"
     print(f"  [{tag:7}] {name}")
     if first_missing is None:
         if ok:
@@ -130,22 +130,59 @@ if seen_post(r"skip_io_init|TAS2783Q2 fn=update_status skip"):
 if seen_post(r"fw download wait timeout|playback without fw"):
     print("Observed: hw_params FW wait (downstream symptom)")
 if seen_post(r"intr_decode when=post_delay.*STAT1=0x4"):
-    print("Observed: STAT1=0x4 after manager_reset delay (IRQ latched, worker may not run)")
-if reset_in_scope and not seen_post(
-    r"PHASE6 ctx=amd fn=(irq_thread_enter|ping_irq|handle_status).*resume=1"
-):
-    print("Observed: no AMD irq_thread/ping/handle_status with resume=1 after manager_reset")
+    print("Observed: STAT1=0x4 after manager_reset delay (register read — not proof of handler run)")
 
 if has_post_unattached and not has_post_attached:
     print("Observed: post-reset status=0 without later status=1 (no re-attach this cycle)")
 
+# Q3.1 four-checkpoint bisect (post manager_reset timestamps only).
+q31 = [
+    ("C1 ACP irq_handler_enter", r"PHASE7 ctx=acp fn=irq_handler_enter"),
+    ("C2 ACP sdw1_irq or HANDLED exit", r"PHASE7 ctx=acp fn=sdw1_irq|irq_handler_exit.*sdw1=1"),
+    ("C3 AMD irq_thread_enter", r"PHASE6 ctx=amd fn=irq_thread_enter"),
+    ("C4 AMD handle_status", r"PHASE6 ctx=amd fn=handle_status"),
+    ("C5 state_change ATTACHED", r"fn=state_change.*new=ATTACHED|fn=completion"),
+]
+print()
+print("=== Q3.1 checkpoints (STAT1=0x4 → ATTACHED) ===")
+print("Note: NOT_OBS = not seen in trace — not proof of non-execution until probe covers site.")
+print()
+first_q31 = None
+last_q31 = None
+for name, pat in q31:
+    ok = seen_post(pat)
+    tag = "OBSERVED" if ok else "NOT_OBS"
+    print(f"  [{tag:7}] {name}")
+    if first_q31 is None:
+        if ok:
+            last_q31 = name
+        else:
+            first_q31 = name
+
+if seen(r"PHASE8 ctx=acp fn=irq_stats.*since_pm=0"):
+    print()
+    print("=== Q3.1 C1 verdict ===")
+    print("  [FACT   ] handler_since_pm=0 — acp63_irq_handler not entered since suspend")
+    if seen_post(r"intr_decode when=post_delay.*STAT1=0x4"):
+        print("  [FACT   ] STAT1=0x4 in manager decode post-reset")
+    print("  → C1 closed: delivery gap before/at Linux IRQ handler")
+    print("  → Pair with phase8-irq-snapshot compare (delta=0) for upstream cite")
+    print("  → Optional: 0006a causal retest for downstream sufficiency")
+elif seen(r"PHASE8 ctx=acp fn=irq_stats.*since_pm=[1-9]"):
+    print("Observed: PHASE8 handler_since_pm>0 (handler ran since suspend — re-open C1)")
+
 print()
 if first_missing:
-    print(f"First missing transition (hint): {first_missing}")
+    print(f"Q3 first not-observed (ladder): {first_missing}")
     if last_ok:
-        print(f"Last observed transition:      {last_ok}")
+        print(f"Q3 last observed (ladder):     {last_ok}")
+if first_q31:
+    print(f"Q3.1 first not-observed:       {first_q31}")
+    if last_q31:
+        print(f"Q3.1 last observed:            {last_q31}")
     print()
-    print("→ Use q3-sdw-reattach-collect.sh (PHASE6+Q2) for reliable ladder.")
+    print("→ C1 high-confidence: ./scripts/q3.1-c1-boundary-run.sh (before 0006a)")
+    print("→ Docs: research/q2.5-sdw-reattach/Q3.1-IRQ-CHECKPOINTS.md")
 else:
-    print("All post-suspend ladder markers present.")
+    print("Q3.1: all checkpoints observed in window.")
 PY

@@ -2,7 +2,9 @@
 
 English (canonical). **Single investigation thread** as of **2026-07-12**.
 
-> **Rule for upstream (ALSA / AMD):** keep **demonstrated facts** and **inferred explanations** strictly separate. This document labels each claim.
+> **Rule for upstream (ALSA / AMD):** keep **demonstrated facts**, **strong inferences**, and **not yet demonstrated** strictly separate. This document labels each claim.
+
+**Investigation mode:** state-transition guided (not symptom chasing). Each arrow in the causal chain is independently falsifiable.
 
 **Machine:** ASUS ProArt PX13 HN7306EAC · kernel `7.0.0-27-generic`  
 **Active protocol:** [track-PCM-smartamp-hwparams.md](track-PCM-smartamp-hwparams.md)  
@@ -10,16 +12,18 @@ English (canonical). **Single investigation thread** as of **2026-07-12**.
 
 ---
 
-## Investigation nature (post-Q2 witness)
+## Branch A / Branch B (July 2026)
 
-**We are no longer primarily chasing a TAS2783 codec bug.** Investigation is **state-based**: the codec is the first visibility point; the open work is **which SoundWire re-attach state transition fails after resume**.
+| Branch | Objective | Priority |
+|--------|-----------|----------|
+| **A — Make it work** | Audio after S2 without reboot | **P0** — [MAKE-IT-WORK.md](../research/MAKE-IT-WORK.md) |
+| **B — Root cause** | Upstream-clean explanation (ACP IRQ delivery) | **P1** — this document |
 
-Two hypotheses that looked equally strong before Q2:
+**KPI (unchanged):** `systemctl suspend` → resume → Speaker / PCM2 OK.
 
-| Hypothesis | Status after Q2 witness |
-|------------|-------------------------|
-| TAS2783 loses / fails firmware reload after resume | **Not primary** — FW download is **never attempted** |
-| SoundWire resume stays incomplete | **Leading model** — slave stays UNATTACHED; init timeout observed |
+Investigation reduced the search space; it did not replace the product goal.
+
+**We are no longer primarily chasing a TAS2783 codec bug.** State-based investigation localized the break (C1: delivery before ACP handler). **Next P0 question (Branch A):** what **minimal intervention** restores ATTACHED → audio after S2?
 
 **Demonstrated for this cycle (codec layer only):**
 
@@ -131,10 +135,11 @@ These may be cited as **facts** in upstream mail.
 | F13 | **Resume init timeout on both TAS2783 UIDs** | `initialization timed out` / PM -110 on `:8` and `:b` same cycle |
 | F14 | **Slaves UNATTACHED when codec recovery paths skip** | `status=0` → `skip_reinit` / `skip_io_init`; no `hw_params reinit` |
 | F15 | **AMD manager_reset + D0 bring-up complete on failing resume (2026-07-12)** | PHASE6 resume_enter → manager_reset → init/irq/D0 all ret=0 — [experiments/q3-sdw-reattach-witness-20260712.md](experiments/q3-sdw-reattach-witness-20260712.md) |
-| F16 | **No ATTACHED re-attach after manager_reset this cycle** | No `state_change new=ATTACHED` / `fn=completion`; no `irq_thread`/`handle_status` resume=1 post-reset |
-| F17 | **STAT1=0x4 latched post-reset but worker absent** | PHASE7 intr_decode post_delay; contrast S0 same boot where worker runs |
+| F16 | **No ATTACHED re-attach observed after manager_reset (2026-07-12)** | No `state_change new=ATTACHED` / `fn=completion` post-reset |
+| F17 | **STAT1=0x4 post-reset; Q3.1 C1 closed on c1-test boot** | intr_decode + `/proc/interrupts` delta=0 + `handler_since_pm=0` — [experiments/q3.1-c1-boundary-witness-20260712.md](experiments/q3.1-c1-boundary-witness-20260712.md) |
+| F18 | **Legacy ACP_PCI_IRQ not accounted post-s2idle while STAT1 pending** | IRQ 160 sum 64→64; handler not entered since suspend (same run) |
 
-Facts F1–F7, F10–F11 from PCM trace. F12–F14 from Q2 trace. F15–F17 from Q3 collect (same boot as F12–F14). F9 independent.
+Facts F15–F18 from Q3.1 c1-test (boot `2ed67fbb`). F9 Phase 6–8 now **correlated same-boot** with F17–F18.
 
 ---
 
@@ -174,7 +179,15 @@ hw_params wait → timeout → -EINVAL
 
 **Not demonstrated (pre-Q3):** which layer fails re-attach (AMD manager vs SoundWire core vs ASoC machine vs IRQ interaction).
 
-**Q3 update (2026-07-12, same boot):** first missing transition = **AMD IRQ worker path after manager_reset** (no `ping_irq`/`handle_status` resume=1; no UNATTACHED→ATTACHED). See [experiments/q3-sdw-reattach-witness-20260712.md](experiments/q3-sdw-reattach-witness-20260712.md).
+**Q3 update (2026-07-12, same boot):** re-attach bounded — no ATTACHED observed post `manager_reset`; full Q1–Q2 chain follows. **Q3.1 open:** bisect STAT1=0x4 → ATTACHED (C1–C5). See [q2.5-sdw-reattach/Q3.1-IRQ-CHECKPOINTS.md](q2.5-sdw-reattach/Q3.1-IRQ-CHECKPOINTS.md).
+
+| Level | Q3.1 status this cycle |
+|-------|------------------------|
+| **Observed** | STAT1=0x4; manager_reset; no ATTACHED; init -110; Q1–Q2 downstream |
+| **Strong inference** | IRQ→worker unlike S0 same boot |
+| **Not demonstrated** | First break = ACP handler — needs C1 witnesses (`/proc/interrupts`, `handler_since_pm`) |
+
+**Q3.1 C1 update (c1-test 2026-07-12):** C1 **closed as fact** — `handler_since_pm=0`, IRQ 160 delta=0, STAT1=0x4 @ +51 ms. Break class: **delivery before `acp63_irq_handler()`**. Witness: [experiments/q3.1-c1-boundary-witness-20260712.md](experiments/q3.1-c1-boundary-witness-20260712.md). **0006a** remains optional causal retest, not next P0.
 
 Full witness: [experiments/q2-fw-trace-witness-20260712.md](experiments/q2-fw-trace-witness-20260712.md)
 
@@ -220,8 +233,8 @@ See [track-PCM-smartamp-hwparams.md](track-PCM-smartamp-hwparams.md) § Dual-pat
 | Branch | Role in unified model | Status | Entry |
 |--------|----------------------|--------|-------|
 | **Track PCM2** | Q1 + Q2 codec ladder closed | **Closed** | [track-PCM-smartamp-hwparams.md](track-PCM-smartamp-hwparams.md) |
-| **Q2.5 SDW re-attach (Q3)** | First missing re-attach transition | **Active P0 — break site ~IRQ worker post-reset** | [q2.5-sdw-reattach/README.md](q2.5-sdw-reattach/README.md) |
-| Phase 6–8 | Remote cause candidate (IRQ boundary) | **Frozen** — correlate same-boot if pursued | [frozen/upstream-proof/](frozen/upstream-proof/) |
+| **Q2.5 SDW re-attach (Q3 / Q3.1)** | Re-attach bounded; IRQ checkpoint bisect | **Active P0 — Q3.1** | [q2.5-sdw-reattach/README.md](q2.5-sdw-reattach/README.md) |
+| Phase 6–8 | ACP delivery candidate; 0006a causal | **Correlate with Q3.1** — not assumed root | [frozen/upstream-proof/](frozen/upstream-proof/) |
 | Track A (FW `:8`) | Historical manifestation / same chain altitude | **Absorbed** — do not fork | [track-A-serie-b-suspend.md](track-A-serie-b-suspend.md) |
 | Track B (capture -22) | Unrelated playback blocker | **Closed** | [track-B-capture-pin4.md](track-B-capture-pin4.md) |
 | Track C (webcam) | Independent USB/media | **Parallel P3** | [tracks/TRACK-C-WEBCAM-MEDIA0.md](tracks/TRACK-C-WEBCAM-MEDIA0.md) |
@@ -232,7 +245,19 @@ See [track-PCM-smartamp-hwparams.md](track-PCM-smartamp-hwparams.md) § Dual-pat
 | `resolution/salvage` | Teardown methodology | **On hold** | [../resolution/salvage/README.md](../resolution/salvage/README.md) |
 | Upstream series B | **0003** — **blocked on ATTACHED-never-returns scenario**; retest if attach succeeds | **On hold** | [../upstream/series-B-firmware/](../upstream/series-B-firmware/) |
 
-**Do not open new branches.** Next: **Q2.5** — localize SoundWire re-attach after resume; optional same-boot Phase 6 correlation.
+**Do not open new branches.** Next: **Q3.1 Phase A** — C1 with `/proc/interrupts` + `handler_since_pm`; **0006a only after** bisect narrows.
+
+---
+
+## Q3.1 — active bisect
+
+See [q2.5-sdw-reattach/Q3.1-IRQ-CHECKPOINTS.md](q2.5-sdw-reattach/Q3.1-IRQ-CHECKPOINTS.md).
+
+### Priority 1 — Q3.1: STAT1=0x4 → ATTACHED
+
+Instrument C1–C5 on one boot. Language: **not observed** until probe covers the site.
+
+Do **not** invest further in TAS2783 except keeping existing probes.
 
 ---
 
@@ -294,31 +319,19 @@ If UNATTACHED is the known state, proceeding to a blocking FW wait may be **unde
 
 ## What we do instead
 
-### Priority 1 — Q3: first missing re-attach transition
+### Branch A (P0) — make it work
 
-**Do not invest further in TAS2783** except keeping existing probes for regression.
+See [MAKE-IT-WORK.md](MAKE-IT-WORK.md). **Recommended next:** W1 trial **0006a** (`build-phase7.sh --experiment validate-manager-mask`).
 
-Instrument SoundWire manager/core on **one boot** — see [q2.5-sdw-reattach/README.md](q2.5-sdw-reattach/README.md):
+### Branch B (P1) — root cause / upstream
 
-```text
-amd_resume → amd_sdw_irq_thread → sdw_handle_slave_status
-    → sdw_initialize_slave → sdw_update_slave_status → ATTACHED → tas_update_status
-```
+C1 closed (c1-test). Package F17–F18 + Phase 8.1 for maintainer mail. No new IRQ trace unless W1 fails.
 
-Mark each step observed/missing. Do **not** assume break at `manager_reset`.
+### Conditional
 
-### Priority 2 — Series B 0003 (conditional)
+Series B **0003** when ATTACHED returns (often after W1).
 
-Only when ATTACHED returns post-resume.
-
-### Priority 3 — Same-boot IRQ ↔ attach correlation
-
-Phase 6 + Q2/Q2.5 trace on one suspend cycle.
-
-### Priority 4 — Upstream mail (two attachments)
-
-1. **Demonstrated:** Q1 + Q2 witnesses, causal model with fact/inference labels  
-2. **Separate:** Phase 6–8 IRQ boundary — not merged as proven cause
+Upstream mail (Branch B): attach Q1–Q2 witnesses + separate Phase 8 IRQ bundle — see [phase-6/UPSTREAM-REPORT-DRAFT.md](phase-6/UPSTREAM-REPORT-DRAFT.md).
 
 ---
 
@@ -326,12 +339,10 @@ Phase 6 + Q2/Q2.5 trace on one suspend cycle.
 
 | Gate | Criterion |
 |------|-----------|
-| **Q1 closed** | ✅ `tas_sdw_hw_params()` / `:8` — 2026-07-12 |
-| **Q2 closed (cycle)** | ✅ FW async never started — [experiments/q2-fw-trace-witness-20260712.md](experiments/q2-fw-trace-witness-20260712.md) |
-| **Q2.5 closed (layer)** | ✅ `io_init` skipped — `status != ATTACHED` this cycle |
-| **Q3 closed** | First missing re-attach transition localized, or ATTACHED + PCM2 PASS |
-| **User fix** | ≥6/6 real suspend/resume OK in `validation/fw-matrix.csv` without reboot |
-| **Upstream** | Patch or maintainer ack with demonstrated fact / inference separation |
+| **Branch A — user fix** | ≥6/6 S2 OK in `validation/fw-matrix.csv` **← primary KPI** |
+| Q1–Q2 closed | ✅ 2026-07-12 |
+| Q3 / Q3.1 C1 | ✅ Re-attach bounded; handler delivery gap (c1-test) |
+| **Branch B — upstream** | Maintainer-ready fact bundle; clean fix optional |
 
 ---
 
@@ -343,7 +354,8 @@ Phase 6 + Q2/Q2.5 trace on one suspend cycle.
 | [INVESTIGATION-INDEX.md](INVESTIGATION-INDEX.md) | Track index (updated) |
 | [experiments/pcm-dual-path-trace-20260712.md](experiments/pcm-dual-path-trace-20260712.md) | **Q1 closed** |
 | [experiments/q2-fw-trace-witness-20260712.md](experiments/q2-fw-trace-witness-20260712.md) | **Q2 closed (cycle)** |
-| [q2.5-sdw-reattach/README.md](q2.5-sdw-reattach/README.md) | **Q2.5 active P0** |
+| [MAKE-IT-WORK.md](MAKE-IT-WORK.md) | **Branch A P0** |
+| [q2.5-sdw-reattach/README.md](q2.5-sdw-reattach/README.md) | Branch B — Q3/Q3.1 |
 | [q2-fw-resume/CONSOLIDATION.md](q2-fw-resume/CONSOLIDATION.md) | Q2 handoff + 0003 reframe |
 | [q2-fw-resume/HYPOTHESES.md](q2-fw-resume/HYPOTHESES.md) | H1–H4 matrix |
 | [tas2783-fw_dl_success-map.md](tas2783-fw_dl_success-map.md) | Q2 code map |
