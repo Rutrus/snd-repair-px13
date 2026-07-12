@@ -39,14 +39,15 @@ validation/fw-summary.md
 # Post-S2 / capture witness run outputs (regenerable; see scripts/post-s2-*.sh)
 validation/post-s2-user-witness/
 validation/post-s2-witness/
+validation/post-s2-kernel-witness/
 validation/capture-probe-*/
 validation/capture-access-matrix*/
+validation/capture-client-matrix*/
 validation/pw-vs-alsa-diff-*/
 validation/sdwcap-lifecycle-post-s2-*/
 validation/post-s2-persistence-kpi-u-*.log
-# Duplicate persistence runs; canonical summary is committed or in research/experiments/
-validation/post-s2-persistence-kpi-u-20260712-150639.csv
-validation/post-s2-persistence-kpi-u-20260712-150639.result
+validation/post-s2-persistence-kpi-u-*.csv
+validation/post-s2-persistence-kpi-u-*.result
 
 # ACPI debug dumps (large, regenerable)
 research/acpi_debug/

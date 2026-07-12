@@ -38,11 +38,16 @@ Tools:
 
 ```bash
 ./scripts/post-s2-capture-access-matrix.sh
-./scripts/post-s2-kernel-witness.sh   # kpi_k_rw vs kpi_k_mmap
+./scripts/capture-client-access-matrix.sh      # ffmpeg/gstreamer/sox + arecord
+./scripts/capture-access-cold-vs-s2.sh --phase cold|post-s2
+./scripts/capture-rw-mmap-trace.sh             # sudo — kernel copy vs mmap
+./scripts/post-s2-kernel-witness.sh            # kpi_k_rw vs kpi_k_mmap
 ./scripts/post-s2-pw-vs-alsa-diff.sh
 ```
 
 Target: driver `.copy` / `snd_pcm_readi` path (DMIC + RT721).
+
+Draft report: [upstream/rw-vs-mmap-post-s2-px13.md](upstream/rw-vs-mmap-post-s2-px13.md)
 
 ---
 
