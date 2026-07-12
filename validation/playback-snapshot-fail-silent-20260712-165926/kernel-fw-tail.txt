@@ -1,0 +1,12 @@
+Jul 12 16:45:36 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: TAS2783Q2 fn=fw_ready enter uid=0x8 fmw=000000007deba709
+Jul 12 16:45:37 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: TAS2783Q2 fn=fw_ready exit uid=0x8 ret=0 cur_file=52 fmw_ok=1 success=1 done=1
+Jul 12 16:45:37 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: TAS2783Q2 fn=fw_ready enter uid=0xb fmw=000000007deba709
+Jul 12 16:45:37 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: TAS2783Q2 fn=fw_ready enter uid=0xb fmw=00000000b761f7f8
+Jul 12 16:45:38 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: TAS2783Q2 fn=fw_ready exit uid=0xb ret=0 cur_file=52 fmw_ok=1 success=1 done=1
+Jul 12 16:45:39 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: TAS2783Q2 fn=fw_ready exit uid=0xb ret=0 cur_file=52 fmw_ok=1 success=1 done=1
+Jul 12 16:52:05 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: W2 ctx=tas fn=force_fw_reinit when=update_status uid=11
+Jul 12 16:52:05 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: TAS2783Q2 fn=fw_ready enter uid=0xb fmw=00000000e4ad04e0
+Jul 12 16:52:05 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: TAS2783Q2 fn=fw_ready exit uid=0xb ret=0 cur_file=52 fmw_ok=1 success=1 done=1
+Jul 12 16:52:05 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: W2 ctx=tas fn=force_fw_reinit when=update_status uid=8
+Jul 12 16:52:05 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: TAS2783Q2 fn=fw_ready enter uid=0x8 fmw=00000000e4ad04e0
+Jul 12 16:52:05 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: TAS2783Q2 fn=fw_ready exit uid=0x8 ret=0 cur_file=52 fmw_ok=1 success=1 done=1

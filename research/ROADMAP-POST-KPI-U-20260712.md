@@ -4,9 +4,11 @@ English (canonical).
 
 ---
 
-## Branch A — FROZEN ✓
+## Branch A — FROZEN ✓ (with caveat)
 
-**User laptop audio after S2 is resolved.**
+**User laptop audio after S2: mic + software checks PASS.** **Audible playback** requires `px13-audio-resume.service` + ear verification.
+
+Incident: [experiments/post-s2-silent-playback-recovery-20260712.md](experiments/post-s2-silent-playback-recovery-20260712.md)
 
 Stack: W1 (IRQ/ATTACH) + W2 (TAS2783 FW) + UCM (`install-ucm-px13.sh`) + PipeWire (MMAP).
 

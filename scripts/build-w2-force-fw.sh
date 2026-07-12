@@ -18,12 +18,14 @@ W2_STAMP="$SRC/.snd-repair-w2-force-fw-applied"
 Q2_PATCH="$REPO_ROOT/research/q2-fw-resume/patches/0001-tas2783-q2-resume-trace.patch"
 Q2_STAMP="$SRC/.snd-repair-q2-fw-trace-applied"
 WITH_TRACE=0
+SKIP_INSTALL=0
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--trace) WITH_TRACE=1; shift ;;
+	--skip-install) SKIP_INSTALL=1; shift ;;
 	-h|--help)
-		echo "Usage: $0 [--trace]"
+		echo "Usage: $0 [--trace] [--skip-install]"
 		exit 0
 		;;
 	*) echo "Unknown: $1" >&2; exit 1 ;;
@@ -144,13 +146,17 @@ if [[ ! -f "$backup" && -f "$dest" ]]; then
 	sudo cp "$dest" "$backup"
 fi
 
-zstd -19 -f "$KO" -o "/tmp/$name.zst"
-echo "==> Installing $dest"
-sudo cp "/tmp/$name.zst" "$dest"
-sudo depmod -a
-
-echo ""
-echo "==> W2 codec module installed for $KVER"
-echo "Reboot (or reload stack), then after S2:"
-echo "  journalctl -k -b 0 | grep -E 'W2 ctx=tas|fw_ready|hw_params'"
-echo "  speaker-test -D hw:1,2 -c 2 -r 48000 -t sine -l 1"
+if [[ "$SKIP_INSTALL" -eq 1 ]]; then
+	echo "==> W2 build OK (install skipped — caller will install W2+W3)"
+else
+	zstd -19 -f "$KO" -o "/tmp/$name.zst"
+	echo "==> Installing $dest"
+	sudo cp "/tmp/$name.zst" "$dest"
+	sudo depmod -a
+	echo ""
+	echo "==> W2 codec module installed for $KVER"
+	echo ""
+	echo "Reboot (or reload stack), then after S2:"
+	echo "  journalctl -k -b 0 | grep -E 'W2 ctx=tas|fw_ready|hw_params'"
+	echo "  speaker-test -D hw:1,2 -c 2 -r 48000 -t sine -l 1"
+fi

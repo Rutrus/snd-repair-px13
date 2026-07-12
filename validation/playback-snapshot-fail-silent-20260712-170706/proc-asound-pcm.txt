@@ -1,0 +1,9 @@
+00-03: HDMI 0 : HDMI 0 : playback 1
+00-07: HDMI 1 : HDMI 1 : playback 1
+00-08: HDMI 2 : HDMI 2 : playback 1
+00-09: HDMI 3 : HDMI 3 : playback 1
+01-00: SDW1-PIN0-PLAYBACK-SimpleJack rt721-sdca-aif1-0 :  : playback 1
+01-01: SDW1-PIN3-CAPTURE-SimpleJack rt721-sdca-aif1-1 :  : capture 1
+01-02: SDW1-PIN1-PLAYBACK-SmartAmp multicodec-2 :  : playback 1
+01-03: SDW1-PIN4-CAPTURE-SmartAmp multicodec-3 :  : capture 1
+01-04: acp-dmic-codec dmic-hifi-4 :  : capture 1

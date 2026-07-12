@@ -6,11 +6,13 @@
 
 ## Executive summary
 
-**The laptop audio goal for normal desktop use is met** after suspend/resume, validated S2×3 with PipeWire untouched.
+**The laptop audio goal for normal desktop use is met** after suspend/resume for **capture and software playback checks**, validated S2×3 with PipeWire untouched.
+
+> **Caveat (2026-07-12 evening):** [silent playback incident](experiments/post-s2-silent-playback-recovery-20260712.md) — W1+W2 without `px13-audio-resume` can leave **speakers mute** while KPI-U PASS. **Keep resume service enabled**; verify **audibly**.
 
 | Layer | Post-S2 status |
 |-------|----------------|
-| Playback (Speaker) | ✓ W1 + W2 |
+| Playback (Speaker) | ✓ W1 + W2 (px13 resume **off**) |
 | Internal microphone (GNOME/PW) | ✓ UCM + PW MMAP path |
 | Headset microphone | ✓ |
 | S2×3 persistence (KPI-U) | **PASS 3/3** |
@@ -35,9 +37,9 @@
 
 1. **Kernel modules** — W1 (0006a-class IRQ resume) + W2 (TAS2783 FW reinit on resume).
 2. **UCM** — `scripts/install-ucm-px13.sh` (Internal Mic → DMIC `hw:1,4`).
-3. **Userspace** — stock PipeWire + WirePlumber + GNOME (no px13-audio-resume required for KPI-U).
+3. **Userspace** — stock PipeWire + WirePlumber + GNOME · **`px13-audio-resume.service` DISABLED** when using W1+W2.
 
-**Optional / not needed for KPI-U:** px13-audio-resume.service, post-resume PW restart.
+**Never combine** W1+W2 with px13 resume — causes Dummy Output ([experiments/post-s2-silent-playback-recovery-20260712.md](experiments/post-s2-silent-playback-recovery-20260712.md)).
 
 ---
 

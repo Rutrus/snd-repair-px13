@@ -4,6 +4,8 @@
 
 ## Start here
 
+**Daily-use quick guide (install, kernel upgrades, troubleshooting):** [../README.md#practical-solution-daily-use](../README.md#practical-solution-daily-use)
+
 | Doc | Content |
 |-----|---------|
 | **[INSTALL.md](INSTALL.md)** | **Full install** — brainchillz (firmware/UCM/systemd) + kernel modules |

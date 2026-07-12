@@ -1,0 +1,18 @@
+Audio
+ ├─ Devices:
+ │      57. Radeon High Definition Audio Controller [alsa]
+ │      58. Audio Coprocessor                   [alsa]
+ │  
+ ├─ Sinks:
+ │  *   62. Audio Coprocessor Speaker           [vol: 1.16]
+ │      63. Audio Coprocessor Headphones        [vol: 1.00]
+ │  
+ ├─ Sources:
+ │  *   64. Audio Coprocessor Internal Microphone [vol: 1.00]
+ │      65. Audio Coprocessor Headset Microphone [vol: 1.00]
+ │  
+ ├─ Filters:
+ │  
+ └─ Streams:
+
+Video

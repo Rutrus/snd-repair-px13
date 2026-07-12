@@ -1,0 +1,168 @@
+From: snd-repair make-it-work <snd-repair@local>
+Date: Sun, 12 Jul 2026 17:22:00 +0200
+Subject: [PATCH w3] ASoC: tas2783: W3 DAPM diagnostic after fw_reinit
+
+Diagnostic only — applies on upstream series B + W2 (+ optional Q2 trace).
+
+Phase A (w3_dapm_sync_probe=0): log DAPM widgets + FU21/FU23 events.
+Phase B (w3_dapm_sync_probe=1): snd_soc_dapm_sync(dapm) after fw_reinit.
+
+Kernel 7.0: widget filter uses w->dapm; sync uses snd_soc_component_to_dapm().
+
+Signed-off-by: snd-repair make-it-work <snd-repair@local>
+---
+--- a/sound/soc/codecs/tas2783-sdw.c	2026-07-12 17:22:21.467459697 +0200
++++ b/sound/soc/codecs/tas2783-sdw.c	2026-07-12 17:22:21.474899178 +0200
+@@ -41,6 +41,11 @@
+ 
+ #define TIMEOUT_FW_DL_MS (3000)
+ 
++/* W3 diagnostic — Experiment B via module param at load time */
++static bool w3_dapm_sync_probe;
++module_param(w3_dapm_sync_probe, bool, 0644);
++MODULE_PARM_DESC(w3_dapm_sync_probe,
++		 "After fw_reinit, call snd_soc_dapm_sync (W3 experiment B)");
+ 
+ #define FW_DL_OFFSET	84 /* binary file information */
+ #define FW_FL_HDR	20 /* minimum number of bytes in one chunk */
+@@ -108,6 +113,9 @@
+ 
+ static s32 tas_io_init(struct device *dev, struct sdw_slave *slave);
+ static s32 tas2783_fw_reinit(struct device *dev, struct sdw_slave *slave);
++static void tas2783_w3_log_dapm(struct tas2783_prv *tas_dev, const char *tag);
++static void tas2783_w3_after_fw_reinit(struct device *dev, s32 fw_ret);
++
+ static const struct reg_default tas2783_reg_default[] = {
+ 	{TAS2783_AMP_LEVEL, 0x28},
+ 	{TASDEV_REG_SDW(0, 0, 0x03), 0x28},
+@@ -840,6 +848,37 @@
+ 				  0x04, 0x04);
+ }
+ 
++static void tas2783_w3_log_dapm(struct tas2783_prv *tas_dev, const char *tag)
++{
++	struct snd_soc_component *comp;
++	struct snd_soc_dapm_context *dapm;
++	struct snd_soc_card *card;
++	struct snd_soc_dapm_widget *w;
++	u8 uid = tas_dev->sdw_peripheral ?
++		 tas_dev->sdw_peripheral->id.unique_id : 0;
++
++	comp = tas_dev->component;
++	if (!comp || !comp->card) {
++		dev_info(tas_dev->dev,
++			 "W3 ctx=dapm tag=%s uid=0x%x skip (no component/card)\n",
++			 tag, uid);
++		return;
++	}
++
++	dapm = snd_soc_component_to_dapm(comp);
++	card = comp->card;
++	list_for_each_entry(w, &card->widgets, list) {
++		if (w->dapm != dapm)
++			continue;
++		if (strcmp(w->name, "FU21") && strcmp(w->name, "FU23") &&
++		    strcmp(w->name, "SPK") && strcmp(w->name, "ASI"))
++			continue;
++		dev_info(tas_dev->dev,
++			 "W3 ctx=dapm tag=%s uid=0x%x widget=%s power=%d active=%d connected=%d\n",
++			 tag, uid, w->name, w->power, w->active, w->connected);
++	}
++}
++
+ static s32 tas_fu21_event(struct snd_soc_dapm_widget *w,
+ 			  struct snd_kcontrol *k, s32 event)
+ {
+@@ -847,6 +886,8 @@
+ 	struct tas2783_prv *tas_dev = snd_soc_component_get_drvdata(component);
+ 	s32 mute;
+ 
++	dev_info(tas_dev->dev, "W3 ctx=dapm fn=fu21_event uid=0x%x event=%d\n",
++		 tas_dev->sdw_peripheral ? tas_dev->sdw_peripheral->id.unique_id : 0, event);
+ 	switch (event) {
+ 	case SND_SOC_DAPM_POST_PMU:
+ 		mute = 0;
+@@ -860,6 +901,8 @@
+ 		return 0;
+ 	}
+ 
++	dev_info(tas_dev->dev, "W3 ctx=dapm fn=fu21_event uid=0x%x FU_MUTE=%d\n",
++		 tas_dev->sdw_peripheral ? tas_dev->sdw_peripheral->id.unique_id : 0, mute);
+ 	return sdw_write_no_pm(tas_dev->sdw_peripheral,
+ 			       SDW_SDCA_CTL(1, TAS2783_SDCA_ENT_FU21,
+ 					    TAS2783_SDCA_CTL_FU_MUTE, 1), mute);
+@@ -872,6 +915,8 @@
+ 	struct tas2783_prv *tas_dev = snd_soc_component_get_drvdata(component);
+ 	s32 mute;
+ 
++	dev_info(tas_dev->dev, "W3 ctx=dapm fn=fu23_event uid=0x%x event=%d\n",
++		 tas_dev->sdw_peripheral ? tas_dev->sdw_peripheral->id.unique_id : 0, event);
+ 	switch (event) {
+ 	case SND_SOC_DAPM_POST_PMU:
+ 		mute = 0;
+@@ -885,6 +930,8 @@
+ 		return 0;
+ 	}
+ 
++	dev_info(tas_dev->dev, "W3 ctx=dapm fn=fu23_event uid=0x%x FU_MUTE=%d\n",
++		 tas_dev->sdw_peripheral ? tas_dev->sdw_peripheral->id.unique_id : 0, mute);
+ 	return sdw_write_no_pm(tas_dev->sdw_peripheral,
+ 			       SDW_SDCA_CTL(1, TAS2783_SDCA_ENT_FU23,
+ 					    TAS2783_SDCA_CTL_FU_MUTE, 1), mute);
+@@ -1332,16 +1379,55 @@
+ 	return ret;
+ }
+ 
++static void tas2783_w3_after_fw_reinit(struct device *dev, s32 fw_ret)
++{
++	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
++	u8 uid = tas_dev->sdw_peripheral ?
++		 tas_dev->sdw_peripheral->id.unique_id : 0;
++
++	if (fw_ret)
++		return;
++
++	dev_info(dev, "W3 ctx=fw fn=after_fw_reinit uid=0x%x sync_probe=%d\n",
++		 uid, w3_dapm_sync_probe);
++	tas2783_w3_log_dapm(tas_dev, "post-fw_reinit");
++
++	if (!w3_dapm_sync_probe)
++		return;
++
++	if (!tas_dev->component) {
++		dev_info(dev, "W3 ctx=dapm fn=sync skip uid=0x%x (no component)\n", uid);
++		return;
++	}
++
++	dev_info(dev, "W3 ctx=dapm fn=sync enter uid=0x%x card=%s\n",
++		 uid, tas_dev->component->card ?
++		 tas_dev->component->card->name : "?");
++	tas2783_w3_log_dapm(tas_dev, "pre-sync");
++	snd_soc_dapm_sync(snd_soc_component_to_dapm(tas_dev->component));
++	tas2783_w3_log_dapm(tas_dev, "post-sync");
++	dev_info(dev, "W3 ctx=dapm fn=sync exit uid=0x%x\n", uid);
++}
++
+ static s32 tas2783_fw_reinit(struct device *dev, struct sdw_slave *slave)
+ {
+ 	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
++	s32 ret;
++
+ 	dev_info(dev, "TAS2783Q2 fn=fw_reinit enter uid=0x%x\n",
+ 		 slave->id.unique_id);
++	dev_info(dev, "W3 ctx=fw fn=fw_reinit enter uid=0x%x (calls tas_io_init only)\n",
++		 slave->id.unique_id);
++
+ 	tas_dev->hw_init = false;
+ 	tas_dev->fw_dl_task_done = false;
+ 	tas_dev->fw_dl_success = false;
+ 
+-	return tas_io_init(dev, slave);
++	ret = tas_io_init(dev, slave);
++	dev_info(dev, "W3 ctx=fw fn=fw_reinit exit uid=0x%x ret=%d hw_init=%d fw_ok=%d\n",
++		 slave->id.unique_id, ret, tas_dev->hw_init, tas_dev->fw_dl_success);
++	tas2783_w3_after_fw_reinit(dev, ret);
++	return ret;
+ }
+ 
+ static s32 tas_update_status(struct sdw_slave *slave,

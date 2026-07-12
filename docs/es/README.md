@@ -4,6 +4,8 @@
 
 ## Empezar aquí
 
+**Guía práctica de uso diario (instalación, kernel, incidencias):** [../../README.es.md#solución-práctica-uso-diario](../../README.es.md#solución-práctica-uso-diario)
+
 | Doc | Contenido |
 |-----|-----------|
 | **[INSTALACION.md](INSTALACION.md)** | **Instalación completa** — brainchillz + módulos kernel |

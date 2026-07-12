@@ -1,0 +1,156 @@
+=== amixer scontents (tas/spk/amp/mute) ===
+Simple mixer control 'Headphone',0
+  Playback channels: Mono
+  Mono: Playback [off]
+  Playback channels: Mono
+  Mono: Playback [off]
+Simple mixer control 'Left Spk',0
+  Playback channels: Mono
+  Mono: Playback [on]
+Simple mixer control 'Left Spk2',0
+  Playback channels: Mono
+  Mono: Playback [on]
+Simple mixer control 'Right Spk',0
+  Playback channels: Mono
+  Mono: Playback [on]
+Simple mixer control 'Right Spk2',0
+  Playback channels: Mono
+  Mono: Playback [on]
+  Playback channels: Front Left - Front Right
+  Limits: Playback 0 - 87
+  Front Left: Playback 87 [100%] [0.00dB]
+  Front Right: Playback 87 [100%] [0.00dB]
+  Playback channels: Front Left - Front Right
+  Limits: Playback 0 - 87
+  Front Left: Playback 87 [100%] [0.00dB]
+  Front Right: Playback 87 [100%] [0.00dB]
+  Playback channels: Front Left - Front Right - Rear Left - Rear Right
+  Playback channels: Front Left - Front Right
+Simple mixer control 'tas2783-1 Amp',0
+  Playback channels: Mono
+Simple mixer control 'tas2783-1 Speaker',0
+  Playback channels: Mono
+Simple mixer control 'tas2783-2 Amp',0
+  Playback channels: Mono
+Simple mixer control 'tas2783-2 Speaker',0
+  Playback channels: Mono
+
+=== amixer contents (full) ===
+numid=15,iface=CARD,name='Headphone Jack'
+  ; type=BOOLEAN,access=r-------,values=1
+  : values=off
+numid=16,iface=CARD,name='Headset Mic Jack'
+  ; type=BOOLEAN,access=r-------,values=1
+  : values=off
+numid=13,iface=MIXER,name='Headphone Switch'
+  ; type=BOOLEAN,access=rw------,values=1
+  : values=off
+numid=14,iface=MIXER,name='Headset Mic Switch'
+  ; type=BOOLEAN,access=rw------,values=1
+  : values=off
+numid=17,iface=MIXER,name='Left Spk Switch'
+  ; type=BOOLEAN,access=rw------,values=1
+  : values=on
+numid=19,iface=MIXER,name='Left Spk2 Switch'
+  ; type=BOOLEAN,access=rw------,values=1
+  : values=on
+numid=18,iface=MIXER,name='Right Spk Switch'
+  ; type=BOOLEAN,access=rw------,values=1
+  : values=on
+numid=20,iface=MIXER,name='Right Spk2 Switch'
+  ; type=BOOLEAN,access=rw------,values=1
+  : values=on
+numid=27,iface=MIXER,name='rt721 ADC 07 L Mux'
+  ; type=ENUMERATED,access=rw------,values=1,items=4
+  ; Item #0 'DMIC1 RE'
+  ; Item #1 'DMIC1 FE'
+  ; Item #2 'DMIC2 RE'
+  ; Item #3 'DMIC2 FE'
+  : values=0
+numid=26,iface=MIXER,name='rt721 ADC 07 R Mux'
+  ; type=ENUMERATED,access=rw------,values=1,items=4
+  ; Item #0 'DMIC1 RE'
+  ; Item #1 'DMIC1 FE'
+  ; Item #2 'DMIC2 RE'
+  ; Item #3 'DMIC2 FE'
+  : values=0
+numid=23,iface=MIXER,name='rt721 ADC 08 L Mux'
+  ; type=ENUMERATED,access=rw------,values=1,items=4
+  ; Item #0 'DMIC1 RE'
+  ; Item #1 'DMIC1 FE'
+  ; Item #2 'DMIC2 RE'
+  ; Item #3 'DMIC2 FE'
+  : values=0
+numid=22,iface=MIXER,name='rt721 ADC 08 R Mux'
+  ; type=ENUMERATED,access=rw------,values=1,items=4
+  ; Item #0 'DMIC1 RE'
+  ; Item #1 'DMIC1 FE'
+  ; Item #2 'DMIC2 RE'
+  ; Item #3 'DMIC2 FE'
+  : values=0
+numid=21,iface=MIXER,name='rt721 ADC 09 Mux'
+  ; type=ENUMERATED,access=rw------,values=1,items=3
+  ; Item #0 'MIC2'
+  ; Item #1 'LINE1'
+  ; Item #2 'LINE2'
+  : values=0
+numid=25,iface=MIXER,name='rt721 ADC 10 L Mux'
+  ; type=ENUMERATED,access=rw------,values=1,items=4
+  ; Item #0 'DMIC1 RE'
+  ; Item #1 'DMIC1 FE'
+  ; Item #2 'DMIC2 RE'
+  ; Item #3 'DMIC2 FE'
+  : values=0
+numid=24,iface=MIXER,name='rt721 ADC 10 R Mux'
+  ; type=ENUMERATED,access=rw------,values=1,items=4
+  ; Item #0 'DMIC1 RE'
+  ; Item #1 'DMIC1 FE'
+  ; Item #2 'DMIC2 RE'
+  ; Item #3 'DMIC2 FE'
+  : values=0
+numid=1,iface=MIXER,name='rt721 FU05 Playback Volume'
+  ; type=INTEGER,access=rw---R--,values=2,min=0,max=87,step=0
+  : values=87,87
+  | dBscale-min=-65.25dB,step=0.75dB,mute=0
+numid=5,iface=MIXER,name='rt721 FU06 Playback Volume'
+  ; type=INTEGER,access=rw---R--,values=2,min=0,max=87,step=0
+  : values=87,87
+  | dBscale-min=-65.25dB,step=0.75dB,mute=0
+numid=2,iface=MIXER,name='rt721 FU0F Capture Switch'
+  ; type=BOOLEAN,access=rw------,values=2
+  : values=off,off
+numid=3,iface=MIXER,name='rt721 FU0F Capture Volume'
+  ; type=INTEGER,access=rw---R--,values=2,min=0,max=63,step=0
+  : values=63,63
+  | dBscale-min=-17.25dB,step=0.75dB,mute=0
+numid=8,iface=MIXER,name='rt721 FU15 Boost Volume'
+  ; type=INTEGER,access=rw---R--,values=4,min=0,max=3,step=0
+  : values=0,0,0,0
+  | dBscale-min=0.00dB,step=10.00dB,mute=0
+numid=6,iface=MIXER,name='rt721 FU1E Capture Switch'
+  ; type=BOOLEAN,access=rw------,values=4
+  : values=off,off,off,off
+numid=7,iface=MIXER,name='rt721 FU1E Capture Volume'
+  ; type=INTEGER,access=rw---R--,values=4,min=0,max=63,step=0
+  : values=63,63,63,63
+  | dBscale-min=-17.25dB,step=0.75dB,mute=0
+numid=4,iface=MIXER,name='rt721 FU33 Boost Volume'
+  ; type=INTEGER,access=rw---R--,values=2,min=0,max=21,step=0
+  : values=1,1
+  | dBscale-min=-2.00dB,step=2.00dB,mute=0
+numid=9,iface=MIXER,name='tas2783-1 Amp Volume'
+  ; type=INTEGER,access=rw---R--,values=1,min=0,max=20,step=0
+  : values=20
+  | dBscale-min=11.00dB,step=0.50dB,mute=0
+numid=10,iface=MIXER,name='tas2783-1 Speaker Volume'
+  ; type=INTEGER,access=rw---R--,values=1,min=0,max=200,step=0
+  : values=200
+  | dBscale-min=-100.00dB,step=0.50dB,mute=0
+numid=11,iface=MIXER,name='tas2783-2 Amp Volume'
+  ; type=INTEGER,access=rw---R--,values=1,min=0,max=20,step=0
+  : values=20
+  | dBscale-min=11.00dB,step=0.50dB,mute=0
+numid=12,iface=MIXER,name='tas2783-2 Speaker Volume'
+  ; type=INTEGER,access=rw---R--,values=1,min=0,max=200,step=0
+  : values=200
+  | dBscale-min=-100.00dB,step=0.50dB,mute=0

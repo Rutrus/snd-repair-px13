@@ -1,0 +1,18 @@
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t0.txt:state: RUNNING
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t0.txt:delay       : 3776
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t0.txt:avail       : 4416
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t0.txt:avail_max   : 6176
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t0.txt:hw_ptr      : 47424
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t0.txt:appl_ptr    : 51200
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t1.txt:state: RUNNING
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t1.txt:delay       : 2576
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t1.txt:avail       : 5616
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t1.txt:avail_max   : 6192
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t1.txt:hw_ptr      : 95728
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t1.txt:appl_ptr    : 98304
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t2.txt:state: RUNNING
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t2.txt:delay       : 3360
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t2.txt:avail       : 4832
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t2.txt:avail_max   : 6160
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t2.txt:hw_ptr      : 144096
+/home/rutrus/snd_repair/validation/playback-snapshot-fail-silent-20260712-170706/pcm2p-status-t2.txt:appl_ptr    : 147456

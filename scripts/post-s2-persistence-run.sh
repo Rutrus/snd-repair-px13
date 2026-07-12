@@ -31,7 +31,7 @@ echo "px13: $(systemctl is-enabled px13-audio-resume.service 2>&1 || echo '?')"
 echo "summary=$SUMMARY"
 echo
 
-echo "cycle,time,kpi_u,internal_mic,headset_mic,playback,witness_dir" > "$SUMMARY"
+echo "cycle,time,kpi_u,internal_mic,headset_mic,playback,playback_hwptr,playback_audible,witness_dir" > "$SUMMARY"
 
 fail=0
 for ((n = 1; n <= CYCLES; n++)); do
@@ -48,18 +48,20 @@ for ((n = 1; n <= CYCLES; n++)); do
 		kpi_u=PASS
 	fi
 
-	int= hs= pb= t=
+	int= hs= pb= pb_hw= pb_aud= t=
 	if [[ -f "${WITNESS_OUT}/kpi-u.txt" ]]; then
 		# shellcheck source=/dev/null
-		eval "$(grep -E '^time=|^internal_mic_record=|^headset_mic_record=|^playback=' \
+		eval "$(grep -E '^time=|^internal_mic_record=|^headset_mic_record=|^playback=|^playback_hwptr=|^playback_audible_confirm=' \
 			"${WITNESS_OUT}/kpi-u.txt" | sed 's/^/export /')"
 		int=$internal_mic_record
 		hs=$headset_mic_record
 		pb=$playback
+		pb_hw=$playback_hwptr
+		pb_aud=$playback_audible_confirm
 		t=$time
 	fi
-	echo "cycle $n: kpi_u=$kpi_u int=$int hs=$hs pb=$pb"
-	echo "$n,$t,$kpi_u,$int,$hs,$pb,$WITNESS_OUT" >> "$SUMMARY"
+	echo "cycle $n: kpi_u=$kpi_u int=$int hs=$hs pb=$pb hwptr=$pb_hw audible=$pb_aud"
+	echo "$n,$t,$kpi_u,$int,$hs,$pb,$pb_hw,$pb_aud,$WITNESS_OUT" >> "$SUMMARY"
 
 	if [[ "$kpi_u" != PASS ]]; then
 		echo "FAIL KPI-U at cycle $n — stopping persistence run" >&2

@@ -1,0 +1,40 @@
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: SDWCAP trans stream=00000000a3554451 name=subdevice #0-Playback dir=playback old=4:DISABLED new=5:DEPREPARED caller=asoc_sdw_hw_free+0x4b/0x80 [snd_soc_sdw_utils]
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ENZODBG[3] slave_port ENTER slave=sdw:0:1:0102:0000:01:8 devnum=2 port=1 dir=0
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ENZODBG[3] slave_port OK slave=sdw:0:1:0102:0000:01:8 devnum=2 port=1 dir=0 ret=0
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: ENZODBG[3] slave_port ENTER slave=sdw:0:1:0102:0000:01:b devnum=1 port=1 dir=0
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: ENZODBG[3] slave_port OK slave=sdw:0:1:0102:0000:01:b devnum=1 port=1 dir=0 ret=0
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[4] amd_xport ENTER link=1 rev=0x70 port=1 bank=1 hstart=1 hstop=9 lane=0 off1=65 off2=0 samp=500
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[4] amd_xport OK link=1 port=1 hstart=1 hstop=9 lane=0 ret=0
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[5] amd_port ENTER link=1 port=1 bps=16 flow=0 data=0
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[5] amd_port OK link=1 port=1 ret=0
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[5] master_port OK link=1 port=1 ch_mask=0x3 ret=0
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[6] sdw_program_port_params OK stream=subdevice #0-Playback
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[6] sdw_program_params ret=0 stream=subdevice #0-Playback
+Jul 12 16:58:19 Colosal3-ProArt-PX13-HN7306EAC kernel: SDWCAP trans stream=00000000a3554451 name=subdevice #0-Playback dir=playback old=5:DEPREPARED new=6:RELEASED caller=amd_sdw_hw_free+0x38/0x60 [soundwire_amd]
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: SDWCAP trans stream=00000000dd8af477 name=subdevice #0-Playback dir=playback old=0:ALLOCATED new=1:CONFIGURED caller=tas_sdw_hw_params+0x2f5/0x3c0 [snd_soc_tas2783_sdw]
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: SDWCAP prepare_enter stream=00000000dd8af477 name=subdevice #0-Playback dir=playback state=1:CONFIGURED update_params=1 caller=asoc_sdw_prepare+0x4b/0x80 [snd_soc_sdw_utils]
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ENZODBG[3] slave_port ENTER slave=sdw:0:1:0102:0000:01:8 devnum=2 port=1 dir=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ENZODBG[3] slave_port OK slave=sdw:0:1:0102:0000:01:8 devnum=2 port=1 dir=0 ret=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: ENZODBG[3] slave_port ENTER slave=sdw:0:1:0102:0000:01:b devnum=1 port=1 dir=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: ENZODBG[3] slave_port OK slave=sdw:0:1:0102:0000:01:b devnum=1 port=1 dir=0 ret=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[4] amd_xport ENTER link=1 rev=0x70 port=1 bank=0 hstart=1 hstop=9 lane=0 off1=65 off2=0 samp=500
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[4] amd_xport OK link=1 port=1 hstart=1 hstop=9 lane=0 ret=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[5] amd_port ENTER link=1 port=1 bps=16 flow=0 data=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[5] amd_port OK link=1 port=1 ret=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[5] master_port OK link=1 port=1 ch_mask=0x3 ret=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[6] sdw_program_port_params OK stream=subdevice #0-Playback
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[6] sdw_program_params ret=0 stream=subdevice #0-Playback
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: SDWCAP trans stream=00000000dd8af477 name=subdevice #0-Playback dir=playback old=1:CONFIGURED new=2:PREPARED caller=asoc_sdw_prepare+0x4b/0x80 [snd_soc_sdw_utils]
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: SDWCAP prepare_enter stream=00000000dd8af477 name=subdevice #0-Playback dir=playback state=2:PREPARED update_params=1 caller=asoc_sdw_prepare+0x4b/0x80 [snd_soc_sdw_utils]
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ENZODBG[3] slave_port ENTER slave=sdw:0:1:0102:0000:01:8 devnum=2 port=1 dir=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:8: ENZODBG[3] slave_port OK slave=sdw:0:1:0102:0000:01:8 devnum=2 port=1 dir=0 ret=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: ENZODBG[3] slave_port ENTER slave=sdw:0:1:0102:0000:01:b devnum=1 port=1 dir=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: slave-tas2783 sdw:0:1:0102:0000:01:b: ENZODBG[3] slave_port OK slave=sdw:0:1:0102:0000:01:b devnum=1 port=1 dir=0 ret=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[4] amd_xport ENTER link=1 rev=0x70 port=1 bank=1 hstart=1 hstop=9 lane=0 off1=65 off2=0 samp=500
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[4] amd_xport OK link=1 port=1 hstart=1 hstop=9 lane=0 ret=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[5] amd_port ENTER link=1 port=1 bps=16 flow=0 data=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: amd_sdw_manager amd_sdw_manager.1: ENZODBG[5] amd_port OK link=1 port=1 ret=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[5] master_port OK link=1 port=1 ch_mask=0x3 ret=0
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[6] sdw_program_port_params OK stream=subdevice #0-Playback
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: soundwire sdw-master-0-1: ENZODBG[6] sdw_program_params ret=0 stream=subdevice #0-Playback
+Jul 12 16:59:30 Colosal3-ProArt-PX13-HN7306EAC kernel: SDWCAP trans stream=00000000dd8af477 name=subdevice #0-Playback dir=playback old=2:PREPARED new=3:ENABLED caller=asoc_sdw_trigger+0x68/0xe0 [snd_soc_sdw_utils]
