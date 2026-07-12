@@ -1,0 +1,58 @@
+# Rescue aggression tree — one question: audio without reboot?
+
+version: 1
+branch: resolution/rescue
+question: "Does ANY sequence restore audio without reboot?"
+
+default_order:
+  - A
+  - B
+  - C
+  - D
+  - E
+  - F
+  - G
+  # H and I disabled by default — require env flags
+
+levels:
+  A:
+    script: A-pipewire.sh
+    aggression: 1
+    destroys: userspace
+  B:
+    script: B-alsa.sh
+    aggression: 2
+    destroys: alsa_state
+  C:
+    script: C-sof-full-destroy.sh
+    aggression: 3
+    destroys: "SOF + SoundWire + snd_pci_ps (full probe from zero)"
+    note: "First level that falsifies half-reload"
+  D:
+    script: D-pci-remove-rescan.sh
+    aggression: 4
+    destroys: pci_enumeration
+  E:
+    script: E-sdw-unbind-all.sh
+    aggression: 5
+    destroys: soundwire_slaves
+  F:
+    script: F-pci-remove-long.sh
+    aggression: 6
+    destroys: pci_long_settle
+  G:
+    script: G-second-suspend.sh
+    aggression: 7
+    destroys: pm_state
+  H:
+    script: H-kexec.sh
+    aggression: 8
+    requires_env: RESCUE_ALLOW_KEXEC=1
+  I:
+    script: I-reboot.sh
+    aggression: 9
+    requires_env: RESCUE_ALLOW_REBOOT=1
+
+key_insight:
+  half_reload: "rmmod snd_pci_ps alone leaves snd_sof_amd_acp → soundwire_amd alive"
+  real_order: "SOF → SoundWire → snd_pci_ps → rebuild"

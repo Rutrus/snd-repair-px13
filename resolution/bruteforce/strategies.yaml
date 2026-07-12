@@ -1,10 +1,11 @@
 # Strategy index — bruteforce recovery
 
-version: 1
+version: 2
 branch: resolution/bruteforce
 default_order:
   - R200
   - R300
+  - R550
   - R500
   - R100
   - R400
@@ -12,6 +13,10 @@ default_order:
   - R600
 
 campaigns:
+  V100:
+    name: strategy_validation
+    strategies: [V001, V002, V003]
+    note: "Run via --validate before recovery; confirms actions occur"
   R100:
     name: software_restart
     strategies: [S001, S002]
@@ -27,6 +32,9 @@ campaigns:
   R500:
     name: pci_flr
     strategies: [S040]
+  R550:
+    name: pci_remove_rescan
+    strategies: [S070]
   R600:
     name: recover_then_suspend
     strategies: [S060]
@@ -35,6 +43,18 @@ campaigns:
     strategies: [S050]
 
 strategies:
+  V001:
+    script: validate/V001-modules.sh
+    cost: 0
+    validate_only: true
+  V002:
+    script: validate/V002-pci-driver.sh
+    cost: 0
+    validate_only: true
+  V003:
+    script: validate/V003-kernel-objects.sh
+    cost: 0
+    validate_only: true
   S001:
     script: S001-pipewire-restart.sh
     cost: 1
@@ -58,4 +78,7 @@ strategies:
     cost: 4
   S060:
     script: S060-recover-then-suspend.sh
+    cost: 6
+  S070:
+    script: S070-pci-remove-rescan.sh
     cost: 6

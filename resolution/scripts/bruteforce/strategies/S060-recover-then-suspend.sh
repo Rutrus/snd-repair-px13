@@ -14,4 +14,4 @@ systemctl suspend
 wait_post_resume_settle
 export RESOLUTION_ASSUME_SUSPEND=1
 sleep "${BF_SETTLE_SEC}"
-bf_test_alsa && bf_report_pass "$SID" || bf_report_fail "$SID"
+bf_strategy_finish "$SID"

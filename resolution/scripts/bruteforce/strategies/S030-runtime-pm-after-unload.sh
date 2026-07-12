@@ -17,4 +17,4 @@ bf_load_audio_modules
 sleep "${BF_FW_SETTLE_SEC}"
 start_pipewire_all
 sleep "${BF_SETTLE_SEC}"
-bf_test_alsa && bf_report_pass "$SID" || bf_report_fail "$SID"
+bf_strategy_finish "$SID"

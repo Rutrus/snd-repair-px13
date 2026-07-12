@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PCI_DEV="${PX13_PCI_DEV:-0000:c4:00.5}"
-PCI_DRV="/sys/bus/pci/drivers/snd_pci_ps"
+PCI_DRV="${PX13_PCI_DRV:-/sys/bus/pci/drivers/snd_pci_ps}"
 # PX13 SoundWire manager instance 1 (research: ACP_SDW1)
 PX13_MANAGER_PLAT="${PX13_MANAGER_PLAT:-amd_sdw_manager.1}"
 PX13_MANAGER_PCI="0000:00:08.1/0000:c4:00.5/${PX13_MANAGER_PLAT}"
@@ -26,42 +26,102 @@ pci_sysfs() {
 	echo "/sys/bus/pci/devices/${PCI_DEV}"
 }
 
+# Resolve bound driver sysfs dir (snd_pci_ps, snd_acp_pci, …).
+pci_driver_name() {
+	local link name
+	link="$(readlink "${PCI_SYS:-$(pci_sysfs)}/driver" 2>/dev/null)" || return 1
+	name="$(basename "$link")"
+	[[ -n "$name" ]] || return 1
+	echo "$name"
+}
+
+pci_driver_dir() {
+	local name dir
+	name="$(pci_driver_name 2>/dev/null)" || return 1
+	dir="/sys/bus/pci/drivers/${name}"
+	[[ -d "$dir" ]] || return 1
+	echo "$dir"
+}
+
+pci_driver_status() {
+	local sys drv name
+	sys="$(pci_sysfs)"
+	if name="$(pci_driver_name 2>/dev/null)"; then
+		echo "bound driver=${name} dir=/sys/bus/pci/drivers/${name}"
+		return 0
+	fi
+	if [[ -d "/sys/bus/pci/drivers/snd_pci_ps" ]]; then
+		echo "unbound (snd_pci_ps driver registered, device not bound)"
+		return 0
+	fi
+	echo "no driver (snd_pci_ps sysfs missing — module likely unloaded)"
+	return 1
+}
+
 pci_write() {
 	timeout 30 sh -c "echo '$1' > '$2'" 2>/dev/null
 }
 
 # PX13 PCI reset — from px13-audio-fix (longer bind wait, FW settle).
 pci_reset_acp() {
-	local unbind_ok=1
-
-	[[ -d "$PCI_DRV" ]] || {
-		log "pci_reset: $PCI_DRV missing"
-		return 1
-	}
+	local drv
 
 	stop_pipewire_all
 	sleep 1
 
-	if [[ ! -e "$PCI_DRV/$PCI_DEV" ]]; then
-		log "pci_reset: bind only $PCI_DEV"
-		pci_write "$PCI_DEV" "$PCI_DRV/bind" || true
+	if ! drv="$(pci_driver_dir 2>/dev/null)"; then
+		pci_driver_status >&2 || true
+		if [[ -d "/sys/bus/pci/drivers/snd_pci_ps" ]]; then
+			drv="/sys/bus/pci/drivers/snd_pci_ps"
+			log "pci_reset: device unbound — bind via ${drv}"
+		else
+			log "pci_reset: driver sysfs missing (modprobe snd_pci_ps first, or use pci_remove_rescan)"
+			return 1
+		fi
+	fi
+
+	if [[ ! -e "${drv}/${PCI_DEV}" ]]; then
+		log "pci_reset: bind only $PCI_DEV → $(basename "$drv")"
+		pci_write "$PCI_DEV" "${drv}/bind" || true
 	else
-		log "pci_reset: unbind $PCI_DEV"
-		if ! pci_write "$PCI_DEV" "$PCI_DRV/unbind"; then
+		log "pci_reset: unbind $PCI_DEV from $(basename "$drv")"
+		if ! pci_write "$PCI_DEV" "${drv}/unbind"; then
 			log "pci_reset: unbind failed/timed out"
 			return 1
 		fi
 		sleep 2
 		log "pci_reset: bind $PCI_DEV"
-		pci_write "$PCI_DEV" "$PCI_DRV/bind" || true
+		pci_write "$PCI_DEV" "${drv}/bind" || true
 	fi
 
 	local _
 	for _ in $(seq 1 80); do
-		[[ -e "$PCI_DRV/$PCI_DEV" ]] && grep -q "$CARD_MATCH" /proc/asound/cards 2>/dev/null && return 0
+		[[ -e "${drv}/${PCI_DEV}" ]] && grep -q "$CARD_MATCH" /proc/asound/cards 2>/dev/null && return 0
 		sleep 0.25
 	done
 	log "pci_reset: card did not reappear"
+	return 1
+}
+
+# Layer 4: full PCI re-enumeration (distinct from unbind).
+pci_remove_rescan() {
+	local dev
+	dev="$(pci_sysfs)"
+	[[ -w "${dev}/remove" ]] || {
+		log "pci_remove_rescan: ${dev}/remove not writable"
+		return 1
+	}
+	log "pci_remove_rescan: remove $PCI_DEV (HIGH RISK — reboot if device missing)"
+	echo 1 >"${dev}/remove"
+	sleep 2
+	echo 1 >/sys/bus/pci/rescan
+	sleep 5
+	local _
+	for _ in $(seq 1 60); do
+		[[ -d "$(pci_sysfs)" ]] && grep -q "$CARD_MATCH" /proc/asound/cards 2>/dev/null && return 0
+		sleep 0.5
+	done
+	log "pci_remove_rescan: device or card did not return"
 	return 1
 }
 
@@ -196,7 +256,7 @@ assess_witness_quality() {
 	# Symptom S2: suspend → no audio (what resolution fixes). Card up, ALSA playback down.
 	if [[ "$w" -eq 1 && "${RESOLUTION_ASSUME_SUSPEND:-0}" == "1" ]] && post_resume_audio_broken; then
 		w=2
-		reason="post-resume audio broken (S2 symptom — card present, ALSA playback fail)"
+		reason="post-resume audio broken (S2 symptom — card present, ALSA hw fail)"
 	fi
 
 	if [[ "$w" -ge 2 ]]; then
@@ -222,12 +282,12 @@ assess_witness_quality() {
 		local uspace pb=fail dummy_default=0
 		uspace="$(userspace_sink_state)"
 		userspace_default_sink_is_dummy && dummy_default=1
-		witness_playback_alsa && pb=ok
+		witness_playback_alsa_hw_primary && pb=ok
 		if [[ "$pb" == ok && "$uspace" != dummy && "$uspace" != none && "$dummy_default" -eq 0 ]]; then
 			reason="suspend ok; real audio still works — bug not reproduced this cycle"
 		else
 			w=2
-			reason="post-resume broken (alsa=${pb}, userspace=${uspace}, dummy_default=${dummy_default})"
+			reason="post-resume broken (alsa_hw=${pb}, plughw=$(witness_playback_alsa_plughw && echo ok || echo fail), userspace=${uspace}, dummy_default=${dummy_default})"
 		fi
 	fi
 
@@ -383,108 +443,368 @@ alsa_card_number() {
 	awk '/amd-soundwire|ProArtPX13/ {print $1; exit}' /proc/asound/cards 2>/dev/null
 }
 
-# Direct ALSA — bypasses PipeWire (required when invoked via sudo).
+# Direct ALSA device — default hw (not plughw). plughw only resamples; does not prove DSP path.
 alsa_speaker_dev() {
+	local card pcm
 	if [[ -n "${PX13_ALSA_DEV:-}" ]]; then
 		echo "$PX13_ALSA_DEV"
 		return 0
 	fi
-	local card
 	card="$(alsa_card_number)"
-	[[ -n "$card" ]] && { echo "plughw:${card},2"; return 0; }
-	return 1
+	[[ -n "$card" ]] || return 1
+	pcm="${PX13_ALSA_PCM:-2}"
+	echo "hw:${card},${pcm}"
+}
+
+alsa_plughw_dev() {
+	local dev card pcm
+	dev="$(alsa_speaker_dev)" || return 1
+	card="${dev#hw:}"
+	card="${card%%,*}"
+	pcm="${dev##*,}"
+	echo "plughw:${card},${pcm}"
 }
 
 alsa_card_present() {
 	grep -q "$CARD_MATCH" /proc/asound/cards 2>/dev/null
 }
 
-# Logged-in PipeWire/Pulse sink state (post-suspend may be dummy-only or empty).
-userspace_sink_state() {
-	local uid user_name runtime_dir sinks
-	if ! command -v pactl >/dev/null 2>&1; then
-		echo unknown
-		return 0
-	fi
+_USERSPACE_PACTL="${USERSPACE_PACTL:-/usr/bin/pactl}"
+_USERSPACE_WPCTL="${USERSPACE_WPCTL:-/usr/bin/wpctl}"
+
+# Run a command in the first logged-in user's PipeWire session (fail closed when absent).
+userspace_as_user() {
+	local uid user_name runtime_dir
 	for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
 		user_name="$(id -nu "$uid" 2>/dev/null)" || continue
 		runtime_dir="/run/user/$uid"
 		[[ -d "$runtime_dir" ]] || continue
-		sinks="$(sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
-			pactl list sinks short 2>/dev/null || true)"
-		[[ -z "$sinks" ]] && { echo none; return 0; }
-		if echo "$sinks" | grep -qiE 'speaker|proart|alsa|amdsoundwire|PX13'; then
-			echo ok
-			return 0
+		sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" "$@"
+		return $?
+	done
+	return 1
+}
+
+# aplay -l must expose the amd-soundwire PCM (not only /proc/asound/cards).
+witness_aplay_list_ok() {
+	command -v aplay >/dev/null 2>&1 || return 1
+	aplay -l 2>/dev/null | grep -qiE 'amd-soundwire|amdsoundwire|ProArt'
+}
+
+alsa_hw_dev() {
+	alsa_speaker_dev
+}
+
+# SmartAmp (hw:1,2) may reject sine params (EINVAL) while wav works — use raw aplay probe.
+_witness_speaker_test_sec() {
+	echo "${PX13_SPEAKER_TEST_TIMEOUT:-8}"
+}
+
+# --- PCM granular witness (set_params vs playback; stderr capture) ---
+export WITNESS_PCM_LAST_DEV=""
+export WITNESS_PCM_LAST_RC=0
+export WITNESS_PCM_LAST_ERR=""
+export WITNESS_PCM_LAST_CLASS=""
+
+witness_pcm_classify_err() {
+	local err="$1"
+	if [[ -z "$err" ]]; then
+		echo open_ok
+	elif echo "$err" | grep -qiE 'set_params|Imposible instalar|unable to install hw|cannot set hw'; then
+		echo set_params_fail
+	elif echo "$err" | grep -qiE 'busy|Device or resource busy'; then
+		echo busy
+	elif echo "$err" | grep -qiE 'ENODEV|No such file'; then
+		echo nodev
+	elif echo "$err" | grep -qiE 'EINVAL|Argumento inválido|Invalid argument'; then
+		echo einval
+	elif echo "$err" | grep -qiE 'EIO|Input/output error'; then
+		echo eio
+	elif echo "$err" | grep -qiE 'ENXIO'; then
+		echo enxio
+	else
+		echo other
+	fi
+}
+
+_witness_pcm_run() {
+	local dev="$1"
+	shift
+	local errfile rc
+	errfile="$(mktemp)"
+	if [[ "$(id -u)" -eq 0 ]] && userspace_as_user true 2>/dev/null; then
+		userspace_as_user timeout "$(_witness_speaker_test_sec)" "$@" 2>"$errfile" || rc=$?
+	else
+		timeout "$(_witness_speaker_test_sec)" "$@" 2>"$errfile" || rc=$?
+	fi
+	rc="${rc:-0}"
+	export WITNESS_PCM_LAST_DEV="$dev"
+	export WITNESS_PCM_LAST_RC="$rc"
+	export WITNESS_PCM_LAST_ERR="$(tr '\n' ' ' <"$errfile" | sed 's/  */ /g')"
+	rm -f "$errfile"
+	export WITNESS_PCM_LAST_CLASS="$(witness_pcm_classify_err "$WITNESS_PCM_LAST_ERR")"
+	[[ "${WITNESS_PCM_VERBOSE:-0}" == "1" && -n "$WITNESS_PCM_LAST_ERR" ]] && \
+		printf '%s\n' "$WITNESS_PCM_LAST_ERR" >&2
+	return "$rc"
+}
+
+# Try aplay open+set_params+1s IO. Returns 0 only on full success.
+witness_pcm_try_aplay() {
+	local dev="$1"
+	command -v aplay >/dev/null 2>&1 || return 1
+	_witness_pcm_run "$dev" aplay -D "$dev" -f S16_LE -c 2 -r 48000 -t raw -d 1 -q /dev/zero
+}
+
+witness_pcm_try_speaker_test() {
+	local dev="$1"
+	command -v speaker-test >/dev/null 2>&1 || return 1
+	_witness_pcm_run "$dev" speaker-test -D "$dev" -c2 -r48000 -F S16_LE -t wav -l 1
+}
+
+# Playback PCM indices for card N from /proc/asound/pcm.
+witness_pcm_list_playback() {
+	local card="${1:-$(alsa_card_number)}"
+	[[ -n "$card" ]] || return 1
+	awk -v c="$(printf '%02d' "$card")" '
+		$1 ~ /^[0-9]+-/ {
+			split($1, a, "-")
+			if (a[1] == c && $0 ~ /playback/) {
+				split(a[2], b, ":")
+				print b[1] + 0
+			}
+		}
+	' /proc/asound/pcm 2>/dev/null
+}
+
+witness_pcm_sysfs_dump() {
+	local card="$1" pcm="$2" f base
+	base="/proc/asound/card${card}/pcm${pcm}p/sub0"
+	for f in info status hw_params sw_params; do
+		echo "--- ${base}/${f} ---"
+		if [[ -r "${base}/${f}" ]]; then
+			cat "${base}/${f}" 2>/dev/null || echo "(unreadable)"
+		else
+			echo "(missing)"
 		fi
-		if echo "$sinks" | grep -qi dummy; then
+		echo
+	done
+}
+
+witness_pcm_hw_opens() {
+	witness_pcm_try_aplay "$1"
+}
+
+witness_playback_alsa_hw_on_dev() {
+	local dev="$1"
+	if [[ "${PX13_SPEAKER_TEST_MODE:-aplay}" == wav ]]; then
+		_witness_speaker_test_cmd "$dev" wav >/dev/null 2>&1 && return 0
+		return 1
+	fi
+	witness_pcm_hw_opens "$dev"
+}
+
+# Primary PCM only (SmartAmp hw:1,2) — authoritative for S2 gates.
+witness_playback_alsa_hw_primary() {
+	local dev
+	dev="$(alsa_hw_dev)" || return 1
+	witness_playback_alsa_hw_on_dev "$dev"
+}
+
+# Any speaker playback path (primary then SimpleJack hw:1,0).
+witness_playback_alsa_hw() {
+	local dev card pcm
+	dev="$(alsa_hw_dev)" || return 1
+	witness_playback_alsa_hw_on_dev "$dev" && return 0
+	card="${dev#hw:}"
+	card="${card%%,*}"
+	pcm="${dev##*,}"
+	[[ "$pcm" != "2" ]] && return 1
+	witness_playback_alsa_hw_on_dev "hw:${card},0"
+}
+
+witness_playback_alsa_plughw() {
+	local dev
+	dev="$(alsa_plughw_dev)" || return 1
+	witness_playback_alsa_hw_on_dev "$dev"
+}
+
+# Prefer session user for ALSA open (root/sudo often fails while desktop user passes).
+_witness_speaker_test_cmd() {
+	local dev="$1" mode="${2:-wav}"
+	local sec
+	sec="$(_witness_speaker_test_sec)"
+	if ! command -v speaker-test >/dev/null 2>&1; then
+		return 1
+	fi
+	if [[ "$(id -u)" -eq 0 ]] && userspace_as_user true 2>/dev/null; then
+		userspace_as_user timeout "$sec" \
+			speaker-test -D "$dev" -c2 -t wav -l 1 -r 48000
+	else
+		timeout "$sec" speaker-test -D "$dev" -c2 -t wav -l 1 -r 48000
+	fi
+}
+witness_aplay_wav_hw() {
+	local dev wav="${PX13_ALSA_WAV:-/usr/share/sounds/alsa/Front_Center.wav}"
+	command -v aplay >/dev/null 2>&1 || return 1
+	[[ -f "$wav" ]] || return 1
+	dev="$(alsa_hw_dev)" || return 1
+	if [[ "$(id -u)" -eq 0 ]] && userspace_as_user true 2>/dev/null; then
+		userspace_as_user timeout 8 aplay -D "$dev" -c2 -q "$wav" >/dev/null 2>&1
+	else
+		timeout 8 aplay -D "$dev" -c2 -q "$wav" >/dev/null 2>&1
+	fi
+}
+
+_userspace_sink_name_real() {
+	local name="$1"
+	[[ -n "$name" ]] || return 1
+	echo "$name" | grep -qi dummy && return 1
+	echo "$name" | grep -qiE 'speaker|proart|alsa|amdsoundwire|PX13|Audio Coprocessor|analog' && return 0
+	# Any non-dummy sink counts (WirePlumber naming varies).
+	return 0
+}
+
+# Returns: real | dummy | none | no_session
+userspace_sink_presence_quality() {
+	local uid user_name runtime_dir sinks line name
+	if [[ -x "$_USERSPACE_PACTL" ]]; then
+		for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
+			user_name="$(id -nu "$uid" 2>/dev/null)" || continue
+			runtime_dir="/run/user/$uid"
+			[[ -d "$runtime_dir" ]] || continue
+			sinks="$(sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
+				"$_USERSPACE_PACTL" list sinks short 2>/dev/null || true)"
+			[[ -z "$sinks" ]] && { echo none; return 0; }
+			while IFS= read -r line; do
+				[[ -z "$line" ]] && continue
+				name="${line#*$'\t'}"
+				name="${name%%$'\t'*}"
+				_userspace_sink_name_real "$name" && { echo real; return 0; }
+			done <<<"$sinks"
 			echo dummy
 			return 0
-		fi
+		done
+	fi
+	if [[ -x "$_USERSPACE_WPCTL" ]] && userspace_as_user "$_USERSPACE_WPCTL" status &>/dev/null; then
+		local out has_real=0 has_dummy=0 in_sinks=0 line name
+		out="$(userspace_as_user "$_USERSPACE_WPCTL" status 2>/dev/null || true)"
+		while IFS= read -r line; do
+			[[ "$line" =~ Sinks: ]] && in_sinks=1 && continue
+			[[ "$in_sinks" == 1 && "$line" =~ ^[[:space:]]*(├|└)─[[:space:]]*(Sources|Filters|Streams): ]] && break
+			[[ "$in_sinks" != 1 ]] && continue
+			[[ "$line" =~ │[[:space:]]+\*?[[:space:]]+[0-9]+\.[[:space:]]+(.+) ]] || continue
+			name="${BASH_REMATCH[1]}"
+			name="${name%%[[:space:]]*\[*}"
+			if echo "$name" | grep -qi dummy; then
+				has_dummy=1
+			else
+				has_real=1
+			fi
+		done <<<"$out"
+		[[ "$has_real" -eq 1 ]] && { echo real; return 0; }
+		[[ "$has_dummy" -eq 1 ]] && { echo dummy; return 0; }
 		echo none
 		return 0
-	done
-	echo unknown
+	fi
+	echo no_session
+}
+
+# Returns: real | dummy | none | no_session
+userspace_default_sink_quality() {
+	local uid user_name runtime_dir default out line name
+	if [[ -x "$_USERSPACE_PACTL" ]]; then
+		for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
+			user_name="$(id -nu "$uid" 2>/dev/null)" || continue
+			runtime_dir="/run/user/$uid"
+			[[ -d "$runtime_dir" ]] || continue
+			default="$(sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
+				"$_USERSPACE_PACTL" get-default-sink 2>/dev/null || true)"
+			[[ -z "$default" ]] && { echo none; return 0; }
+			echo "$default" | grep -qi dummy && { echo dummy; return 0; }
+			echo real
+			return 0
+		done
+	fi
+	if [[ -x "$_USERSPACE_WPCTL" ]] && userspace_as_user "$_USERSPACE_WPCTL" status &>/dev/null; then
+		local out in_sinks=0 line name
+		out="$(userspace_as_user "$_USERSPACE_WPCTL" status 2>/dev/null || true)"
+		while IFS= read -r line; do
+			[[ "$line" =~ Sinks: ]] && in_sinks=1 && continue
+			[[ "$in_sinks" == 1 && "$line" =~ ^[[:space:]]*(├|└)─[[:space:]]*(Sources|Filters|Streams): ]] && break
+			[[ "$in_sinks" != 1 ]] && continue
+			[[ "$line" =~ │[[:space:]]+\*[[:space:]]+[0-9]+\.[[:space:]]+(.+) ]] || continue
+			name="${BASH_REMATCH[1]}"
+			name="${name%%[[:space:]]*\[*}"
+			echo "$name" | grep -qi dummy && { echo dummy; return 0; }
+			echo real
+			return 0
+		done <<<"$out"
+		echo none
+		return 0
+	fi
+	echo no_session
+}
+
+userspace_wpctl_summary() {
+	local out
+	[[ -x "$_USERSPACE_WPCTL" ]] || { echo unavailable; return 0; }
+	out="$(userspace_as_user "$_USERSPACE_WPCTL" status 2>/dev/null || true)"
+	echo "$out" | awk '/^Audio$/,/^Video$/ { print }' | grep -E 'Devices:|Sinks:|│' | head -20 | tr '\n' ';' | sed 's/;$/\n/'
+}
+
+# Logged-in PipeWire/Pulse sink state (post-suspend may be dummy-only or empty).
+userspace_sink_state() {
+	local q
+	q="$(userspace_sink_presence_quality)"
+	case "$q" in
+	real) echo ok ;;
+	dummy) echo dummy ;;
+	none | no_session) echo "$q" ;;
+	*) echo unknown ;;
+	esac
 }
 
 userspace_audio_broken() {
 	local st
 	st="$(userspace_sink_state)"
-	[[ "$st" == dummy || "$st" == none ]]
+	[[ "$st" == dummy || "$st" == none || "$st" == no_session ]]
 }
 
-# Default Pulse sink is Dummy Output (speaker-test "passes" with no audible sound).
 userspace_default_sink_is_dummy() {
-	local uid user_name runtime_dir default
-	if ! command -v pactl >/dev/null 2>&1; then
-		return 1
-	fi
-	for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
-		user_name="$(id -nu "$uid" 2>/dev/null)" || continue
-		runtime_dir="/run/user/$uid"
-		[[ -d "$runtime_dir" ]] || continue
-		default="$(sudo -u "$user_name" XDG_RUNTIME_DIR="$runtime_dir" \
-			pactl get-default-sink 2>/dev/null || true)"
-		[[ -n "$default" ]] && echo "$default" | grep -qi dummy && return 0
-	done
-	return 1
+	[[ "$(userspace_default_sink_quality)" == dummy ]]
 }
 
-# Direct ALSA only — never PipeWire/dummy (authoritative for S0/S2).
+userspace_default_sink_is_real() {
+	[[ "$(userspace_default_sink_quality)" == real ]]
+}
+
+userspace_real_sink_present() {
+	[[ "$(userspace_sink_presence_quality)" == real ]]
+}
+
+# plughw speaker-test (legacy name — prefer witness_playback_alsa_plughw).
 witness_playback_alsa() {
-	local dev card
-
-	if ! command -v speaker-test >/dev/null 2>&1; then
-		return 1
-	fi
-	if ! dev="$(alsa_speaker_dev)"; then
-		return 1
-	fi
-	timeout 6 speaker-test -D "$dev" -c2 -t wav -l 1 -r 48000 >/dev/null 2>&1 && return 0
-	card="${dev#plughw:}"
-	card="${card%%,*}"
-	timeout 6 speaker-test -D "plughw:${card},0" -c2 -t wav -l 1 -r 48000 >/dev/null 2>&1
+	witness_playback_alsa_plughw
 }
 
-# After suspend: dummy simulates playback but hardware is silent — treat as S2.
+# S2: card present but primary SmartAmp PCM broken (hw:1,2).
 post_resume_audio_broken() {
 	alsa_card_present || return 1
+	witness_playback_alsa_hw_primary && return 1
 	userspace_audio_broken && return 0
 	userspace_default_sink_is_dummy && return 0
-	witness_playback_alsa && return 1
 	return 0
 }
 
-# Playback witness: ALSA plughw when card present; never count Dummy Output as success.
+# Strict playback: primary PCM functional AND no Dummy/none userspace.
 witness_playback() {
 	local uid user_name runtime_dir
 
 	if alsa_card_present; then
-		witness_playback_alsa && return 0
-		# Card up but ALSA failed — do not fall through to dummy PipeWire
+		witness_playback_alsa_hw_primary || return 1
 		userspace_default_sink_is_dummy && return 1
 		userspace_audio_broken && return 1
-		return 1
+		return 0
 	fi
 
 	if ! command -v speaker-test >/dev/null 2>&1; then
@@ -507,21 +827,22 @@ witness_playback() {
 	return 1
 }
 
-# S0 health: kernel card required; playback via ALSA (not PipeWire default).
+# S0 health: kernel card + ALSA **hw** playback (not plughw alone).
 confirm_s0_health() {
 	if ! alsa_card_present; then
 		log "S0 FAIL: no $CARD_MATCH in /proc/asound/cards"
 		return 1
 	fi
-	if witness_playback_alsa; then
-		log "S0 OK: amd-soundwire + ALSA playback (${PX13_ALSA_DEV:-$(alsa_speaker_dev)})"
+	if witness_playback_alsa_hw_primary; then
+		log "S0 OK: amd-soundwire + primary PCM (${PX13_ALSA_DEV:-$(alsa_hw_dev)})"
 		return 0
 	fi
 	if [[ "${RESOLUTION_S0_ALSA_ONLY:-0}" == "1" ]]; then
-		log "S0 OK (alsa-only): card present, playback skipped"
+		log "S0 OK (alsa-only): card present, hw playback skipped"
 		return 0
 	fi
-	log "S0 FAIL: card present but playback failed (sink=$(userspace_sink_state); post-suspend dummy/none is S2 symptom)"
+	log "S0 FAIL: primary PCM failed (dev=$(alsa_hw_dev 2>/dev/null || echo ?); fallback=$(witness_playback_alsa_hw && echo ok || echo fail); sink=$(userspace_sink_state))"
+	log "hint: test as session user — speaker-test -D $(alsa_hw_dev 2>/dev/null || echo hw:?,?)"
 	return 1
 }
 

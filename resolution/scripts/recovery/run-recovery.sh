@@ -121,7 +121,7 @@ set -e
 source "$WITNESS_FILE" 2>/dev/null || true
 rm -f "$WITNESS_FILE"
 
-# Primary verdict (exploration): ALSA plughw only. Signature S1–S4 = observations.
+# Primary verdict: ALSA **hw** playback. plughw PASS alone = FALSE_PASS class.
 ALSA_VERDICT=skip
 SUSPEND_ONCE=skip
 R04_MOMENTS="—"
@@ -129,7 +129,7 @@ R09_MOMENTS="—"
 R07_OBS="—"
 
 if [[ "$NOT_EXECUTABLE" != "1" && "$WITNESS_VALID" == "1" ]]; then
-	if witness_playback_alsa; then
+	if witness_playback_alsa_hw; then
 		ALSA_VERDICT=pass
 	else
 		ALSA_VERDICT=fail
@@ -191,9 +191,9 @@ elif [[ "$ALSA_VERDICT" == pass ]]; then
 		systemctl suspend
 		wait_post_resume_settle
 		export RESOLUTION_ASSUME_SUSPEND=1
-		if witness_playback_alsa; then
+		if witness_playback_alsa_hw; then
 			SUSPEND_ONCE=pass
-			log "post-PASS suspend: ALSA still OK"
+			log "post-PASS suspend: ALSA hw still OK"
 		else
 			SUSPEND_ONCE=fail
 			log "post-PASS suspend: ALSA broken again"

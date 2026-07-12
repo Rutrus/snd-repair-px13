@@ -1,0 +1,103 @@
+# Salvage — destroy and rebuild by layer
+
+version: 2
+branch: resolution/salvage
+philosophy: >
+  Verify each subsystem is actually gone before claiming destruction.
+  Top-down teardown: userspace → machine → PCI → SOF → SoundWire.
+
+campaigns:
+  SALVAGE-TOPOLOGY:
+    name: discover_live_tree
+    strategies: [ST01]
+    note: Run before any destructive step — no hardcoded names
+  SALVAGE-DESTRUCTIVE:
+    name: destroy_one_level
+    strategies: [SD10, SD20, SD30, SD40]
+    note: Each destroys a different layer; verify with LEVEL reports
+  SALVAGE-SEQUENCE:
+    name: incremental_ladder
+    strategies: [S100, S110, S120, S130, S140, S150, S160]
+    note: Original minimal-step ladder
+
+# Default: topology first, then destructive (user priority)
+default_order:
+  - SALVAGE-TOPOLOGY
+  - SALVAGE-DESTRUCTIVE
+
+default_destructive_order:
+  - SD10
+  - SD20
+  - SD30
+  - SD40
+
+strategies:
+  ST01:
+    script: ST01-topology.sh
+    campaign: SALVAGE-TOPOLOGY
+    cost: 0
+  SD10:
+    script: SD10-pci-destroy-rescan.sh
+    campaign: SALVAGE-DESTRUCTIVE
+    layer: pci_remove_rescan
+    cost: 6
+  SD20:
+    script: SD20-soundwire-destroy.sh
+    campaign: SALVAGE-DESTRUCTIVE
+    layer: soundwire_sof
+    cost: 5
+  SD30:
+    script: SD30-sof-destroy.sh
+    campaign: SALVAGE-DESTRUCTIVE
+    layer: sof
+    cost: 4
+  SD40:
+    script: SD40-topdown-rebuild.sh
+    campaign: SALVAGE-DESTRUCTIVE
+    layer: full_topdown
+    cost: 7
+  S100:
+    script: S100-stop-userspace.sh
+    campaign: SALVAGE-SEQUENCE
+    layer: userspace
+    cost: 1
+  S110:
+    script: S110-drop-pcm.sh
+    campaign: SALVAGE-SEQUENCE
+    layer: alsa_nodes
+    cost: 1
+  S120:
+    script: S120-sdw-rescan.sh
+    campaign: SALVAGE-SEQUENCE
+    layer: soundwire_bus
+    cost: 2
+  S130:
+    script: S130-rt721-reprobe.sh
+    campaign: SALVAGE-SEQUENCE
+    layer: codec_slave
+    cost: 3
+  S140:
+    script: S140-manager-rebind.sh
+    campaign: SALVAGE-SEQUENCE
+    layer: acp_manager
+    cost: 3
+  S150:
+    script: S150-pci-remove-rescan.sh
+    campaign: SALVAGE-SEQUENCE
+    layer: pci_enumeration
+    cost: 5
+  S160:
+    script: S160-second-suspend.sh
+    campaign: SALVAGE-SEQUENCE
+    layer: pm_retry
+    cost: 4
+
+priority_lines:
+  pci_remove_rescan: SD10
+  soundwire_destroy: SD20
+  sof_destroy: SD30
+  full_topdown: SD40
+  resume_intercept: hooks/px13-resume-intercept.sh
+
+key_insight:
+  partial_unload: snd_sof_amd_acp holds soundwire_amd — anchor-only unload is not full teardown

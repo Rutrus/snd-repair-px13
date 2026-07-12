@@ -13,4 +13,4 @@ bf_alsactl_restore
 bf_udev_trigger
 bf_restart_pipewire_users
 sleep "${BF_SETTLE_SEC}"
-bf_test_alsa && bf_report_pass "$SID" || bf_report_fail "$SID"
+bf_strategy_finish "$SID"
