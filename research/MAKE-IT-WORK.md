@@ -75,6 +75,9 @@ systemctl --user restart wireplumber pipewire
 | **W2d** | WP restart | ★★☆☆☆ | **Closed** — PW topology OK; EIO is ALSA direct |
 | W3 | px13 / PCI re-enumeration | ★★★☆☆ | **Deprioritized** — conflicts with W2; Case D only |
 | W4 | More IRQ instrumentation | ★☆☆☆☆ | **Frozen** (C1 closed) |
+| **W4′** | TAS2783 lifecycle + readback trace | ★★★★☆ | **Done** — identical PASS/FAIL ([summary](experiments/w4-w6-tas2783-double-reinit-20260714.md)) |
+| **W5** | Second manual `fw_reinit()` post-S2 | ★★★★★ | **Done** — restores audio; timing bug ([protocol](experiments/w6-deferred-reinit-protocol.md)) |
+| **W6** | Deferred / event-driven 2nd reinit | ★★★★☆ | **Active** — delay sweep + port_prep mode |
 
 **Causal tree after W1:**
 

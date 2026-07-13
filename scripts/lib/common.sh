@@ -62,3 +62,41 @@ kernel_make_pci_ps_modules() {
 	fi
 	make -C "$build" "${ps_make_args[@]}"
 }
+
+# Fix ownership after mixed sudo/user builds (make writes .o/.ko in-tree).
+ensure_kernel_tree_writable() {
+	local src="${1:-$KERNEL_SRC}"
+	local user group d
+	[[ -d "$src" ]] || return 0
+	if [[ $EUID -eq 0 && -n "${SUDO_USER:-}" ]]; then
+		user="$SUDO_USER"
+		group="$(id -gn "$SUDO_USER")"
+	else
+		user="$(id -un)"
+		group="$(id -gn)"
+	fi
+	local -a dirs=(
+		"$src/sound/soc/codecs"
+		"$src/sound/soc/sdw_utils"
+		"$src/drivers/soundwire"
+		"$src/sound/soc/amd/ps"
+	)
+	for d in "${dirs[@]}"; do
+		[[ -d "$d" ]] || continue
+		if [[ $EUID -eq 0 ]]; then
+			if find "$d" -maxdepth 2 ! -user "$user" -print -quit 2>/dev/null | grep -q .; then
+				echo "==> Fixing kernel tree ownership: $d -> $user:$group"
+				chown -R "$user:$group" "$d"
+			fi
+		elif [[ ! -O "$d" ]]; then
+			echo "==> Fixing kernel tree ownership: $d (not owned by $user — prior sudo build?)"
+			sudo chown -R "$user:$group" "$d"
+		fi
+	done
+	if compgen -G "$src/.snd-repair-*" >/dev/null 2>&1; then
+		local stamp
+		for stamp in "$src"/.snd-repair-*; do
+			[[ -O "$stamp" ]] || sudo chown "$user:$group" "$stamp" 2>/dev/null || true
+		done
+	fi
+}

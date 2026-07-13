@@ -57,6 +57,7 @@ research/snapshots/*
 # Upstream test apply trees
 upstream/_test/
 upstream/_test-apply/
+research/make-it-work/patches/.w4-work/
 
 # Proprietary firmware — never commit
 firmware/

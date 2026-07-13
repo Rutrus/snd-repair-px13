@@ -35,9 +35,11 @@ sudo depmod -a
 Or reinstall distro packages (restores all stock `.ko` for that kernel):
 
 ```bash
-sudo apt install --reinstall linux-modules-$(uname -r) linux-modules-extra-$(uname -r)
+sudo apt install --reinstall linux-modules-$(uname -r)
 sudo depmod -a
 ```
+
+On kernel 7.0 (Ubuntu 26.04 HWE) there is no `linux-modules-extra-*` package — audio modules ship in `linux-modules-*` only. Optional full image reinstall: `linux-image-$(uname -r)` (see [`docs/ROLLBACK.md`](../docs/ROLLBACK.md)).
 
 **Reboot** after either path.
 
@@ -55,7 +57,7 @@ sudo depmod -a
 
 ## 4. Fresh install order
 
-See [`docs/INSTALL.md`](../docs/INSTALL.md) or [`README.md`](../../README.md) — practical stack section.
+See [`docs/INSTALL-VERIFY-PROTOCOL.md`](../docs/INSTALL-VERIFY-PROTOCOL.md) (canonical) or run `./scripts/px13-stack-check.sh` after each phase.
 
 ```text
 brainchillz (firmware + UCM)

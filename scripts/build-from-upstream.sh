@@ -24,6 +24,7 @@ if [[ ! -d "$BUILD" ]]; then
 fi
 
 cd "$SRC"
+ensure_kernel_tree_writable "$SRC"
 
 echo "==> Building snd-soc-tas2783-sdw (upstream series)"
 make -C "$BUILD" M="$(pwd)/sound/soc/codecs" CONFIG_SND_SOC_TAS2783_SDW=m modules

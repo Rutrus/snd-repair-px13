@@ -137,7 +137,7 @@ _pcm_snapshot() {
 _pcm_status_field() {
 	local proc="$1" field="$2"
 	[[ -r "$proc" ]] || return 1
-	grep -E "^${field}[[:space:]]" "$proc" 2>/dev/null | awk '{print $2}' | head -1
+	grep -E "^${field}[[:space:]]*:" "$proc" 2>/dev/null | head -1 | sed -n 's/^[^:]*:[[:space:]]*//p'
 }
 
 _soundwire_card() {
@@ -208,11 +208,15 @@ probe_playback() {
 	if [[ -n "$pcm_proc" ]]; then
 		st0="$(_pcm_status_field "$pcm_proc" state || echo closed)"
 		h0="$(_pcm_status_field "$pcm_proc" hw_ptr || echo 0)"
+		h0="${h0//[^0-9]/}"
+		h0="${h0:-0}"
 		echo "playback t+1s: pcm2p state=$st0 hw_ptr=$h0"
 		cat "$pcm_proc" > "${OUT_DIR}/playback-during-status.txt" 2>/dev/null || true
 		sleep 2
 		st1="$(_pcm_status_field "$pcm_proc" state || echo closed)"
 		h1="$(_pcm_status_field "$pcm_proc" hw_ptr || echo 0)"
+		h1="${h1//[^0-9]/}"
+		h1="${h1:-0}"
 		echo "playback t+3s: pcm2p state=$st1 hw_ptr=$h1"
 		delta=$((h1 - h0))
 		echo "playback hw_ptr_delta=$delta (min=$PLAYBACK_MIN_HWPTR)"

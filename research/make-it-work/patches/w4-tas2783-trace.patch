@@ -1,0 +1,385 @@
+From: snd-repair make-it-work <snd-repair@local>
+Date: Mon, 13 Jul 2026 11:35:00 +0200
+Subject: [PATCH w4] ASoC: tas2783: W4 lifecycle + SDCA trace (diagnostic)
+
+Diagnostic only — applies on upstream series B + W2.
+
+Signed-off-by: snd-repair make-it-work <snd-repair@local>
+---
+--- a/sound/soc/codecs/tas2783-sdw.c
++++ b/sound/soc/codecs/tas2783-sdw.c
+@@ -15,6 +15,7 @@
+ #include <linux/unaligned.h>
+ #include <linux/crc32.h>
+ #include <linux/efi.h>
++#include <linux/atomic.h>
+ #include <linux/err.h>
+ #include <linux/firmware.h>
+ #include <linux/init.h>
+@@ -40,6 +41,22 @@
+ #include "tas2783.h"
+ 
+ #define TIMEOUT_FW_DL_MS (3000)
++
++/* W4 diagnostic — compare ordered init sequence: cold boot vs post-S2 */
++static bool w4_lifecycle_trace = true;
++module_param(w4_lifecycle_trace, bool, 0644);
++MODULE_PARM_DESC(w4_lifecycle_trace,
++		 "Log ordered W4 lifecycle steps (seq=N) for PASS vs FAIL diff");
++
++static bool w4_sdca_trace;
++module_param(w4_sdca_trace, bool, 0644);
++MODULE_PARM_DESC(w4_sdca_trace,
++		 "Log regmap_write / sdw_write / fw nwrite to TAS2783");
++
++static bool w4_readback_trace = true;
++module_param(w4_readback_trace, bool, 0644);
++MODULE_PARM_DESC(w4_readback_trace,
++		 "Read back PDE23/PPU21/FU mute/AMP after key milestones");
+ #define FW_DL_OFFSET	84 /* binary file information */
+ #define FW_FL_HDR	20 /* minimum number of bytes in one chunk */
+ #define TAS2783_FW_NWRITE_RETRIES	5
+@@ -107,6 +124,81 @@
+ static s32 tas_io_init(struct device *dev, struct sdw_slave *slave);
+ static s32 tas2783_fw_reinit(struct device *dev, struct sdw_slave *slave);
+ 
++static atomic_t w4_seq = ATOMIC_INIT(0);
++
++static u8 tas2783_w4_uid(struct tas2783_prv *tas_dev)
++{
++	return tas_dev->sdw_peripheral ?
++	       tas_dev->sdw_peripheral->id.unique_id : 0;
++}
++
++static void tas2783_w4_life(struct device *dev, u8 uid,
++			    const char *fn, const char *phase)
++{
++	if (!w4_lifecycle_trace)
++		return;
++	dev_info(dev, "W4 ctx=life seq=%d uid=%d fn=%s phase=%s\n",
++		 atomic_inc_return(&w4_seq), uid, fn, phase);
++}
++
++static s32 tas2783_w4_regmap_write(struct tas2783_prv *tas_dev, u32 reg, u32 val)
++{
++	s32 ret = regmap_write(tas_dev->regmap, reg, val);
++
++	if (w4_sdca_trace)
++		dev_info(tas_dev->dev,
++			 "W4 ctx=sdca fn=regmap_write uid=%d reg=0x%08x val=0x%x ret=%d\n",
++			 tas2783_w4_uid(tas_dev), reg, val, ret);
++	return ret;
++}
++
++static s32 tas2783_w4_sdw_write(struct tas2783_prv *tas_dev, u32 addr, u8 val)
++{
++	s32 ret;
++
++	if (!tas_dev->sdw_peripheral)
++		return -ENODEV;
++	ret = sdw_write_no_pm(tas_dev->sdw_peripheral, addr, val);
++	if (w4_sdca_trace)
++		dev_info(tas_dev->dev,
++			 "W4 ctx=sdca fn=sdw_write uid=%d addr=0x%08x val=0x%x ret=%d\n",
++			 tas2783_w4_uid(tas_dev), addr, val, ret);
++	return ret;
++}
++
++static void tas2783_w4_readback(struct device *dev, struct tas2783_prv *tas_dev,
++				const char *tag)
++{
++	unsigned int pde, ppu, fu21, fu23, amp;
++	s32 r_pde, r_ppu, r_fu21, r_fu23, r_amp;
++
++	if (!w4_readback_trace)
++		return;
++
++	r_pde = regmap_read(tas_dev->regmap,
++			    SDW_SDCA_CTL(1, TAS2783_SDCA_ENT_PDE23,
++					 TAS2783_SDCA_CTL_REQ_POW_STATE, 0),
++			    &pde);
++	r_ppu = regmap_read(tas_dev->regmap,
++			    SDW_SDCA_CTL(1, TAS2783_SDCA_ENT_PPU21, 0x10, 0),
++			    &ppu);
++	r_fu21 = regmap_read(tas_dev->regmap,
++			     SDW_SDCA_CTL(1, TAS2783_SDCA_ENT_FU21,
++					  TAS2783_SDCA_CTL_FU_MUTE, 1),
++			     &fu21);
++	r_fu23 = regmap_read(tas_dev->regmap,
++			     SDW_SDCA_CTL(1, TAS2783_SDCA_ENT_FU23,
++					  TAS2783_SDCA_CTL_FU_MUTE, 1),
++			     &fu23);
++	r_amp = regmap_read(tas_dev->regmap, TAS2783_AMP_LEVEL, &amp);
++
++	dev_info(dev,
++		 "W4 ctx=rb tag=%s uid=%d PDE23=%u/%d PPU21=%u/%d FU21m=%u/%d FU23m=%u/%d AMP=%u/%d init=%d fw_ok=%d done=%d\n",
++		 tag, tas2783_w4_uid(tas_dev),
++		 pde, r_pde, ppu, r_ppu, fu21, r_fu21, fu23, r_fu23, amp, r_amp,
++		 tas_dev->hw_init, tas_dev->fw_dl_success, tas_dev->fw_dl_task_done);
++}
++
+ static const struct reg_default tas2783_reg_default[] = {
+ 	{TAS2783_AMP_LEVEL, 0x28},
+ 	{TASDEV_REG_SDW(0, 0, 0x03), 0x28},
+@@ -654,6 +746,8 @@
+ 
+ static s32 tas2783_update_calibdata(struct tas2783_prv *tas_dev)
+ {
++	tas2783_w4_life(tas_dev->dev, tas2783_w4_uid(tas_dev),
++			"update_calib", "enter");
+ 	efi_guid_t efi_guid = TAS2783_CALI_GUID;
+ 	u32 attr, i, *tmp_val;
+ 	unsigned long size;
+@@ -703,6 +797,9 @@
+ 		tas2783_set_calib_params_to_device(tas_dev, tmp_val);
+ 	mutex_unlock(&tas_dev->calib_lock);
+ 
++	tas2783_w4_life(tas_dev->dev, tas2783_w4_uid(tas_dev),
++			"update_calib", ret ? "exit_err" : "exit_ok");
++
+ 	return ret;
+ }
+ 
+@@ -735,6 +832,9 @@
+ 	struct tas2783_prv *tas_dev =
+ 		(struct tas2783_prv *)context;
+ 	const u8 *buf = NULL;
++	u8 uid = tas2783_w4_uid(tas_dev);
++
++	tas2783_w4_life(tas_dev->dev, uid, "fw_ready", "enter");
+ 	s32  img_sz, ret = 0, cur_file = 0;
+ 	s32 offset = 0;
+ 
+@@ -787,6 +887,11 @@
+ 						       file->dest_addr,
+ 						       file->length,
+ 						       file->fw_data);
++				if (w4_sdca_trace)
++					dev_info(tas_dev->dev,
++						 "W4 ctx=sdca fn=nwrite uid=%d addr=0x%x len=%d try=%d ret=%d file=%d\n",
++						 uid, file->dest_addr, file->length,
++						 attempt, ret, cur_file);
+ 				if (ret >= 0)
+ 					break;
+ 				if (ret != -ETIMEDOUT && ret != -EAGAIN)
+@@ -811,10 +916,15 @@
+ 		tas2783_update_calibdata(tas_dev);
+ 	}
+ 
++	tas2783_w4_life(tas_dev->dev, uid, "fw_ready",
++			ret ? "exit_err" : "exit_ok");
++
+ out:
+ 	if (!ret)
+ 		tas_dev->fw_dl_success = true;
+ 	tas_dev->fw_dl_task_done = true;
++	tas2783_w4_life(tas_dev->dev, uid, "fw_ready", "done_flags");
++	tas2783_w4_readback(tas_dev->dev, tas_dev, "fw_ready_out");
+ 	wake_up(&tas_dev->fw_wait);
+ 	if (fmw)
+ 		release_firmware(fmw);
+@@ -834,6 +944,8 @@
+ 	struct tas2783_prv *tas_dev = snd_soc_component_get_drvdata(component);
+ 	s32 mute;
+ 
++	tas2783_w4_life(tas_dev->dev, tas2783_w4_uid(tas_dev),
++			"fu21_event", event == SND_SOC_DAPM_POST_PMU ? "post_pmu" : "pre_pmd");
+ 	switch (event) {
+ 	case SND_SOC_DAPM_POST_PMU:
+ 		mute = 0;
+@@ -844,7 +956,7 @@
+ 		break;
+ 	}
+ 
+-	return sdw_write_no_pm(tas_dev->sdw_peripheral,
++	return tas2783_w4_sdw_write(tas_dev,
+ 			       SDW_SDCA_CTL(1, TAS2783_SDCA_ENT_FU21,
+ 					    TAS2783_SDCA_CTL_FU_MUTE, 1), mute);
+ }
+@@ -856,6 +968,8 @@
+ 	struct tas2783_prv *tas_dev = snd_soc_component_get_drvdata(component);
+ 	s32 mute;
+ 
++	tas2783_w4_life(tas_dev->dev, tas2783_w4_uid(tas_dev),
++			"fu23_event", event == SND_SOC_DAPM_POST_PMU ? "post_pmu" : "pre_pmd");
+ 	switch (event) {
+ 	case SND_SOC_DAPM_POST_PMU:
+ 		mute = 0;
+@@ -866,7 +980,7 @@
+ 		break;
+ 	}
+ 
+-	return sdw_write_no_pm(tas_dev->sdw_peripheral,
++	return tas2783_w4_sdw_write(tas_dev,
+ 			       SDW_SDCA_CTL(1, TAS2783_SDCA_ENT_FU23,
+ 					    TAS2783_SDCA_CTL_FU_MUTE, 1), mute);
+ }
+@@ -920,6 +1034,9 @@
+ 	struct sdw_stream_runtime *sdw_stream;
+ 	struct sdw_slave *sdw_peripheral = tas_dev->sdw_peripheral;
+ 	s32 ret, retry = 3;
++	u8 uid = tas2783_w4_uid(tas_dev);
++
++	tas2783_w4_life(tas_dev->dev, uid, "hw_params", "enter");
+ 
+ 	if (!tas_dev->fw_dl_success && !tas_dev->fw_dl_task_done &&
+ 	    tas_dev->status == SDW_SLAVE_ATTACHED) {
+@@ -969,7 +1086,7 @@
+ 	 * port prepare succeeds
+ 	 */
+ 	do {
+-		ret = regmap_write(tas_dev->regmap,
++		ret = tas2783_w4_regmap_write(tas_dev,
+ 				   SDW_SDCA_CTL(1, TAS2783_SDCA_ENT_PDE23,
+ 						TAS2783_SDCA_CTL_REQ_POW_STATE, 0),
+ 						TAS2783_SDCA_POW_STATE_ON);
+@@ -1010,6 +1127,9 @@
+ 	if (ret)
+ 		dev_err(dai->dev, "Unable to configure port\n");
+ 
++	tas2783_w4_life(tas_dev->dev, uid, "hw_params", ret ? "exit_err" : "exit_ok");
++	tas2783_w4_readback(tas_dev->dev, tas_dev, "hw_params_out");
++
+ 	return ret;
+ }
+ 
+@@ -1141,6 +1261,9 @@
+ {
+ 	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
+ 
++	if (tas_dev)
++		tas2783_w4_life(dev, tas2783_w4_uid(tas_dev),
++				"system_suspend", "enter");
+ 	if (tas_dev) {
+ 		tas_dev->post_system_sleep = true;
+ 		tas_dev->hw_init = false;
+@@ -1157,6 +1280,9 @@
+ 	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
+ 	s32 ret = 0;
+ 	unsigned long t;
++	u8 uid = tas_dev ? tas2783_w4_uid(tas_dev) : 0;
++
++	tas2783_w4_life(dev, uid, "resume", "enter");
+ 
+ 	if (!slave->unattach_request)
+ 		goto regmap_sync;
+@@ -1177,6 +1303,7 @@
+ 
+ 	if (tas_dev->post_system_sleep &&
+ 	    tas_dev->status == SDW_SLAVE_ATTACHED) {
++		tas2783_w4_life(dev, uid, "resume", "force_fw_reinit");
+ 		dev_info(dev,
+ 			 "W2 ctx=tas fn=force_fw_reinit when=resume uid=%d\n",
+ 			 tas_dev->sdw_peripheral->id.unique_id);
+@@ -1184,8 +1311,12 @@
+ 		return tas2783_fw_reinit(dev, slave);
+ 	}
+ 
+-	if (tas_dev->status == SDW_SLAVE_ATTACHED && !tas_dev->hw_init)
++	if (tas_dev->status == SDW_SLAVE_ATTACHED && !tas_dev->hw_init) {
++		tas2783_w4_life(dev, uid, "resume", "fw_reinit_hw_init_false");
+ 		ret = tas2783_fw_reinit(dev, slave);
++	}
++
++	tas2783_w4_life(dev, uid, "resume", ret ? "exit_err" : "exit_ok");
+ 	return ret;
+ }
+ 
+@@ -1225,13 +1356,16 @@
+ 	s32 ret;
+ 	u8 unique_id = tas_dev->sdw_peripheral->id.unique_id;
+ 
++	tas2783_w4_life(dev, unique_id, "io_init", "enter");
++
+ 	if (tas_dev->hw_init)
+ 		return 0;
+ 
+ 	tas_dev->fw_dl_task_done = false;
+ 	tas_dev->fw_dl_success = false;
+ 
+-	ret = regmap_write(tas_dev->regmap, TAS2783_SW_RESET, 0x1);
++	tas2783_w4_life(dev, unique_id, "io_init", "sw_reset");
++	ret = tas2783_w4_regmap_write(tas_dev, TAS2783_SW_RESET, 0x1);
+ 	if (ret) {
+ 		dev_err(dev, "sw reset failed, err=%d", ret);
+ 		return ret;
+@@ -1257,12 +1391,16 @@
+ 		dev_err(tas_dev->dev, "fw request, wait_event timeout\n");
+ 		ret = -EAGAIN;
+ 	} else {
+-		if (tas_dev->sa_func_data)
++		if (tas_dev->sa_func_data) {
++			tas2783_w4_life(dev, unique_id, "io_init",
++					"sdca_regmap_write_init");
+ 			ret = sdca_regmap_write_init(dev, tas_dev->regmap,
+ 						     tas_dev->sa_func_data);
+-		else
++		} else {
++			tas2783_w4_life(dev, unique_id, "io_init", "init_seq");
+ 			ret = regmap_multi_reg_write(tas_dev->regmap, tas2783_init_seq,
+ 						     ARRAY_SIZE(tas2783_init_seq));
++		}
+ 
+ 		if (ret)
+ 			dev_err(tas_dev->dev,
+@@ -1271,18 +1409,26 @@
+ 			tas_dev->hw_init = true;
+ 	}
+ 
++	tas2783_w4_life(dev, unique_id, "io_init", ret ? "exit_err" : "exit_ok");
++	tas2783_w4_readback(dev, tas_dev, "io_init_out");
++
+ 	return ret;
+ }
+ 
+ static s32 tas2783_fw_reinit(struct device *dev, struct sdw_slave *slave)
+ {
+ 	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
++	s32 ret;
+ 
++	tas2783_w4_life(dev, tas2783_w4_uid(tas_dev), "fw_reinit", "enter");
+ 	tas_dev->hw_init = false;
+ 	tas_dev->fw_dl_task_done = false;
+ 	tas_dev->fw_dl_success = false;
+ 
+-	return tas_io_init(dev, slave);
++	ret = tas_io_init(dev, slave);
++	tas2783_w4_life(dev, tas2783_w4_uid(tas_dev), "fw_reinit",
++			ret ? "exit_err" : "exit_ok");
++	return ret;
+ }
+ 
+ static s32 tas_update_status(struct sdw_slave *slave,
+@@ -1300,6 +1446,7 @@
+ 		tas_dev->hw_init = false;
+ 
+ 	if (status == SDW_SLAVE_ATTACHED && tas_dev->post_system_sleep) {
++		tas2783_w4_life(dev, tas_dev->sdw_peripheral->id.unique_id, "update_status", "force_fw_reinit");
+ 		dev_info(dev,
+ 			 "W2 ctx=tas fn=force_fw_reinit when=update_status uid=%d\n",
+ 			 tas_dev->sdw_peripheral->id.unique_id);
+@@ -1339,6 +1486,8 @@
+ 	struct sdw_dpn_prop *dpn_prop;
+ 	u32 addr;
+ 	int ret;
++	struct tas2783_prv *tas_dev = dev_get_drvdata(dev);
++	u8 uid = tas_dev ? tas2783_w4_uid(tas_dev) : slave->id.unique_id;
+ 
+ 	dpn_prop = slave->prop.sink_dpn_prop;
+ 	if (!dpn_prop || !dpn_prop->simple_ch_prep_sm)
+@@ -1347,6 +1496,7 @@
+ 	addr = SDW_DPN_PREPARECTRL(prep_ch->num);
+ 	switch (pre_ops) {
+ 	case SDW_OPS_PORT_PRE_PREP:
++		tas2783_w4_life(dev, uid, "port_prep", "pre_prep");
+ 		ret = sdw_write_no_pm(slave, addr, prep_ch->ch_mask);
+ 		if (ret)
+ 			dev_err(dev, "prep failed for port %d, err=%d\n",
+@@ -1354,6 +1504,7 @@
+ 		return ret;
+ 
+ 	case SDW_OPS_PORT_PRE_DEPREP:
++		tas2783_w4_life(dev, uid, "port_prep", "pre_deprep");
+ 		ret = sdw_write_no_pm(slave, addr, 0x00);
+ 		if (ret)
+ 			dev_err(dev, "de-prep failed for port %d, err=%d\n",

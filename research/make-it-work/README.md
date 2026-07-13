@@ -27,6 +27,8 @@ Investigation priority:
 **Patch:** [patches/w2-force-fw-reinit.patch](patches/w2-force-fw-reinit.patch)  
 Applies on upstream series B (0001–0003). Sets `post_system_sleep` on system suspend; on first ATTACHED (`update_status` or `resume`), unconditionally calls `tas2783_fw_reinit()`.
 
+**Result (2026-07-13):** Software path PASS (`RUNNING`, `hw_ptr`); **speakers often silent**. W5 shows a **second** reinit restores audio → investigate **when** W2 runs, not **what** it does. See [experiments/w4-w6-tas2783-double-reinit-20260714.md](../experiments/w4-w6-tas2783-double-reinit-20260714.md).
+
 **Build (W1+W2 together):**
 
 ```bash
@@ -49,7 +51,19 @@ journalctl -k -b 0 | grep -E 'W2 ctx=tas|manual_irq_schedule|fw_ready|hw_params'
 ```
 
 **Pass:** audible tone + no `fw download wait timeout` on `:8`.  
-**Fail:** still EINVAL → try W3 (salvage re-enumeration) or extend W2 (delayed work hook).
+**Fail:** still silent with RUNNING/hw_ptr → W4/W5 trace stack; W6 deferred reinit sweep.
+
+---
+
+## W4–W6 — double reinit investigation (2026-07-13/14)
+
+| Step | Build | Doc |
+|------|-------|-----|
+| W4 lifecycle | `build-w4-trace.sh` | [w4-tas2783-trace-protocol.md](../experiments/w4-tas2783-trace-protocol.md) |
+| W4b + W5 manual | `build-w4b-write-trace.sh` | [w4b-write-trace-protocol.md](../experiments/w4b-write-trace-protocol.md) |
+| W6 deferred | `build-w6-deferred-reinit.sh` | [w6-deferred-reinit-protocol.md](../experiments/w6-deferred-reinit-protocol.md) |
+
+Summary: [w4-w6-tas2783-double-reinit-20260714.md](../experiments/w4-w6-tas2783-double-reinit-20260714.md)
 
 ---
 
