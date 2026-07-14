@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Audio issue on ASUS ProArt PX13 (snd_repair)
+about: Audio issue on ASUS ProArt PX13 (snd-repair-px13)
 title: "[PX13] "
 labels: ""
 assignees: []
@@ -9,31 +9,35 @@ assignees: []
 ## Environment
 
 - **Machine model:** <!-- e.g. HN7306EAC -->
-- **Kernel:** <!-- output of uname -r -->
+- **Kernel:** <!-- `uname -r` -->
 - **Distribution:** <!-- e.g. Ubuntu 26.04 -->
 
-## Firmware (stage 1)
+## Install checklist
 
-- [ ] Proprietary firmware installed (`1714-1-8.bin`, `1714-1-B.bin` in `/usr/lib/firmware/`)
-- [ ] Used [brainchillz firmware repo](https://github.com/brainchillz/asus-proart-px13-linux-speaker-fix)
+- [ ] Firmware installed via [brainchillz](https://github.com/brainchillz/asus-proart-px13-linux-speaker-fix) (`1714-1-8.bin`, `1714-1-B.bin`)
+- [ ] `apply-upstream-patches.sh` + `build-from-upstream.sh`
+- [ ] `build-upstream-post-sleep-reinit.sh` (patch 0001)
+- [ ] `build-amd-soundwire-resume.sh` (patch 0002)
+- [ ] `px13-audio-resume.service` **disabled** (required with kernel patches)
+- [ ] `modinfo snd_soc_tas2783_sdw | grep vermagic` matches `uname -r`
 
-## Kernel modules (stage 2)
-
-- [ ] `build-from-upstream.sh` (recommended)
-- [ ] `build-production-modules.sh` (investigation / ENZOPLAY)
+See [INSTALL.md](../INSTALL.md) · [VALIDATION.md](../VALIDATION.md)
 
 ## Symptoms
 
-<!-- e.g. no audio, left only, -110 on reboot, capture -22 -->
+<!-- e.g. no audio, left only only, silent after suspend, Dummy Output, mic missing -->
+
+- **When:** <!-- cold boot / after suspend / after kernel upgrade -->
+- **PipeWire or ALSA direct:**
 
 ## Logs
 
 ```
-# paste: dmesg | grep -i tas2783
+# journalctl -k -b 0 | grep -iE 'tas2783|soundwire|amd'
 ```
 
 ```
-# paste: speaker-test result or wpctl status if relevant
+# wpctl status
 ```
 
 ## Steps to reproduce
@@ -41,3 +45,7 @@ assignees: []
 1.
 2.
 3.
+
+## Expected vs actual
+
+<!-- What should happen vs what happens -->
