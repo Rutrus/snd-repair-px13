@@ -32,9 +32,19 @@ Path: `/sys/module/snd_soc_tas2783_sdw/parameters/`
 
 Mutually exclusive in practice: use **either** timer **or** port-prep mode.
 
-## Phase 1 — delay sweep
+## Phase 1 — delay sweep (minimal)
 
-One S2 cycle per delay value. Record PASS/FAIL by ear.
+**Do not sweep 0–3000 ms until W5 reproducibility is confirmed** — see [w5-reproducibility-protocol.md](w5-reproducibility-protocol.md).
+
+Minimal three-point test after W5 is 5/5:
+
+```bash
+sudo ./scripts/w6-minimal-sweep.sh --skip-0   # if delay=0 control already recorded
+```
+
+Points: **0** (control), **1500**, **3000** ms only.
+
+Full sweep (optional later):
 
 ```bash
 for ms in 0 200 500 1000 1500 3000; do

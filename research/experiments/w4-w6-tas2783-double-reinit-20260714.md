@@ -46,19 +46,17 @@ Evidence: `validation/w5-double-reinit-20260714-004420/` (local snapshot; regene
 
 ---
 
-## W6 — next experiment (not production fix)
+## W6 — next experiment (after W5 5/5)
 
-Configurable second reinit after W2:
+**Prerequisite:** [w5-reproducibility-protocol.md](w5-reproducibility-protocol.md) — 5/5 manual reinit PASS.
 
-| Param | Role |
-|-------|------|
-| `deferred_reinit_ms` | Timer sweep: 0, 500, 1000, 1500, 3000 ms |
-| `deferred_reinit_on_port_prep` | Event-driven: first stream `port_prep` after W2 |
+Minimal timer test (not full sweep):
 
-Build: `sudo ./scripts/build-w6-deferred-reinit.sh`  
-Protocol: [w6-deferred-reinit-protocol.md](w6-deferred-reinit-protocol.md)
+```bash
+sudo ./scripts/w6-minimal-sweep.sh
+```
 
-**Upstream narrative goal:** show minimum delay threshold (if any), then replace timer with deterministic trigger (SDW attach complete, first `hw_params` / port prep).
+See [w6-deferred-reinit-protocol.md](w6-deferred-reinit-protocol.md).
 
 ---
 
@@ -71,8 +69,11 @@ Protocol: [w6-deferred-reinit-protocol.md](w6-deferred-reinit-protocol.md)
 | `build-w6-deferred-reinit.sh` | W6 deferred second reinit |
 | `w4-trace-capture.sh` / `w4-trace-diff.sh` | W4 PASS vs FAIL logs |
 | `w4b-write-trace-capture.sh` / `w4-write-trace-diff.sh` | W4b write sequences |
-| `w5-double-fw-reinit-test.sh` | Manual second reinit |
+| `w5-double-fw-reinit-test.sh` | Single manual second reinit |
+| `w5-reproducibility-test.sh` | **5× S2 + W5 + ear confirm** |
 | `w6-deferred-reinit-sweep.sh` | One delay value per S2 cycle |
+| `w6-minimal-sweep.sh` | 0 / 1500 / 3000 ms only |
+| `w7-ts-capture.sh` | Post-S2 ms timeline from dmesg |
 | `tas2783-state-snapshot.sh` | amixer/wpctl/proc snapshot |
 
 Patches: `research/make-it-work/patches/w4-tas2783-trace.patch` (+ apply scripts for W4b/W6).

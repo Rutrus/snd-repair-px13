@@ -76,8 +76,10 @@ systemctl --user restart wireplumber pipewire
 | W3 | px13 / PCI re-enumeration | ★★★☆☆ | **Deprioritized** — conflicts with W2; Case D only |
 | W4 | More IRQ instrumentation | ★☆☆☆☆ | **Frozen** (C1 closed) |
 | **W4′** | TAS2783 lifecycle + readback trace | ★★★★☆ | **Done** — identical PASS/FAIL ([summary](experiments/w4-w6-tas2783-double-reinit-20260714.md)) |
-| **W5** | Second manual `fw_reinit()` post-S2 | ★★★★★ | **Done** — restores audio; timing bug ([protocol](experiments/w6-deferred-reinit-protocol.md)) |
-| **W6** | Deferred / event-driven 2nd reinit | ★★★★☆ | **Active** — delay sweep + port_prep mode |
+| **W5** | Second manual `fw_reinit()` post-S2 | ★★★★★ | **Reproducible** — PASS ([results](experiments/w5-w6-results-20260714.md)) |
+| **W6** | Deferred 2nd reinit | ★★★★☆ | **3000 ms PASS**, 0 ms FAIL — test 1500 ms for threshold |
+| **W7** | ms timeline W2/W5/playback | ★★★★☆ | Installed — capture on S2 |
+| **W8** | Context 2nd reinit (hw_params/dapm) | ★★★★★ | **Active** — time vs pipeline |
 
 **Causal tree after W1:**
 

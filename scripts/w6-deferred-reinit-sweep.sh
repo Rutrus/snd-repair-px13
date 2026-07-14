@@ -88,8 +88,13 @@ if [[ "$DO_PLAY" -eq 1 ]]; then
 	if [[ "$PORT_PREP" -eq 1 ]]; then
 		echo "==> speaker-test (triggers port PRE_PREP → W6 reinit)"
 	else
-		echo "==> Waiting for deferred reinit (${DELAY_MS}ms + margin)"
-		sleep $(( DELAY_MS / 1000 + 2 ))
+		if [[ "$DELAY_MS" -eq 0 ]]; then
+			echo "==> delay=0 control: no W6 2nd reinit scheduled (W2 only)"
+			sleep 2
+		else
+			echo "==> Waiting for deferred reinit (${DELAY_MS}ms + margin)"
+			sleep $(( DELAY_MS / 1000 + 2 ))
+		fi
 	fi
 	echo "==> speaker-test hw:1,2 — confirm audio with your ears"
 	speaker-test -D hw:1,2 -c 2 -r 48000 -t sine -f 440 -l 1 \
