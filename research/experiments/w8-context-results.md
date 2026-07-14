@@ -46,11 +46,11 @@ ms=12855     W8 uid11 ret=0 (Right)
 ## Final hypothesis (accepted)
 
 ```text
-Resume → W2 fw_reinit too early → silent (ret=0)
-      → first hw_params → 2nd fw_reinit → audio
+Resume → fw_reinit in update_status (no PCM stream yet) → silent (ret=0)
+      → first hw_params (stream context) → 2nd fw_reinit → audio
 ```
 
-Preferred upstream hook: **first `hw_params`**, not `delayed_work`.
+**W5** was the inflection point (same code, later = works). **W8** favours **pipeline context** over magic milliseconds. Do not over-claim “too early by N ms” — time and context overlap.
 
 ---
 

@@ -182,27 +182,25 @@ ms=2789     first_port_prep
 ms=2811     first_hw_params → W8 reinit → audio
 ```
 
-**Candidate “not ready yet” during W2:**
+**Candidate difference: resume path vs first stream setup**
 
-| Dependency | Ready at W2? | Ready at hw_params? |
-|------------|--------------|---------------------|
+| Factor | At W2 / `update_status` | At first `hw_params` |
+|--------|-------------------------|----------------------|
 | SoundWire ATTACHED | yes | yes |
+| Active PCM stream | **no** | **yes** |
 | SDCA port PRE_PREP / channel mask | often no | yes |
-| PDE23 power / FU21 DAPM | partial | yes |
-| ACP clock domain for stream | uncertain | yes |
-| Both TAS2783 sequential (~2.7 s apart) | uid8 after uid11 | single stream setup |
+| DAPM / widgets for playback | partial / idle | engaged for stream |
+| PDE23 power path | partial | stream-driven |
 
-**Follow-up probes (optional):**
-
-- W7 diff: `w2_fw_reinit_end` → `first_port_prep` vs `first_hw_params` on PASS/FAIL  
-- W4 readback at W2 exit vs W8 exit (PDE23 transient `3/0` seen during W8 reinit @ 15:57)  
-- **Option C experiment:** skip resume-path `fw_reinit()`, single init at first `hw_params` only — if PASS, simplify patch to one init at correct time
+**Wording for maintainers:** prefer “wrong resume context (no PCM stream yet)” over “N ms too early”. W6 showed time can proxy readiness; W8 @ 0 ms favours **pipeline context**.
 
 ---
 
 ## Cover letter summary (for maintainers)
 
-> Post-system-sleep `tas2783_fw_reinit()` on SoundWire ATTACHED completes successfully but leaves speakers silent on some dual-TAS2783 machines. Identical reinit at the first playback `hw_params` restores output. W4 eliminated register/init_seq drift; W5 proved a second reinit fixes it; W6 showed timing was a readiness proxy; W8 confirmed an event-driven hook with zero artificial delay and stereo ear validation. Proposed fix: arm `resume_playback_reinit_pending` after resume-path reinit; perform one additional `fw_reinit()` on the first `hw_params` only.
+> After an S2 resume, `tas2783_fw_reinit()` from `update_status()` completes successfully but leaves amplifiers silent on some dual-TAS2783 machines. The same function at the first `hw_params` after resume restores audio. W4 ruled out register drift; W5 proved a second reinit fixes it; W6 showed fixed delay is a proxy; W8 confirmed an event hook with zero artificial delay. Proposed fix: one additional `fw_reinit()` on the first `hw_params` only (`resume_playback_reinit_pending`).
+
+Full email draft: [BUG-REPORT-DRAFT.md](BUG-REPORT-DRAFT.md)
 
 ---
 

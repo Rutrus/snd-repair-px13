@@ -10,7 +10,7 @@
 
 | Milestone | Status |
 |-----------|--------|
-| Root cause class | Resume **event ordering** — first `fw_reinit()` too early, not corrupt FW |
+| Root cause class | **Resume context** — first `fw_reinit()` before first PCM stream setup; not corrupt FW |
 | Fix mechanism | `resume_playback_reinit_pending` → one-shot 2nd `fw_reinit()` in `hw_params` |
 | W8 validation | PASS L+R @ 0 ms delay (pipeline hook, not timer) |
 | Upstream module | PASS post-S2 + clean reinstall from commit |
@@ -37,9 +37,65 @@ Later hw_params on same boot
 
 **Rejected hypotheses:** corrupt FW, missing `init_seq` (W4), DAPM/FU_MUTE (W3/W4), PipeWire/ALSA routing (jack OK, PCM RUNNING).
 
-**W6 @ 3000 ms:** timing was a **readiness proxy**, not the fix. W8 @ 0 ms proves the **milestone** matters.
+**W6 @ 3000 ms:** timing was a **readiness proxy**, not the fix. W8 @ 0 ms favours **audio pipeline context** (first `hw_params`) over a magic delay.
+
+**Do not over-claim:** experiments support “wrong resume context (no active PCM stream yet)”, not exclusively “X milliseconds too early”. Time and context may overlap; W8 discriminates in favour of context.
 
 ---
+
+## Investigation narrative (what each experiment proved)
+
+### Ruled out (high confidence)
+
+| Hypothesis | Evidence |
+|------------|----------|
+| PipeWire / userspace routing | `hw_ptr` advances; ALSA direct; jack OK post-S2; defect isolated to TAS2783 |
+| Firmware download failure | `fw_ok=1`, `init_seq` runs, `ret=0` on `fw_reinit` |
+| Missing DAPM / FU_MUTE | W3/W4: `POST_PMU`, `FU_MUTE=0`, SDCA readback identical PASS vs FAIL |
+
+### Inflection point — W5 (not W4)
+
+```text
+resume → W2 fw_reinit → silence → W5 manual fw_reinit → audio
+```
+
+Same function, same code path. The question shifted from “missing register write” to **why identical code works when run later**.
+
+### W6 — “is it time?”
+
+| Delay | Audio |
+|-------|-------|
+| 0 ms (no 2nd reinit) | FAIL |
+| 3000 ms | PASS |
+
+Suggests a temporal component — but does not prove a specific millisecond threshold is the root cause.
+
+### W7 — “or is it context?”
+
+Timestamps show resume is not idle time: W2 uid11/uid8, PipeWire `port_prep`, parallel W6 work, etc. The second `fw_reinit()` is not the same operation when run:
+
+- during bare resume / `update_status`,
+- before any PCM open,
+- at first `hw_params`,
+- or minutes later via debugfs.
+
+### W8 — strongest discriminator
+
+No artificial sleep. First `hw_params` after resume is sufficient for stereo PASS. Upstream-preferred sequence:
+
+```text
+resume → W2 → (silence) → first PCM hw_params → 2nd fw_reinit → audio
+```
+
+---
+
+## Bug report wording (for ALSA / maintainer)
+
+Use this formulation — evidence-backed, avoids over-claiming timing:
+
+> After an S2 resume, `tas2783_fw_reinit()` invoked from `update_status()` completes successfully (`ret=0`, firmware loaded, `init_seq`, SDCA and DAPM apparently correct), yet the amplifiers remain silent. Running the same `tas2783_fw_reinit()` during the first `hw_params` after resume systematically restores audio. This suggests the defect is not the content of the reinit but the **context** in which it runs within the resume cycle (before vs after the first real playback stream setup).
+
+Full draft: [../upstream/BUG-REPORT-DRAFT.md](../upstream/BUG-REPORT-DRAFT.md)
 
 ## What to install (daily driver)
 
