@@ -1,6 +1,6 @@
-# Architecture — PX13 audio stack
+# Architecture
 
-English · two pages.
+ASUS ProArt PX13 (HN7306EAC) audio stack — functional view.
 
 ---
 
@@ -12,7 +12,7 @@ English · two pages.
 └───────────────────────────┬─────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────┐
-│  ALSA (card1: RT721 jack + TAS2783 SmartAmp pcm2)       │
+│  ALSA (card: RT721 jack + TAS2783 SmartAmp playback)    │
 └───────────────────────────┬─────────────────────────────┘
                             │
         ┌───────────────────┼───────────────────┐
@@ -32,56 +32,54 @@ English · two pages.
 
 ---
 
-## Functional layers (what each fix does)
+## What each layer needs
 
-### 1. Firmware + UCM (userspace)
+### Firmware + UCM (userspace)
 
-- Loads TAS2783 calibration firmware into `/lib/firmware/`
-- UCM tells PipeWire which ALSA devices exist (Speaker, Internal Mic)
+- Proprietary TAS2783 calibration blobs in `/lib/firmware/`
+- UCM profiles so PipeWire sees **Speaker** and **Internal Mic**
 
-Without firmware: driver cannot initialize amps.
+Without firmware: driver cannot initialize amplifiers.
 
-### 2. Base kernel patches (series A+B+C)
+### Base kernel patches (upstream series A+B+C)
 
-- **Capture:** avoid invalid capture stream on speaker-only DisCo
-- **Firmware path:** retry download, wait in hw_params, reload after system sleep
-- **Stereo:** map one PCM channel per physical TAS2783 (Left uid `0x8`, Right uid `0xb`)
+- Valid capture path on speaker-only topology
+- Firmware download retry and post-sleep reload
+- Stereo: one PCM channel per physical TAS2783 (uid `0x8` left, `0xb` right)
 
 Result: **cold boot stereo** works.
 
-### 3. AMD SoundWire resume
+### Patch 0002 — AMD SoundWire resume
 
-After S2, the AMD manager sometimes has pending STAT bits but no IRQ delivery. Patch schedules the IRQ worker manually so codecs reach **ATTACHED**.
+After S2, pending interrupt status may not dispatch. Patch kicks the IRQ worker so codecs reach **ATTACHED**.
 
-Without this: TAS2783 may not complete resume enumeration.
+Without this: enumeration may stall after suspend.
 
-### 4. Post-sleep playback recovery (hw_params reinit)
+### Patch 0001 — post-sleep playback reinit
 
-After S2, the first `fw_reinit()` from the resume path completes with `ret=0` but speakers stay **silent**. The same `fw_reinit()` on the **first playback hw_params** restores audio.
+After S2, resume-path `fw_reinit()` succeeds but speakers stay silent until the **first playback stream** opens. Patch runs one additional `fw_reinit()` at first `hw_params`.
 
 ```text
 S2 resume
     → firmware reload (resume path)     → silent but ret=0
-    → user opens playback stream
+    → user opens playback
     → first hw_params
-    → second fw_reinit (one-shot flag)  → audio OK
+    → second fw_reinit (one-shot)       → audio OK
 ```
-
-This is **context** (stream setup), not a magic sleep timer.
 
 ---
 
-## What not to combine
+## Do not combine
 
 | Combination | Result |
 |-------------|--------|
 | Kernel patches + `px13-audio-resume.service` | Dummy Output / broken stack |
-| Manual PCI reset scripts + patched kernel | Overwrites good driver state |
+| Manual PCI reset + patched kernel | Overwrites good driver state |
 
-Use **either** brainchillz PCI resume **or** this kernel stack — not both.
+Use **either** brainchillz PCI resume (stock kernel) **or** this kernel stack — not both.
 
 ---
 
-## Maintainer / full lab
+## Research branch
 
-Branch **`resolution/bruteforce`**: complete experiment log (W-series), scripts, and validation snapshots.
+Complete investigation notebook: **`resolution/bruteforce`**.

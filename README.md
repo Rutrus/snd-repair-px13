@@ -1,55 +1,74 @@
-# PX13 Linux audio fix
+# ASUS ProArt PX13 — Linux audio fix
 
-Kernel patches and install scripts for **ASUS ProArt PX13 (HN7306EAC)** built-in speakers and **suspend/resume playback** on Ubuntu / Linux Mint with kernel **7.0+**.
+Kernel patches for **built-in speakers**, **suspend/resume**, and **microphone** on the **ASUS ProArt PX13 (HN7306EAC)** · Ubuntu / Linux Mint · kernel **7.0+**.
 
-**Tested:** kernel `7.0.0-27-generic` · July 2026.
-
----
-
-## What this fixes
-
-| Symptom | Fix |
-|---------|-----|
-| No stereo / capture `-22` on cold boot | Upstream driver patches (series A+B+C) |
-| **Speakers silent after suspend** (PCM runs, no sound) | Post-sleep `hw_params` firmware reinit patch |
-| SoundWire codecs not attaching after S2 | AMD SoundWire resume patch |
-| Internal mic missing in GNOME | UCM install script |
+Tested on `7.0.0-27-generic` (July 2026).
 
 ---
 
-## Quick start (~15 minutes)
+## Problem
 
-1. Install [brainchillz firmware + base UCM](https://github.com/brainchillz/asus-proart-px13-linux-speaker-fix) and **reboot**.
-2. Follow **[INSTALL.md](INSTALL.md)** — kernel tree, patches, rebuild, reboot.
-3. Validate after suspend (see INSTALL).
-
-**Do not enable** `px13-audio-resume.service` together with these kernel patches — it causes Dummy Output.
+The ProArt PX13 loses **internal speaker audio** after **s2idle suspend** (and related SoundWire / firmware issues on cold boot). PipeWire may show a Speaker sink while output is silent.
 
 ---
 
-## Repository layout
+## Verified (PX13 HN7306EAC)
 
-```text
-README.md              ← you are here
-INSTALL.md             ← step-by-step install
-PATCHES.md             ← what each patch does
-docs/ARCHITECTURE.md   ← how the stack fits together
-docs/TROUBLESHOOTING.md
-maintainer/            ← short notes for kernel maintainers
-patches/               ← post-sleep playback patch (+ upstream/ series)
-scripts/               ← build/install only
+| Capability | Status |
+|------------|--------|
+| Cold boot playback (stereo) | ✔ |
+| Suspend/resume playback | ✔ |
+| Internal microphone (GNOME / PipeWire) | ✔ |
+| Headset microphone | ✔ |
+| Headphone playback (jack) | ✔ |
+| GNOME audio settings | ✔ |
+| PipeWire daily use | ✔ |
+
+## Known limitations
+
+- **ALSA read/write capture** after S2 (`arecord` direct) — fails; PipeWire/MMAP capture works
+- **SmartAmp PIN4 capture** — not a user microphone path; kernel may log prepare `-22`
+- **Hibernate / hybrid-sleep** — not validated (s2idle only)
+- **Kernel module rebuild** required after each kernel upgrade
+
+Full investigation history: branch **`resolution/bruteforce`**.
+
+---
+
+## Install (~15 min)
+
+**Prerequisite:** [brainchillz firmware + UCM](https://github.com/brainchillz/asus-proart-px13-linux-speaker-fix) — extract `.bin` files, run `./fix-px13-audio.sh`, reboot.
+
+Then follow **[INSTALL.md](INSTALL.md)**.
+
+**Important:** disable `px13-audio-resume.service` when using these kernel patches (see INSTALL).
+
+---
+
+## Verify
+
+```bash
+speaker-test -D pipewire -c 2 -t sine -f 440 -l 1          # cold boot
+systemctl suspend && sleep 10
+speaker-test -D pipewire -c 2 -t sine -f 440 -l 1          # after wake
 ```
 
+See **[VALIDATION.md](VALIDATION.md)** for the full checklist.
+
 ---
 
-## Full investigation history
+## Docs
 
-All experiments, W-series lab notes, and reproducibility scripts live on branch **`resolution/bruteforce`** — not on `main`.
-
-Maintainers: start with [maintainer/ROOT_CAUSE.md](maintainer/ROOT_CAUSE.md), then switch branch if you need the full lab notebook.
+| File | Purpose |
+|------|---------|
+| [INSTALL.md](INSTALL.md) | Copy-paste commands |
+| [VALIDATION.md](VALIDATION.md) | What works / known issues |
+| [PATCHES.md](PATCHES.md) | What each patch does |
+| [docs/architecture.md](docs/architecture.md) | Hardware stack |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Common failures |
 
 ---
 
 ## License
 
-Documentation and scripts: [MIT](LICENSE). Kernel patches: **GPL-2.0-only** (same as Linux).
+Docs and scripts: [MIT](LICENSE). Kernel patches: **GPL-2.0-only**.

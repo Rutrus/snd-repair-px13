@@ -1,74 +1,94 @@
-# Installation — ProArt PX13
+# Installation
 
-English · **~15 min** after firmware is installed.
-
-**Hardware:** ASUS ProArt PX13 HN7306EAC · kernel **7.0+**  
-**Prerequisites:** [docs/PREREQUISITES.md](docs/PREREQUISITES.md)
+**Hardware:** ASUS ProArt PX13 HN7306EAC  
+**Kernel:** 7.0+ (tested `7.0.0-27-generic`)
 
 ---
 
-## 1. Userspace (once)
+## Requirements
 
-Use [brainchillz/asus-proart-px13-linux-speaker-fix](https://github.com/brainchillz/asus-proart-px13-linux-speaker-fix):
+```bash
+sudo apt install \
+  build-essential flex bison libssl-dev libelf-dev dwarves bc zstd \
+  linux-headers-$(uname -r) \
+  linux-source-$(uname -r | cut -d- -f1-2) \
+  git alsa-utils
+```
 
-- Extract TAS2783 firmware blobs into that repo
-- Run `./fix-px13-audio.sh`
-- **Reboot**
+Disk: ~4 GB free for kernel source under `build/`.
 
-Disable the brainchillz resume PCI reset if you will use this repo’s kernel stack:
+---
+
+## 1. Firmware (once)
+
+[brainchillz/asus-proart-px13-linux-speaker-fix](https://github.com/brainchillz/asus-proart-px13-linux-speaker-fix):
+
+1. Extract `1714-1-8.bin` and `1714-1-B.bin` into `firmware/`
+2. `./fix-px13-audio.sh`
+3. **Reboot**
+
+---
+
+## 2. Clone and kernel tree (once)
+
+```bash
+git clone https://github.com/Rutrus/snd-repair-px13.git
+cd snd-repair-px13
+./scripts/prepare-kernel-tree.sh
+```
+
+---
+
+## 3. Disable conflicting userspace service (once)
 
 ```bash
 sudo systemctl disable --now px13-audio-resume.service
 ```
 
+Do **not** combine `px13-audio-resume` with the kernel patches below.
+
 ---
 
-## 2. Kernel source tree (once per machine)
+## 4. Build kernel modules (each new kernel)
+
+Base driver fixes (stereo, firmware retry, system-sleep reload):
 
 ```bash
-git clone <this-repo> snd_repair && cd snd_repair
-./scripts/prepare-kernel-tree.sh    # needs linux-source package; see PREREQUISITES
+sudo ./scripts/apply-upstream-patches.sh
+sudo ./scripts/build-from-upstream.sh
 ```
 
----
-
-## 3. Apply patches and build (each new kernel)
+Post-suspend fixes:
 
 ```bash
-sudo ./scripts/apply-upstream-patches.sh      # stereo, FW retry, system-sleep reload
-sudo ./scripts/build-from-upstream.sh         # tas2783 + sdw_utils modules
-
-sudo ./scripts/build-upstream-post-sleep-reinit.sh   # fix silent speakers after S2
-sudo ./scripts/build-amd-soundwire-resume.sh         # SoundWire attach after S2
-
-sudo ./scripts/install-ucm-px13.sh            # internal mic in GNOME (once)
-sudo reboot
+sudo ./scripts/build-upstream-post-sleep-reinit.sh    # patch 0001 — speaker playback after S2
+sudo ./scripts/build-amd-soundwire-resume.sh          # patch 0002 — SoundWire after S2
 ```
 
-After a **kernel upgrade**, repeat section 3 only (not firmware/UCM).
+Internal microphone in GNOME (once):
+
+```bash
+sudo ./scripts/install-ucm-px13.sh
+```
+
+**Reboot.**
 
 ---
 
-## 4. Validate
-
-**Cold boot:**
+## 5. Verify
 
 ```bash
 wpctl status | head -20
 speaker-test -D pipewire -c 2 -t sine -f 440 -l 1
-```
 
-**After suspend:**
-
-```bash
 systemctl suspend
 # wake, wait ~10 s
 speaker-test -D pipewire -c 2 -t sine -f 440 -l 1
 ```
 
-Pass = **audible tone** on both channels. See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) if not.
+See [VALIDATION.md](VALIDATION.md).
 
-Direct ALSA check (stop PipeWire first if `EBUSY`):
+Direct ALSA (if `EBUSY`, stop PipeWire first):
 
 ```bash
 systemctl --user stop wireplumber pipewire pipewire-pulse
@@ -78,6 +98,28 @@ systemctl --user start pipewire pipewire-pulse wireplumber
 
 ---
 
-## Patch details
+## After kernel upgrade
 
-See [PATCHES.md](PATCHES.md) and [maintainer/DESIGN.md](maintainer/DESIGN.md).
+Repeat **section 4** only (not firmware / UCM).
+
+```bash
+sudo ./scripts/reset-kernel-tree.sh
+sudo ./scripts/apply-upstream-patches.sh
+sudo ./scripts/build-from-upstream.sh
+sudo ./scripts/build-upstream-post-sleep-reinit.sh
+sudo ./scripts/build-amd-soundwire-resume.sh
+sudo reboot
+```
+
+Check module matches running kernel:
+
+```bash
+modinfo snd_soc_tas2783_sdw | grep vermagic
+uname -r
+```
+
+---
+
+## Patch reference
+
+[PATCHES.md](PATCHES.md)

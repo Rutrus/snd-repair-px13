@@ -8,17 +8,14 @@ SmartAmp playback path non-functional on some platforms (e.g. dual-TAS2783
 SoundWire laptops). A second fw_reinit() at the first real playback hw_params
 — when clocks, DAPM, and stream ports are prepared — restores stereo output.
 
-Validated on ASUS ProArt PX13 (kernel 7.0): W4 showed identical register
-readback vs cold boot; W5/W6/W8 showed the same fw_reinit() succeeds when
-deferred to stream setup. W6 timer success was a readiness proxy, not a
-magic delay. W8 hw_params with 0 ms artificial delay + stereo ear confirm.
+Validated on ASUS ProArt PX13 (kernel 7.0): identical register readback in
+pass vs fail states; the same fw_reinit() succeeds when deferred to stream
+setup. Event-driven hook at first hw_params (0 ms artificial delay) restores
+stereo L+R.
 
 Arm resume_playback_reinit_pending after the resume-path fw_reinit(); run
 one additional fw_reinit() on the first hw_params only, then clear the flag.
 Clear the flag on system suspend and UNATTACHED.
-
-Follow-up (not in this patch): evaluate skipping the early resume-path
-fw_reinit() entirely and performing a single init at hw_params (Option C).
 
 Signed-off-by: snd-repair <snd-repair@local>
 ---
