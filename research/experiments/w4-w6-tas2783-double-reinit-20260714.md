@@ -46,17 +46,9 @@ Evidence: `validation/w5-double-reinit-20260714-004420/` (local snapshot; regene
 
 ---
 
-## W6 — next experiment (after W5 5/5)
+## W6 — closed (superseded by W8 / upstream)
 
-**Prerequisite:** [w5-reproducibility-protocol.md](w5-reproducibility-protocol.md) — 5/5 manual reinit PASS.
-
-Minimal timer test (not full sweep):
-
-```bash
-sudo ./scripts/w6-minimal-sweep.sh
-```
-
-See [w6-deferred-reinit-protocol.md](w6-deferred-reinit-protocol.md).
+Timer mode validated timing-as-proxy only. Event hook preferred — see [SOLUTION-CLOSURE-TAS2783-POST-S2-20260714.md](../SOLUTION-CLOSURE-TAS2783-POST-S2-20260714.md).
 
 ---
 

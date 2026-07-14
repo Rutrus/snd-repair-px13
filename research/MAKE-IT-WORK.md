@@ -4,6 +4,8 @@ English (canonical). **Primary project objective** as of 2026-07-12.
 
 > **KPI-U: CLOSED (2026-07-12)** — S2×3 PASS with `post-s2-persistence-run.sh 3`. See [SOLUTION-CLOSURE-KPI-U-20260712.md](SOLUTION-CLOSURE-KPI-U-20260712.md) and [experiments/kpi-u-s2x3-pass-20260712.md](experiments/kpi-u-s2x3-pass-20260712.md).
 
+> **TAS2783 post-S2 silent playback: CLOSED (2026-07-14)** — upstream `hw_params` one-shot 2nd `fw_reinit()`. See [SOLUTION-CLOSURE-TAS2783-POST-S2-20260714.md](SOLUTION-CLOSURE-TAS2783-POST-S2-20260714.md).
+
 > **KPI-K (upstream):** direct `arecord` RW fails post-S2; MMAP passes — [experiments/capture-access-matrix-20260712.md](experiments/capture-access-matrix-20260712.md). Not user-blocking.
 
 **Dual lanes:** [capture-sdw/README.md](capture-sdw/README.md) — functional fixes (P0) parallel to SDW investigation (P1).
@@ -77,9 +79,10 @@ systemctl --user restart wireplumber pipewire
 | W4 | More IRQ instrumentation | ★☆☆☆☆ | **Frozen** (C1 closed) |
 | **W4′** | TAS2783 lifecycle + readback trace | ★★★★☆ | **Done** — identical PASS/FAIL ([summary](experiments/w4-w6-tas2783-double-reinit-20260714.md)) |
 | **W5** | Second manual `fw_reinit()` post-S2 | ★★★★★ | **Reproducible** — PASS ([results](experiments/w5-w6-results-20260714.md)) |
-| **W6** | Deferred 2nd reinit | ★★★★☆ | **3000 ms PASS**, 0 ms FAIL — test 1500 ms for threshold |
-| **W7** | ms timeline W2/W5/playback | ★★★★☆ | Installed — capture on S2 |
-| **W8** | Context 2nd reinit (hw_params/dapm) | ★★★★★ | **Active** — time vs pipeline |
+| **W6** | Deferred 2nd reinit | ★★★★☆ | **Closed** — 3000 ms = timing proxy; superseded by W8 |
+| **W7** | ms timeline W2/W5/playback | ★★★★☆ | **Done** — anchors for upstream narrative |
+| **W8** | Context 2nd reinit (hw_params) | ★★★★★ | **Done** — stereo PASS @ 0 ms |
+| **Upstream** | `resume_playback_reinit_pending` | ★★★★★ | **Done** — S2 PASS + clean reinstall ([closure](SOLUTION-CLOSURE-TAS2783-POST-S2-20260714.md)) |
 
 **Causal tree after W1:**
 

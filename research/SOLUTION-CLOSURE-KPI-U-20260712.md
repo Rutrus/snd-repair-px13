@@ -8,7 +8,7 @@
 
 **The laptop audio goal for normal desktop use is met** after suspend/resume for **capture and software playback checks**, validated S2×3 with PipeWire untouched.
 
-> **Caveat (2026-07-12 evening):** [silent playback incident](experiments/post-s2-silent-playback-recovery-20260712.md) — W1+W2 without `px13-audio-resume` can leave **speakers mute** while KPI-U PASS. **Keep resume service enabled**; verify **audibly**.
+> **Caveat (2026-07-12 evening):** [silent playback incident](experiments/post-s2-silent-playback-recovery-20260712.md) — W1+W2 without `px13-audio-resume` can leave **speakers mute** while KPI-U PASS. **Resolved 2026-07-14** with upstream `hw_params` reinit — [SOLUTION-CLOSURE-TAS2783-POST-S2-20260714.md](SOLUTION-CLOSURE-TAS2783-POST-S2-20260714.md). Until that module is installed, verify **audibly** or keep `px13-audio-resume` as fallback.
 
 | Layer | Post-S2 status |
 |-------|----------------|

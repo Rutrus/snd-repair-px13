@@ -1,6 +1,6 @@
 # Upstream draft — TAS2783 post-S2 silent playback
 
-English (canonical). **Status:** W8 hw-params validated (stereo L+R); upstream patch candidate ready.
+English (canonical). **Status:** **CLOSED** — upstream candidate validated post-S2 + clean reinstall. See [SOLUTION-CLOSURE-TAS2783-POST-S2-20260714.md](../SOLUTION-CLOSURE-TAS2783-POST-S2-20260714.md).
 
 **Hardware:** ASUS ProArt PX13 (TAS2783 SmartAmp ×2, uid `0x8` Left / `0xb` Right)  
 **Kernel:** Linux 7.0 + SOF/SDW stack
@@ -129,8 +129,22 @@ Applies on top of existing kernel tree via `scripts/apply-upstream-post-sleep-hw
 | W6 timer 3000 ms | PASS | ret=0 both uid | Time proxy |
 | W6 timer 0 ms | FAIL | W2 only | Control |
 | W8 hw-params @ 15:57 | **PASS L+R** | W8 ret=0 both uid | PW masked; `-s 1`/`-s 2` confirm |
+| **Upstream candidate** @ 16:24 | **PASS** | `resume_playback_reinit_pending` | `build-upstream-post-sleep-reinit.sh` on W2–W8 tree |
 
 Full table: [../experiments/w8-context-results.md](../experiments/w8-context-results.md)
+
+### Clean reinstall from commit
+
+`linux-source-*/` is **gitignored** — `git checkout -- …/tas2783-sdw.c` does not apply.
+
+```bash
+git checkout resolution/bruteforce   # fc5a94c + 5ebce3b
+
+sudo ./scripts/reset-kernel-tree.sh
+sudo ./scripts/apply-upstream-patches.sh
+sudo ./scripts/build-upstream-post-sleep-reinit.sh
+sudo reboot
+```
 
 ---
 
