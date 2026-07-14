@@ -1,7 +1,5 @@
 # Prerequisites
 
-> **English** | [Español](es/PREREQUISITOS.md)
-
 ---
 
 ## Hardware
@@ -78,7 +76,7 @@ sudo apt install git-email
 # kernel tree with scripts/checkpatch.pl (from full linux git clone)
 ```
 
-See [`../upstream/docs/PRE-SUBMIT-CHECKLIST.md`](../upstream/docs/PRE-SUBMIT-CHECKLIST.md).
+See branch **`resolution/bruteforce`** (`upstream/docs/`) for upstream submission checklists.
 
 ---
 

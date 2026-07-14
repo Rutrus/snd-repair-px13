@@ -1,0 +1,55 @@
+From: snd-repair <snd-repair@local>
+Date: Tue, 14 Jul 2026 16:50:00 +0200
+Subject: [PATCH] soundwire: amd: kick IRQ worker when masked status pending after resume
+
+On ACP7.x laptops (e.g. ASUS ProArt PX13), ACP EXTERNAL_INTR_STAT can show
+a pending SoundWire manager interrupt after system resume while the shared
+IRQ handler never runs. SoundWire enumeration then stalls until a second
+suspend/resume cycle.
+
+If STAT & manager_mask is non-zero after returning the manager to D0, schedule
+the existing amd_sdw_irq_thread work item so handle_status / ATTACHED proceeds.
+
+Validated on kernel 7.0 (PX13): codecs attach after S2 without a second cycle.
+
+Signed-off-by: snd-repair <snd-repair@local>
+---
+ drivers/soundwire/amd_manager.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/drivers/soundwire/amd_manager.c b/drivers/soundwire/amd_manager.c
+--- a/drivers/soundwire/amd_manager.c
++++ b/drivers/soundwire/amd_manager.c
+@@ -1305,6 +1305,24 @@ static int __maybe_unused amd_suspend_runtime(struct device *dev)
+ 	return 0;
+ }
+ 
++
++/* Kick deferred IRQ processing when masked status is already pending after resume. */
++static void amd_sdw_kick_irq_if_pending(struct amd_sdw_manager *amd_manager)
++{
++	void __iomem *acp = amd_manager->acp_mmio;
++	unsigned int inst = amd_manager->instance;
++	u32 manager_mask = sdw_manager_reg_mask_array[inst];
++	u32 stat, pending;
++
++	if (!acp)
++		return;
++
++	stat = readl(acp + ACP_EXTERNAL_INTR_STAT(inst));
++	pending = stat & manager_mask;
++	if (pending)
++		schedule_work(&amd_manager->amd_sdw_irq_thread);
++}
++
+ static int __maybe_unused amd_resume_runtime(struct device *dev)
+ {
+ 	struct amd_sdw_manager *amd_manager = dev_get_drvdata(dev);
+@@ -1358,6 +1376,7 @@ static int __maybe_unused amd_resume_runtime(struct device *dev)
+ 		ret = amd_sdw_set_device_state(amd_manager, AMD_SDW_DEVICE_STATE_D0);
+ 		if (ret)
+ 			return ret;
++		amd_sdw_kick_irq_if_pending(amd_manager);
+ 	}
+ 	return 0;
+ }

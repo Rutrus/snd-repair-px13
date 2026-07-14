@@ -3,7 +3,7 @@ Cc: Shenghao Ding <shenghao-ding@ti.com>,
     Kevin Lu <kevin-lu@ti.com>,
     Baojun Xu <baojun.xu@ti.com>,
     Vinod Koul <vkoul@kernel.org>
-Subject: [RFC PATCH 0/2] ASoC: tas2783: mitigate intermittent firmware download failures
+Subject: [RFC PATCH 0/3] ASoC: tas2783: mitigate intermittent firmware download failures
 
 Hi,
 
@@ -29,12 +29,17 @@ Before patches: ~50% FW failure rate on second slave.
 After patches (boot 7): 0 failures in limited sample (n=1 post-fix boot).
 
 This series adds:
-  1/2 — bounded retries on -ETIMEDOUT/-EAGAIN during FW write
-  2/2 — wait in hw_params until async FW load completes
+  1/3 — bounded retries on -ETIMEDOUT/-EAGAIN during FW write
+  2/3 — wait in hw_params until async FW load completes
+  3/3 — reload FW after system sleep (invalidate hw_init on suspend)
 
-Not yet completed: 20–30 reboot matrix, suspend/resume, 44.1/48/96 kHz,
-buffer size sweep (see VALIDATION-TODO.md). Open question: should retries
-live in the codec driver or in the SoundWire bus layer?
+Suspend/resume (post-0003, same hardware, kernel 7.0.0-27): 6/6 cycles with
+both TAS2783 slaves FW OK (validation matrix boots #30–#35). PM -110 on
+resume may still occur; platform recovery (PCI reset) remains in use.
+
+Not yet completed: cold-boot matrix at scale, 44.1/48/96 kHz sweep (see
+VALIDATION-TODO.md). Open question: should retries live in the codec driver
+or in the SoundWire bus layer?
 
 Thanks,
 [your name]

@@ -1,11 +1,11 @@
-# Árbol de fuentes del kernel (descargar con scripts/prepare-kernel-tree.sh)
+# Kernel source tree (scripts/prepare-kernel-tree.sh)
 linux-source-*/
 build/
 
-# Paquetes .deb de fuentes
+# Kernel source packages
 linux-source-*.deb
 
-# Artefactos de compilación
+# Build artifacts
 *.ko
 *.ko.zst
 *.o
@@ -13,28 +13,57 @@ linux-source-*.deb
 Module.symvers
 modules.order
 .tmp_versions/
+*.snd-repair-*
 
-# Backups locales de módulos
+# Local module backups
 *.ko.zst.orig
 
-# Logs de validación locales (mantener validation/fw-matrix.csv si se desea versionar)
-validation/boot-logs/*.log
+# ---------------------------------------------------------------------------
+# Reproducible validation outputs — regenerate with hunt/sweep scripts.
+# See validation/README.md and scripts/phase6-hunt.sh
+# ---------------------------------------------------------------------------
 validation/.state/
+validation/boot-logs/*.log
+validation/phase6-runs/hunt-*/
+validation/phase6-runs/run-*/
 
-# Investigación ACPI (volcados grandes, regenerables)
+# Aggregated CSVs (append-only hunt logs; reproducible from runs)
+validation/phase6-hunt-log.csv
+validation/phase6-chronology.csv
+validation/phase6-events.csv
+validation/phase6-kmsg-events.csv
+validation/resume-matrix.csv
+validation/fw-matrix.csv
+validation/fw-summary.md
+
+# Post-S2 / capture witness run outputs (regenerable; see scripts/post-s2-*.sh)
+validation/post-s2-user-witness/
+validation/post-s2-witness/
+validation/post-s2-kernel-witness/
+validation/capture-probe-*/
+validation/capture-access-matrix*/
+validation/capture-client-matrix*/
+validation/pw-vs-alsa-diff-*/
+validation/sdwcap-lifecycle-post-s2-*/
+validation/post-s2-persistence-kpi-u-*.log
+validation/post-s2-persistence-kpi-u-*.csv
+validation/post-s2-persistence-kpi-u-*.result
+
+# ACPI debug dumps (large, regenerable)
 research/acpi_debug/
 research/snapshots/*
 !research/snapshots/.gitkeep
 
-# Copias locales de prueba upstream (regenerables)
+# Upstream test apply trees
 upstream/_test/
 upstream/_test-apply/
+research/make-it-work/patches/.w4-work/
 
-# Firmware propietario (nunca versionar)
+# Proprietary firmware — never commit
 firmware/
 *.bin
 
-# Temporales
+# Temp / logs
 /tmp/
 *.log
 *~
@@ -42,3 +71,4 @@ firmware/
 # Editor / OS
 .DS_Store
 *.swp
+.cursor/

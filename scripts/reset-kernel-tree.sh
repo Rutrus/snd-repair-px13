@@ -48,10 +48,12 @@ trap 'rm -rf "$TMP"' EXIT
 echo "    Extracting from prefix: $PREFIX"
 tar -xf "$TARBALL" -C "$TMP" \
 	"$PREFIX/sound/soc/codecs/tas2783-sdw.c" \
-	"$PREFIX/sound/soc/sdw_utils"
+	"$PREFIX/sound/soc/sdw_utils" \
+	"$PREFIX/drivers/soundwire/amd_manager.c"
 
 cp -a "$TMP/$PREFIX/sound/soc/codecs/tas2783-sdw.c" sound/soc/codecs/
 cp -a "$TMP/$PREFIX/sound/soc/sdw_utils/." sound/soc/sdw_utils/
+cp -a "$TMP/$PREFIX/drivers/soundwire/amd_manager.c" drivers/soundwire/
 
 if grep -q ENZOPLAY sound/soc/codecs/tas2783-sdw.c 2>/dev/null; then
 	echo "Reset failed: ENZOPLAY still present in tas2783-sdw.c" >&2

@@ -1,17 +1,15 @@
 # Upstream patches — ASUS ProArt PX13 / TAS2783 SoundWire
 
-> **English** | [Español](README.es.md)
-
 Four **independent** series. **Do not send A and C on the same day.**
 
 | Series | Issue | Directory | When to send |
 |--------|-------|-----------|--------------|
 | A | Capture without `source_ports` | `series-A-capture/` | **Now** |
-| C | Multicodec `ch_mask` | `series-C-channel-map/` | After `docs/SERIE-C-DEFENSE.md` |
+| C | Multicodec `ch_mask` | `series-C-channel-map/` | After maintainer review |
 | B | FW `-110` | `series-B-firmware/` | RFC + 20–30 boot matrix |
-| D | Investigation | `docs/` | On request |
+| D | Investigation | branch `resolution/bruteforce` | On request |
 
-See **`SUBMISSION-PLAN.md`** for schedule, recipients, and checkpatch.
+Submission schedule, checklists, and full investigation log: branch **`resolution/bruteforce`** (`upstream/docs/`, `SUBMISSION-PLAN.md`).
 
 ## Apply (on vanilla tree, e.g. linux 6.15+ / 7.0)
 
@@ -40,8 +38,11 @@ Regenerate raw diffs: `./scripts/generate-upstream-patches.sh`
 
 ## Documentation (Series D)
 
-- `docs/INVESTIGATION-SUMMARY.md` — timeline, ruled-out hypotheses, evidence
-- `docs/PRE-SUBMIT-CHECKLIST.md` — four pre-submit questions per series
-- `docs/MAINTAINER-REVIEW.md` — checkpatch, recipients, series C FAQ, FW matrix
-- [`../docs/TECHNICAL-REVIEW.md`](../docs/TECHNICAL-REVIEW.md) — maintainer-style review (facts vs hypotheses)
-- [`../docs/expert-report.md`](../docs/expert-report.md) — full investigation log (750+ lines)
+On branch **`resolution/bruteforce`**:
+
+- `upstream/docs/INVESTIGATION-SUMMARY.md`
+- `upstream/docs/PRE-SUBMIT-CHECKLIST.md`
+- `upstream/docs/MAINTAINER-REVIEW.md`
+- `docs/expert-report.md` — full investigation log
+
+On **`main`**: [maintainer/](../maintainer/) — short root cause and patch design.

@@ -1,7 +1,5 @@
 # Stage 1 — ASUS firmware installation
 
-> **English** | [Español](es/01-instalacion-firmware.md)
-
 Built-in speakers on the ProArt PX13 require **proprietary TAS2783 calibration firmware** (`1714-1-8.bin`, `1714-1-B.bin`) that Linux does not ship. They are embedded in the official ASUS SmartAmp installer.
 
 **Legal:** firmware files are not redistributed in this repository. Obtain them from the official ASUS driver.
