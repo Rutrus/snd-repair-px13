@@ -37,8 +37,8 @@ journalctl -k -b 0 | grep -i tas2783
 **Check:**
 
 ```bash
-strings /lib/modules/$(uname -r)/kernel/sound/soc/codecs/snd-soc-tas2783-sdw.ko.zst | \
-  zstdcat | strings | grep -F 'post-sleep playback fw_reinit failed' || echo "rebuild 0001"
+zstdcat /lib/modules/$(uname -r)/kernel/sound/soc/codecs/snd-soc-tas2783-sdw.ko.zst | \
+  strings | grep -F 'post-sleep playback fw_reinit failed' || echo "rebuild 0001"
 ```
 
 **Fix:**
@@ -59,7 +59,44 @@ systemctl --user start pipewire pipewire-pulse wireplumber
 
 ---
 
-## Only left or right speaker
+## Patch 0002 not installed
+
+**Symptoms:**
+
+- `build-amd-soundwire-resume.sh` exits with `ERROR: 0002 marker not found in .../soundwire-amd.ko`
+- Verification prints nothing:
+
+```bash
+zstdcat /lib/modules/$(uname -r)/kernel/drivers/soundwire/soundwire-amd.ko.zst | \
+  strings | grep amd_sdw_kick_irq_if_pending && echo OK
+```
+
+- Installed module still shows lab strings:
+
+```bash
+zstdcat /lib/modules/$(uname -r)/kernel/drivers/soundwire/soundwire-amd.ko.zst | \
+  strings | grep PHASE7 && echo "lab module — replace"
+```
+
+If `build-amd-soundwire-resume.sh` prints `ERROR: 0002 marker not found in .../soundwire-amd.ko`:
+
+- **Cause:** stale `soundwire-amd.o` in the build tree, or `amd_manager.c` still contaminated with phase7 from the lab branch.
+- **Not installed:** script exits before copying to `/lib/modules` — old module remains loaded after reboot.
+
+**Fix:**
+
+```bash
+sudo ./scripts/reset-kernel-tree.sh
+sudo ./scripts/apply-upstream-patches.sh
+sudo ./scripts/build-from-upstream.sh
+sudo ./scripts/build-upstream-post-sleep-reinit.sh
+sudo ./scripts/build-amd-soundwire-resume.sh
+sudo reboot
+```
+
+After reboot, expect `0002 OK` from [VALIDATION.md](../VALIDATION.md).
+
+---
 
 **Cause:** Series C channel-map patch not applied.
 

@@ -51,6 +51,10 @@ Do **not** combine `px13-audio-resume` with the kernel patches below.
 
 ## 4. Build kernel modules (each new kernel)
 
+> **PX13 / colosal3:** before installing or booting a new kernel ABI, apply the update-safety gate (GRUB menu escape hatch, block unattended `linux-*`, keep ≥2 images, smoke-test).  
+> Checklist: [fix-gate-kernel-updates.md](../rutrus_workspace/utils/reparar/docs/2026-07-17-fix-gate-kernel-updates.md)  
+> Script: `~/rutrus_workspace/utils/reparar/scripts/apply-kernel-safety.sh`
+
 Base driver fixes (stereo, firmware retry, system-sleep reload):
 
 ```bash
@@ -71,7 +75,7 @@ Internal microphone in GNOME (once):
 sudo ./scripts/install-ucm-px13.sh
 ```
 
-**Reboot.**
+**Reboot** only after the gate smoke checks (GRUB menu available; prefer X11 on first boot of a new ABI).
 
 ---
 
@@ -100,7 +104,23 @@ systemctl --user start pipewire pipewire-pulse wireplumber
 
 ## After kernel upgrade
 
-Repeat **section 4** only (not firmware / UCM).
+Out-of-tree modules from this project are **ABI-specific**. A new `linux-image-*` without a rebuild leaves stock SoundWire drivers (or stale modules) and can reintroduce cold-boot / s2idle regressions.
+
+### Prevent auto-boot into an unvalidated kernel (once per machine)
+
+On PX13, an automatic HWE/security kernel install + `GRUB_DEFAULT=0` / hidden timeout boots the newest ABI on the next reboot with no escape hatch. Apply once:
+
+```bash
+sudo ~/rutrus_workspace/utils/reparar/scripts/apply-kernel-safety.sh
+```
+
+That sets GRUB menu (~5 s) + `saved` default, blacklists `linux-*` in unattended-upgrades, and holds HWE meta packages. Full checklist: [fix-gate-kernel-updates.md](../rutrus_workspace/utils/reparar/docs/2026-07-17-fix-gate-kernel-updates.md).
+
+### Rebuild for the new ABI
+
+1. Install the new kernel packages **manually** (or temporarily `apt-mark unhold` the metas).
+2. Install matching headers/source, then rebuild **before** rebooting into the new ABI when possible (or boot the new kernel once, rebuild, reboot again).
+3. Repeat **section 4** only (not firmware / UCM):
 
 ```bash
 sudo ./scripts/reset-kernel-tree.sh
@@ -108,15 +128,19 @@ sudo ./scripts/apply-upstream-patches.sh
 sudo ./scripts/build-from-upstream.sh
 sudo ./scripts/build-upstream-post-sleep-reinit.sh
 sudo ./scripts/build-amd-soundwire-resume.sh
-sudo reboot
 ```
 
-Check module matches running kernel:
+4. Reboot with GRUB menu available; keep the previous kernel installed until smoke passes.
+5. Smoke (~5 min), then set GRUB default to the new kernel only if OK:
 
 ```bash
-modinfo snd_soc_tas2783_sdw | grep vermagic
 uname -r
+journalctl -b 0 | rg -i 'TAS2783 FW broken|amd-soundwire card missing|Xwayland|SEGV'
+wpctl status | head -40
+modinfo snd_soc_tas2783_sdw | grep vermagic
 ```
+
+Do **not** purge the previous `linux-image-*` until the new ABI is validated for ≥1–2 days.
 
 ---
 

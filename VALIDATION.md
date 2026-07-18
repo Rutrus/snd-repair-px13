@@ -53,11 +53,16 @@ systemctl --user start pipewire pipewire-pulse wireplumber
 **Modules installed**
 
 ```bash
-strings /lib/modules/$(uname -r)/kernel/sound/soc/codecs/snd-soc-tas2783-sdw.ko.zst | \
-  zstdcat | strings | grep -F 'post-sleep playback fw_reinit failed' && echo "0001 OK"
-strings /lib/modules/$(uname -r)/kernel/drivers/soundwire/soundwire-amd.ko.zst | \
-  zstdcat | strings | grep -F 'amd_sdw_kick_irq_if_pending' && echo "0002 OK"
+# 0001
+zstdcat /lib/modules/$(uname -r)/kernel/sound/soc/codecs/snd-soc-tas2783-sdw.ko.zst | \
+  strings | grep -F 'post-sleep playback fw_reinit failed' && echo "0001 OK"
+
+# 0002
+zstdcat /lib/modules/$(uname -r)/kernel/drivers/soundwire/soundwire-amd.ko.zst | \
+  strings | grep -F 'amd_sdw_kick_irq_if_pending' && echo "0002 OK"
 ```
+
+If build failed with `0002 marker not found`, the module in `/lib/modules` was **not** updated — see [troubleshooting](docs/troubleshooting.md#patch-0002-not-installed).
 
 ---
 
