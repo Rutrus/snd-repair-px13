@@ -1,0 +1,144 @@
+From: snd-repair <snd-repair@local>
+Date: Sun, 19 Jul 2026 11:30:00 +0200
+Subject: [PATCH] soundwire: amd: delayed resume enum re-kick (H7)
+
+Immediate force-ping after D0 (0003) still leaves slaves UNATTACHED when
+ACP/bus is not ready. Schedule a second ping+status work after 40 ms —
+same race class as TAS W8, one layer down.
+
+Uses static delayed_work tables so the overlay builds against stock
+sdw_amd.h (cannot grow struct amd_sdw_manager).
+
+Marker: "snd_repair resume enum kick delayed"
+
+Signed-off-by: snd-repair <snd-repair@local>
+---
+--- a/drivers/soundwire/amd_manager.c
++++ b/drivers/soundwire/amd_manager.c
+@@ -25,8 +25,20 @@
+ 
+ #define DRV_NAME "amd_sdw_manager"
+ 
++/* H7: re-ping after resume settle; same class of race as TAS W8, one layer down.
++ * delayed_work lives in static tables — overlay builds against stock headers
++ * and cannot grow struct amd_sdw_manager.
++ */
++#define AMD_SDW_RESUME_ENUM_RETRY_MS 40
++
+ #define to_amd_sdw(b)	container_of(b, struct amd_sdw_manager, bus)
+ 
++static struct delayed_work amd_sdw_enum_retry_works[AMD_SDW_MAX_MANAGER_COUNT];
++static struct amd_sdw_manager *amd_sdw_enum_retry_mgr[AMD_SDW_MAX_MANAGER_COUNT];
++static bool amd_sdw_enum_retry_inited[AMD_SDW_MAX_MANAGER_COUNT];
++
++static void amd_sdw_enum_retry_work(struct work_struct *work);
++
+ static int amd_init_sdw_manager(struct amd_sdw_manager *amd_manager)
+ {
+ 	u32 val;
+@@ -1077,9 +1089,14 @@
+ static void amd_sdw_manager_remove(struct platform_device *pdev)
+ {
+ 	struct amd_sdw_manager *amd_manager = dev_get_drvdata(&pdev->dev);
++	unsigned int inst = amd_manager->instance;
+ 	int ret;
+ 
+ 	pm_runtime_disable(&pdev->dev);
++	if (inst < AMD_SDW_MAX_MANAGER_COUNT) {
++		cancel_delayed_work_sync(&amd_sdw_enum_retry_works[inst]);
++		amd_sdw_enum_retry_mgr[inst] = NULL;
++	}
+ 	cancel_work_sync(&amd_manager->amd_sdw_work);
+ 	amd_disable_sdw_interrupts(amd_manager);
+ 	sdw_bus_master_delete(&amd_manager->bus);
+@@ -1216,6 +1233,9 @@
+ 	}
+ 
+ 	if (amd_manager->power_mode_mask & AMD_SDW_CLK_STOP_MODE) {
++		if (amd_manager->instance < AMD_SDW_MAX_MANAGER_COUNT)
++			cancel_delayed_work_sync(
++				&amd_sdw_enum_retry_works[amd_manager->instance]);
+ 		cancel_work_sync(&amd_manager->amd_sdw_work);
+ 		amd_sdw_wake_enable(amd_manager, false);
+ 		if (amd_manager->acp_rev >= ACP70_PCI_REV_ID) {
+@@ -1227,6 +1247,9 @@
+ 		if (ret)
+ 			return ret;
+ 	} else if (amd_manager->power_mode_mask & AMD_SDW_POWER_OFF_MODE) {
++		if (amd_manager->instance < AMD_SDW_MAX_MANAGER_COUNT)
++			cancel_delayed_work_sync(
++				&amd_sdw_enum_retry_works[amd_manager->instance]);
+ 		cancel_work_sync(&amd_manager->amd_sdw_work);
+ 		amd_sdw_wake_enable(amd_manager, false);
+ 		if (amd_manager->acp_rev >= ACP70_PCI_REV_ID) {
+@@ -1309,8 +1332,10 @@
+ /*
+  * After system resume D0: kick IRQ work if latched, and always force a ping
+  * + peripheral status work. Without this, STAT==0 resumes never enumerate.
++ * Also schedule a delayed re-kick (H7): immediate ping can race ACP settle.
+  */
+-static void amd_sdw_kick_irq_if_pending(struct amd_sdw_manager *amd_manager)
++static void amd_sdw_force_enum_kick(struct amd_sdw_manager *amd_manager,
++				   const char *tag)
+ {
+ 	void __iomem *acp = amd_manager->acp_mmio;
+ 	unsigned int inst = amd_manager->instance;
+@@ -1325,9 +1350,14 @@
+ 	sc07 = readl(amd_manager->mmio + ACP_SW_STATE_CHANGE_STATUS_0TO7);
+ 	sc811 = readl(amd_manager->mmio + ACP_SW_STATE_CHANGE_STATUS_8TO11);
+ 
+-	dev_info(amd_manager->dev,
+-		 "snd_repair resume enum kick: inst=%u stat=0x%x pend=0x%x sc07=0x%x sc811=0x%x\n",
+-		 inst, stat, pending, sc07, sc811);
++	if (tag && tag[0])
++		dev_info(amd_manager->dev,
++			 "snd_repair resume enum kick delayed: inst=%u stat=0x%x pend=0x%x sc07=0x%x sc811=0x%x\n",
++			 inst, stat, pending, sc07, sc811);
++	else
++		dev_info(amd_manager->dev,
++			 "snd_repair resume enum kick: inst=%u stat=0x%x pend=0x%x sc07=0x%x sc811=0x%x\n",
++			 inst, stat, pending, sc07, sc811);
+ 
+ 	if (pending || sc07 || sc811)
+ 		schedule_work(&amd_manager->amd_sdw_irq_thread);
+@@ -1340,6 +1370,40 @@
+ 	schedule_work(&amd_manager->amd_sdw_work);
+ }
+ 
++static void amd_sdw_enum_retry_work(struct work_struct *work)
++{
++	struct delayed_work *dwork = to_delayed_work(work);
++	unsigned int inst = dwork - amd_sdw_enum_retry_works;
++	struct amd_sdw_manager *amd_manager;
++
++	if (inst >= AMD_SDW_MAX_MANAGER_COUNT)
++		return;
++	amd_manager = READ_ONCE(amd_sdw_enum_retry_mgr[inst]);
++	if (!amd_manager)
++		return;
++
++	amd_sdw_force_enum_kick(amd_manager, " delayed");
++}
++
++static void amd_sdw_kick_irq_if_pending(struct amd_sdw_manager *amd_manager)
++{
++	unsigned int inst = amd_manager->instance;
++
++	amd_sdw_force_enum_kick(amd_manager, "");
++
++	if (inst >= AMD_SDW_MAX_MANAGER_COUNT)
++		return;
++
++	if (!amd_sdw_enum_retry_inited[inst]) {
++		INIT_DELAYED_WORK(&amd_sdw_enum_retry_works[inst],
++				  amd_sdw_enum_retry_work);
++		amd_sdw_enum_retry_inited[inst] = true;
++	}
++	WRITE_ONCE(amd_sdw_enum_retry_mgr[inst], amd_manager);
++	schedule_delayed_work(&amd_sdw_enum_retry_works[inst],
++			      msecs_to_jiffies(AMD_SDW_RESUME_ENUM_RETRY_MS));
++}
++
+ static int __maybe_unused amd_resume_runtime(struct device *dev)
+ {
+ 	struct amd_sdw_manager *amd_manager = dev_get_drvdata(dev);

@@ -57,14 +57,14 @@ Without this: enumeration may stall after suspend.
 
 ### Patch 0001 — post-sleep playback reinit
 
-After S2, resume-path `fw_reinit()` succeeds but speakers stay silent until the **first playback stream** opens. Patch runs one additional `fw_reinit()` at first `hw_params`.
+After S2, resume-path `fw_reinit()` succeeds but speakers stay silent until a playback `hw_params` that runs the second `fw_reinit()` (0001).
+
+**0001b** adds a second trigger: delayed `post_resume` work (~100 ms) calling the same `run_once()`, so open PipeWire streams recover without a new `hw_params`.
 
 ```text
-S2 resume
-    → firmware reload (resume path)     → silent but ret=0
-    → user opens playback
-    → first hw_params
-    → second fw_reinit (one-shot)       → audio OK
+S2 resume → first fw_reinit → pending
+              ├─ hw_params ──► run_once (second fw_reinit)
+              └─ delayed_work ─► run_once (same)
 ```
 
 ---
@@ -77,6 +77,12 @@ S2 resume
 | Manual PCI reset + patched kernel | Overwrites good driver state |
 
 Use **either** brainchillz PCI resume (stock kernel) **or** this kernel stack — not both.
+
+---
+
+## Install layout
+
+Patched `.ko` files go to `/lib/modules/$(uname -r)/updates/snd_repair/` (depmod prefers `updates/` over in-tree). Stock modules under `kernel/` remain intact for one-command rollback (`snd-repair rollback`).
 
 ---
 

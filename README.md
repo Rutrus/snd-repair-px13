@@ -39,7 +39,15 @@ Full investigation history: branch **`resolution/bruteforce`**.
 
 **Prerequisite:** [brainchillz firmware + UCM](https://github.com/brainchillz/asus-proart-px13-linux-speaker-fix) — extract `.bin` files, run `./fix-px13-audio.sh`, reboot.
 
-Then follow **[INSTALL.md](INSTALL.md)**.
+Then follow **[INSTALL.md](INSTALL.md)** (gate → build → overlay install).
+
+```bash
+./scripts/snd-repair status
+sudo ./scripts/snd-repair gate
+./scripts/snd-repair build
+sudo ./scripts/snd-repair install-modules
+sudo reboot
+```
 
 **Important:** disable `px13-audio-resume.service` when using these kernel patches (see INSTALL).
 

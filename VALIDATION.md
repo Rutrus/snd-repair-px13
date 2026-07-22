@@ -50,19 +50,28 @@ speaker-test -D hw:1,2 -c 2 -r 48000 -t sine -f 440 -s 2 -l 3   # right
 systemctl --user start pipewire pipewire-pulse wireplumber
 ```
 
-**Modules installed**
+**Modules installed** (prefer CLI)
+
+```bash
+./scripts/snd-repair status
+# expect: overlay PRESENT, 0001 OK, 0002 OK, path under updates/snd_repair/
+```
+
+Manual marker check (works for overlay or in-tree):
 
 ```bash
 # 0001
-zstdcat /lib/modules/$(uname -r)/kernel/sound/soc/codecs/snd-soc-tas2783-sdw.ko.zst | \
+modinfo -n snd-soc-tas2783-sdw | xargs zstdcat | \
   strings | grep -F 'post-sleep playback fw_reinit failed' && echo "0001 OK"
 
 # 0002
-zstdcat /lib/modules/$(uname -r)/kernel/drivers/soundwire/soundwire-amd.ko.zst | \
+modinfo -n soundwire-amd | xargs zstdcat | \
   strings | grep -F 'amd_sdw_kick_irq_if_pending' && echo "0002 OK"
 ```
 
-If build failed with `0002 marker not found`, the module in `/lib/modules` was **not** updated — see [troubleshooting](docs/troubleshooting.md#patch-0002-not-installed).
+If build failed with `0002 marker not found`, staging was **not** complete — see [troubleshooting](docs/troubleshooting.md#patch-0002-not-installed).
+
+If `install-modules` claims a **missing 0001/0002 marker** but manual `strings | grep` on staging finds it, see [false-negative marker check](docs/troubleshooting.md#install-modules-missing-0001--0002-marker-false-negative) (fixed in current `lib/modules.sh`).
 
 ---
 
@@ -85,7 +94,9 @@ If build failed with `0002 marker not found`, the module in `/lib/modules` was *
 | SmartAmp PIN4 capture | Kernel log noise only; not the internal mic |
 | Hibernate / hybrid-sleep | Not tested |
 | Proprietary firmware | Not in this repo — from brainchillz / ASUS installer |
-| Per-kernel rebuild | Modules must be rebuilt after `apt` kernel upgrade |
+| Per-kernel rebuild | Overlay under `updates/snd_repair/` must be rebuilt after `apt` kernel upgrade |
+| GRUB without menu | Apply `sudo ./scripts/snd-repair gate` before risky ABI boots |
+| **s2idle (k28)** | Needs overlay **0001b+0003b** (open-stream mute + STAT==0 re-enum). Without them: UNATTACHED/`-110` or silent PCM. Safe recover if UNATTACHED: **cold power** — never live PCI reset. |
 
 ---
 

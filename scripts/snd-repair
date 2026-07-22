@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+# snd-repair — status / gate / build / install / rollback
+# Privileged steps print the exact sudo command when not root.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/modules.sh
+source "$SCRIPT_DIR/lib/modules.sh"
+
+usage() {
+	cat <<EOF
+Usage: $0 <command>
+
+  status           Show overlay, markers, GRUB, conflicts (no root)
+  gate             Apply GRUB escape hatch (needs root)
+  build            Build A+B+C + 0001 + 0002 into staging/ (no root*)
+  install-modules  Copy staging → updates/snd_repair + depmod (needs root)
+  install          build + install-modules
+  rollback         Remove overlay for current ABI (needs root)
+  help             This message
+
+* build may ask for sudo only to fix kernel-tree ownership after a prior root build.
+
+Staging:  $SND_REPAIR_STAGING_DIR
+Overlay:  $SND_REPAIR_OVERLAY_DIR
+EOF
+}
+
+cmd_status() {
+	local tas amd utils
+	echo "=== snd_repair status ==="
+	echo "kernel:     $KVER"
+	echo "staging:    $SND_REPAIR_STAGING_DIR"
+	echo "overlay:    $SND_REPAIR_OVERLAY_DIR"
+	if [[ -d "$SND_REPAIR_OVERLAY_DIR" ]]; then
+		echo "overlay:    PRESENT ($(ls -1 "$SND_REPAIR_OVERLAY_DIR" 2>/dev/null | wc -l) files)"
+	else
+		echo "overlay:    absent"
+	fi
+	if [[ -f "$SND_REPAIR_STATE_DIR/$KVER.state" ]]; then
+		echo "state:      $SND_REPAIR_STATE_DIR/$KVER.state"
+		sed 's/^/  /' "$SND_REPAIR_STATE_DIR/$KVER.state" 2>/dev/null || true
+	else
+		echo "state:      (none)"
+	fi
+	echo ""
+	echo "--- modules (effective path via modinfo) ---"
+	tas="$(resolve_mod_path snd-soc-tas2783-sdw "$SND_REPAIR_OVERLAY_DIR/$MODULE_TAS" "$INTREE_TAS" || true)"
+	amd="$(resolve_mod_path soundwire-amd "$SND_REPAIR_OVERLAY_DIR/$MODULE_AMD" "$INTREE_AMD" || true)"
+	utils="$(resolve_mod_path snd-soc-sdw-utils "$SND_REPAIR_OVERLAY_DIR/$MODULE_UTILS" "$INTREE_UTILS" || true)"
+	echo "tas2783:    ${tas:-missing}"
+	if [[ -n "${tas:-}" ]]; then
+		ko_strings_has "$tas" "$MARKER_0001" && echo "  0001:     OK" || echo "  0001:     MISSING (stock or incomplete)"
+		ko_strings_has "$tas" "$MARKER_0001B" && echo "  0001b:    OK" || echo "  0001b:    MISSING (post-resume dual-trigger not installed)"
+	fi
+	echo "soundwire:  ${amd:-missing}"
+	if [[ -n "${amd:-}" ]]; then
+		ko_strings_has "$amd" "$MARKER_0002" && echo "  0002:     OK" || echo "  0002:     MISSING (stock or incomplete)"
+		ko_strings_has "$amd" "$MARKER_0003" && echo "  0003:     OK" || echo "  0003:     MISSING (force-ping not installed)"
+		ko_strings_has "$amd" "$MARKER_0003B" && echo "  0003b:    OK" || echo "  0003b:    MISSING (delayed kick not installed)"
+	fi
+	echo "sdw-utils:  ${utils:-missing}"
+	echo ""
+	echo "--- staging ---"
+	for f in "$MODULE_TAS" "$MODULE_AMD" "$MODULE_UTILS"; do
+		if [[ -f "$SND_REPAIR_STAGING_DIR/$f" ]]; then
+			echo "  ready: $f"
+		else
+			echo "  miss:  $f"
+		fi
+	done
+	echo ""
+	echo "--- safety ---"
+	echo "GRUB_TIMEOUT=$(grub_var GRUB_TIMEOUT 2>/dev/null || echo '?')"
+	echo "GRUB_TIMEOUT_STYLE=$(grub_var GRUB_TIMEOUT_STYLE 2>/dev/null || echo '?')"
+	echo "GRUB_DEFAULT=$(grub_var GRUB_DEFAULT 2>/dev/null || echo '?')"
+	echo "linux images: $(count_linux_images)"
+	if px13_resume_enabled; then
+		echo "px13-audio-resume: ENABLED (conflict — disable before install)"
+	else
+		echo "px13-audio-resume: disabled/absent"
+	fi
+	if intree_has_legacy_patches; then
+		echo "legacy in-tree: YES (markers in kernel/ — prefer overlay; restore with apt reinstall if needed)"
+	else
+		echo "legacy in-tree: no"
+	fi
+}
+
+cmd_gate() {
+	exec "$SCRIPT_DIR/apply-kernel-safety.sh" "$@"
+}
+
+cmd_build() {
+	preflight_install || true
+	echo "==> Reset + apply upstream A+B+C"
+	"$SCRIPT_DIR/reset-kernel-tree.sh"
+	"$SCRIPT_DIR/apply-upstream-patches.sh"
+	echo "==> Build base modules → staging"
+	"$SCRIPT_DIR/build-from-upstream.sh"
+	echo "==> Build 0001 (post-sleep reinit) → staging"
+	"$SCRIPT_DIR/build-upstream-post-sleep-reinit.sh"
+	echo "==> Build 0002 (AMD resume kick) → staging"
+	"$SCRIPT_DIR/build-amd-soundwire-resume.sh"
+	echo ""
+	echo "Staging ready: $SND_REPAIR_STAGING_DIR"
+	echo "Next (install overlay):"
+	echo "  sudo $SCRIPT_DIR/snd-repair install-modules"
+}
+
+cmd_install_modules() {
+	preflight_install || true
+	install_overlay_from_staging
+}
+
+cmd_install() {
+	cmd_build
+	if ! have_system_write /lib/modules; then
+		echo ""
+		echo "Build done. Install overlay with:"
+		echo "  sudo $SCRIPT_DIR/snd-repair install-modules"
+		return 0
+	fi
+	install_overlay_from_staging
+}
+
+cmd_rollback() {
+	rollback_overlay
+}
+
+main() {
+	local cmd="${1:-help}"
+	shift || true
+	case "$cmd" in
+	status) cmd_status "$@" ;;
+	gate) cmd_gate "$@" ;;
+	build) cmd_build "$@" ;;
+	install-modules) cmd_install_modules "$@" ;;
+	install) cmd_install "$@" ;;
+	rollback) cmd_rollback "$@" ;;
+	help | -h | --help) usage ;;
+	*)
+		echo "Unknown command: $cmd" >&2
+		usage >&2
+		exit 1
+		;;
+	esac
+}
+
+main "$@"

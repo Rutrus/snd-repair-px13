@@ -1,0 +1,53 @@
+From: snd-repair <snd-repair@local>
+Date: Sun, 19 Jul 2026 10:30:00 +0200
+Subject: [PATCH] soundwire: amd: force ping+status work after resume D0
+
+After D0, force ping + amd_sdw_work so STAT==0 resumes still enumerate.
+Builds on patch 0002.
+
+Signed-off-by: snd-repair <snd-repair@local>
+---
+--- a/drivers/soundwire/amd_manager.c
++++ b/drivers/soundwire/amd_manager.c
+@@ -1306,21 +1306,38 @@
+ }
+ 
+ 
+-/* Kick deferred IRQ processing when masked status is already pending after resume. */
++/*
++ * After system resume D0: kick IRQ work if latched, and always force a ping
++ * + peripheral status work. Without this, STAT==0 resumes never enumerate.
++ */
+ static void amd_sdw_kick_irq_if_pending(struct amd_sdw_manager *amd_manager)
+ {
+ 	void __iomem *acp = amd_manager->acp_mmio;
+ 	unsigned int inst = amd_manager->instance;
+ 	u32 manager_mask = sdw_manager_reg_mask_array[inst];
+-	u32 stat, pending;
++	u32 stat, pending, sc07, sc811;
+ 
+ 	if (!acp)
+ 		return;
+ 
+ 	stat = readl(acp + ACP_EXTERNAL_INTR_STAT(inst));
+ 	pending = stat & manager_mask;
+-	if (pending)
++	sc07 = readl(amd_manager->mmio + ACP_SW_STATE_CHANGE_STATUS_0TO7);
++	sc811 = readl(amd_manager->mmio + ACP_SW_STATE_CHANGE_STATUS_8TO11);
++
++	dev_info(amd_manager->dev,
++		 "snd_repair resume enum kick: inst=%u stat=0x%x pend=0x%x sc07=0x%x sc811=0x%x\n",
++		 inst, stat, pending, sc07, sc811);
++
++	if (pending || sc07 || sc811)
+ 		schedule_work(&amd_manager->amd_sdw_irq_thread);
++
++	/*
++	 * Software start_bus_after_reset substitute: ping fills status[],
++	 * amd_sdw_work runs sdw_handle_slave_status().
++	 */
++	amd_sdw_read_and_process_ping_status(amd_manager);
++	schedule_work(&amd_manager->amd_sdw_work);
+ }
+ 
+ static int __maybe_unused amd_resume_runtime(struct device *dev)
