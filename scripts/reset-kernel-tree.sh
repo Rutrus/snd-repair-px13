@@ -46,7 +46,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 echo "    Extracting from prefix: $PREFIX"
-tar -xf "$TARBALL" -C "$TMP" \
+tar --no-same-owner -xf "$TARBALL" -C "$TMP" \
 	"$PREFIX/sound/soc/codecs/tas2783-sdw.c" \
 	"$PREFIX/sound/soc/sdw_utils" \
 	"$PREFIX/drivers/soundwire/amd_manager.c"

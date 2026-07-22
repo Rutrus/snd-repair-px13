@@ -4,6 +4,124 @@ Short fixes for common PX13 audio issues with this install stack.
 
 ---
 
+## `install-modules`: missing 0001 / 0002 marker (false negative)
+
+**Symptom:**
+
+```text
+ERROR: staged snd-soc-tas2783-sdw.ko.zst missing 0001 marker — rebuild post-sleep first
+```
+
+(or the same for 0002 / `soundwire-amd`)
+
+**Cause (fixed in `lib/modules.sh`):** with `set -o pipefail`, `zstdcat | strings | grep -q` can exit non-zero when `grep -q` closes the pipe early (SIGPIPE on `strings`), even if the marker string is present. Staging was fine; the check lied.
+
+**Check staging yourself:**
+
+```bash
+ST=build/staging/$(uname -r)
+zstdcat "$ST/snd-soc-tas2783-sdw.ko.zst" | strings | grep -F 'post-sleep playback fw_reinit failed'
+zstdcat "$ST/soundwire-amd.ko.zst" | strings | grep -F 'amd_sdw_kick_irq_if_pending'
+```
+
+**Fix:** pull/use current `scripts/lib/modules.sh`, then retry (no rebuild if the greps above match):
+
+```bash
+sudo ./scripts/snd-repair install-modules
+```
+
+If the manual `grep` finds nothing, staging really lacks the patch:
+
+```bash
+./scripts/snd-repair build
+sudo ./scripts/snd-repair install-modules
+```
+
+---
+
+## Post-s2idle: slaves UNATTACHED / FW timeout storm
+
+**Symptom:** Speaker sink visible in `wpctl`, but silent; dmesg spam:
+
+```text
+slave-tas2783 … failed to resume: error -110
+fw download wait timeout in hw_params
+trf on Slave N failed:-5
+```
+
+**Check:**
+
+```bash
+grep . /sys/bus/soundwire/devices/sdw:*/status
+# FAIL: UNATTACHED on :8 / :b / rt721
+./scripts/snd-repair status   # overlay may still show 0001/0002 OK
+```
+
+**Cause:** after s2idle the SoundWire slaves never re-ATTACH. Patches 0001/0002 help the normal resume path; they do not make a userspace PCI unbind/bind safe.
+
+### DANGER — do not PCI-reset live
+
+**Incident 2026-07-19:** `sudo PX13_AFTER_SUSPEND=1 …/px13-audio-fix.sh` (PCI unbind/bind of `0000:c4:00.5`) **froze the whole machine**; recovery required a hard power-off. Same class of risk as enabling `px13-audio-resume.service` with the overlay loaded.
+
+```bash
+# FORBIDDEN while snd_repair overlay is installed / session live:
+sudo PX13_AFTER_SUSPEND=1 /usr/local/sbin/px13-audio-fix.sh
+sudo systemctl start px13-audio-resume.service
+# manual: echo … > …/snd_pci_ps/unbind
+```
+
+### Safe recover
+
+1. Stop PipeWire hammer (optional, reduces log spam):
+
+```bash
+systemctl --user stop wireplumber pipewire pipewire-pulse \
+  pipewire.socket pipewire-pulse.socket 2>/dev/null
+```
+
+2. **Cold power cycle** (full power off ≥10 s — not a soft reboot only).
+
+3. After login:
+
+```bash
+grep . /sys/bus/soundwire/devices/sdw:*/status   # Attached
+wpctl status | head -40                          # Speaker *
+speaker-test -D pipewire -c 2 -t sine -f 440 -l 1
+```
+
+Boot-time `px13-audio-rebind.service` with `PX13_SKIP_PCI_ON_BOOT=1` is OK (no PCI reset). Keep `px13-audio-resume.service` **disabled**.
+
+---
+
+## Post-s2idle: Attached but silent (open stream)
+
+**Symptom:** After suspend, Speaker still selected, PCM may show `RUNNING`, **no** `fw download wait timeout` / `-110`, but no audible output. Often Firefox (or another client) was playing through S2.
+
+**Check:**
+
+```bash
+grep . /sys/bus/soundwire/devices/sdw:*/status
+# expect Attached ×3
+journalctl -k -b 0 | grep 'snd_repair resume enum kick' | tail -4
+# expect kick + kick delayed with pend!=0
+journalctl --user -b 0 | grep -i 'spa.alsa.*broken pipe\|Broken pipe' | tail -5
+```
+
+**Cause:** Case B re-attach (0003b) worked; patch 0001 only runs the second `fw_reinit()` on the **first post-sleep `hw_params`**. An open PipeWire stream that recovers in place never hits that gate. Causal write-up: `research/s2idle-reattach-k28/CASE-A-OPEN-STREAM-MUTE-20260722.md`.
+
+**Workaround (while Attached):** force a new `hw_params` — e.g. in GNOME Settings deselect then reselect the Speaker output, stop playback clients, or:
+
+```bash
+systemctl --user restart pipewire pipewire-pulse wireplumber
+speaker-test -D pipewire -c 2 -t sine -f 440 -l 1
+```
+
+**Confirmed 2026-07-22:** unselect → reselect output device restored sound (no cold power). That reopens the ALSA PCM and hits 0001’s gate.
+
+Do **not** cold-power or PCI-reset for this pattern (that is for UNATTACHED / Case B only).
+
+---
+
 ## Dummy Output
 
 **Cause:** `px13-audio-resume.service` (PCI reset) running together with kernel patches.
@@ -37,14 +155,17 @@ journalctl -k -b 0 | grep -i tas2783
 **Check:**
 
 ```bash
-zstdcat /lib/modules/$(uname -r)/kernel/sound/soc/codecs/snd-soc-tas2783-sdw.ko.zst | \
+./scripts/snd-repair status
+# or:
+modinfo -n snd-soc-tas2783-sdw | xargs zstdcat | \
   strings | grep -F 'post-sleep playback fw_reinit failed' || echo "rebuild 0001"
 ```
 
 **Fix:**
 
 ```bash
-sudo ./scripts/build-upstream-post-sleep-reinit.sh
+./scripts/build-upstream-post-sleep-reinit.sh
+sudo ./scripts/snd-repair install-modules
 sudo reboot
 ```
 
@@ -64,37 +185,51 @@ systemctl --user start pipewire pipewire-pulse wireplumber
 **Symptoms:**
 
 - `build-amd-soundwire-resume.sh` exits with `ERROR: 0002 marker not found in .../soundwire-amd.ko`
+- `snd-repair status` shows `0002: MISSING`
 - Verification prints nothing:
 
 ```bash
-zstdcat /lib/modules/$(uname -r)/kernel/drivers/soundwire/soundwire-amd.ko.zst | \
+modinfo -n soundwire-amd | xargs zstdcat | \
   strings | grep amd_sdw_kick_irq_if_pending && echo OK
 ```
 
-- Installed module still shows lab strings:
+- Staged/installed module still shows lab strings:
 
 ```bash
-zstdcat /lib/modules/$(uname -r)/kernel/drivers/soundwire/soundwire-amd.ko.zst | \
+modinfo -n soundwire-amd | xargs zstdcat | \
   strings | grep PHASE7 && echo "lab module — replace"
 ```
 
-If `build-amd-soundwire-resume.sh` prints `ERROR: 0002 marker not found in .../soundwire-amd.ko`:
+If `build-amd-soundwire-resume.sh` prints `ERROR: 0002 marker not found`:
 
 - **Cause:** stale `soundwire-amd.o` in the build tree, or `amd_manager.c` still contaminated with phase7 from the lab branch.
-- **Not installed:** script exits before copying to `/lib/modules` — old module remains loaded after reboot.
+- **Not installed:** script exits before staging — stock module remains after reboot.
 
 **Fix:**
 
 ```bash
-sudo ./scripts/reset-kernel-tree.sh
-sudo ./scripts/apply-upstream-patches.sh
-sudo ./scripts/build-from-upstream.sh
-sudo ./scripts/build-upstream-post-sleep-reinit.sh
-sudo ./scripts/build-amd-soundwire-resume.sh
+./scripts/snd-repair build
+sudo ./scripts/snd-repair install-modules
 sudo reboot
 ```
 
-After reboot, expect `0002 OK` from [VALIDATION.md](../VALIDATION.md).
+After reboot, expect `0002 OK` from `./scripts/snd-repair status`.
+
+---
+
+## Rollback / remove overlay
+
+```bash
+sudo ./scripts/snd-repair rollback
+sudo reboot
+```
+
+If `status` reports **legacy in-tree** (old installs that overwrote `kernel/`):
+
+```bash
+sudo apt-get install --reinstall linux-modules-$(uname -r)
+sudo reboot
+```
 
 ---
 

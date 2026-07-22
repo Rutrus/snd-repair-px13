@@ -36,7 +36,7 @@ if [[ ! -d "$SRC/.git" && ! -f "$SRC/Makefile" ]]; then
 	fi
 	if [[ -n "$DEB" && -f "$DEB" ]]; then
 		echo "==> Extrayendo $DEB"
-		tar -xf "$DEB" -C "$BUILD_DIR"
+		tar --no-same-owner -xf "$DEB" -C "$BUILD_DIR"
 		EXTRACTED="$(find "$BUILD_DIR" -maxdepth 1 -type d -name 'linux-source-*' | head -1)"
 		[[ -n "$EXTRACTED" ]] && ln -sfn "$(basename "$EXTRACTED")" "$(basename "$SRC")"
 	fi

@@ -3,6 +3,10 @@
 **Hardware:** ASUS ProArt PX13 HN7306EAC  
 **Kernel:** 7.0+ (tested `7.0.0-27-generic`)
 
+Modules install to an **overlay** (`/lib/modules/$(uname -r)/updates/snd_repair/`). Stock in-tree `.ko` files stay untouched. Rollback = remove overlay + reboot.
+
+CLI: [`scripts/snd-repair`](scripts/snd-repair) (`status` | `gate` | `build` | `install-modules` | `rollback`).
+
 ---
 
 ## Requirements
@@ -47,26 +51,31 @@ sudo systemctl disable --now px13-audio-resume.service
 
 Do **not** combine `px13-audio-resume` with the kernel patches below.
 
+**Never** run live PCI unbind/bind while the overlay is installed (`PX13_AFTER_SUSPEND=1` / manual `snd_pci_ps` unbind). On 2026-07-19 that froze the machine; safe recover is **cold power cycle** only. See [troubleshooting](docs/troubleshooting.md#post-s2idle-slaves-unattached--fw-timeout-storm).
+
 ---
 
-## 4. Build kernel modules (each new kernel)
+## 4. GRUB escape hatch (once per machine — do this first)
 
-> **PX13 / colosal3:** before installing or booting a new kernel ABI, apply the update-safety gate (GRUB menu escape hatch, block unattended `linux-*`, keep ≥2 images, smoke-test).  
-> Checklist: [fix-gate-kernel-updates.md](../rutrus_workspace/utils/reparar/docs/2026-07-17-fix-gate-kernel-updates.md)  
-> Script: `~/rutrus_workspace/utils/reparar/scripts/apply-kernel-safety.sh`
-
-Base driver fixes (stereo, firmware retry, system-sleep reload):
+With `GRUB_TIMEOUT=0` / hidden menu you cannot roll back to the previous ABI if a rebuild goes wrong.
 
 ```bash
-sudo ./scripts/apply-upstream-patches.sh
-sudo ./scripts/build-from-upstream.sh
+./scripts/snd-repair status          # check TIMEOUT / images
+sudo ./scripts/snd-repair gate       # menu ~5s, DEFAULT=saved
+# optional harder gate (blacklist auto linux-* upgrades):
+# sudo ./scripts/snd-repair gate --full
 ```
 
-Post-suspend fixes:
+---
+
+## 5. Build + install overlay (each new kernel ABI)
 
 ```bash
-sudo ./scripts/build-upstream-post-sleep-reinit.sh    # patch 0001 — speaker playback after S2
-sudo ./scripts/build-amd-soundwire-resume.sh          # patch 0002 — SoundWire after S2
+./scripts/snd-repair status
+./scripts/snd-repair build                 # stages modules (no /lib write)
+sudo ./scripts/snd-repair install-modules  # → updates/snd_repair + depmod
+sudo reboot
+./scripts/snd-repair status                # expect 0001 OK / 0002 OK, path under updates/
 ```
 
 Internal microphone in GNOME (once):
@@ -75,11 +84,20 @@ Internal microphone in GNOME (once):
 sudo ./scripts/install-ucm-px13.sh
 ```
 
-**Reboot** only after the gate smoke checks (GRUB menu available; prefer X11 on first boot of a new ABI).
+Equivalent manual steps (same overlay):
+
+```bash
+./scripts/reset-kernel-tree.sh
+./scripts/apply-upstream-patches.sh
+./scripts/build-from-upstream.sh
+./scripts/build-upstream-post-sleep-reinit.sh    # 0001
+./scripts/build-amd-soundwire-resume.sh          # 0002
+sudo ./scripts/snd-repair install-modules
+```
 
 ---
 
-## 5. Verify
+## 6. Verify
 
 ```bash
 wpctl status | head -20
@@ -102,42 +120,45 @@ systemctl --user start pipewire pipewire-pulse wireplumber
 
 ---
 
+## Rollback
+
+Overlay only (preferred):
+
+```bash
+sudo ./scripts/snd-repair rollback
+sudo reboot
+```
+
+If an **older** install overwrote in-tree modules (`snd-repair status` shows `legacy in-tree: YES`):
+
+```bash
+sudo apt-get install --reinstall linux-modules-$(uname -r)
+sudo reboot
+```
+
+Or boot the previous kernel from the GRUB menu (gate §4).
+
+---
+
 ## After kernel upgrade
 
-Out-of-tree modules from this project are **ABI-specific**. A new `linux-image-*` without a rebuild leaves stock SoundWire drivers (or stale modules) and can reintroduce cold-boot / s2idle regressions.
+Overlay modules are **ABI-specific**. A new `linux-image-*` without rebuild boots **stock** SoundWire drivers.
 
-### Prevent auto-boot into an unvalidated kernel (once per machine)
-
-On PX13, an automatic HWE/security kernel install + `GRUB_DEFAULT=0` / hidden timeout boots the newest ABI on the next reboot with no escape hatch. Apply once:
+1. Keep the previous ABI installed until smoke passes.
+2. Install headers/source for the new ABI.
+3. Boot the new ABI (or build against it), then:
 
 ```bash
-sudo ~/rutrus_workspace/utils/reparar/scripts/apply-kernel-safety.sh
+./scripts/snd-repair build
+sudo ./scripts/snd-repair install-modules
+sudo reboot
+./scripts/snd-repair status
 ```
 
-That sets GRUB menu (~5 s) + `saved` default, blacklists `linux-*` in unattended-upgrades, and holds HWE meta packages. Full checklist: [fix-gate-kernel-updates.md](../rutrus_workspace/utils/reparar/docs/2026-07-17-fix-gate-kernel-updates.md).
-
-### Rebuild for the new ABI
-
-1. Install the new kernel packages **manually** (or temporarily `apt-mark unhold` the metas).
-2. Install matching headers/source, then rebuild **before** rebooting into the new ABI when possible (or boot the new kernel once, rebuild, reboot again).
-3. Repeat **section 4** only (not firmware / UCM):
+4. Smoke (~5 min), then pin GRUB default only if OK:
 
 ```bash
-sudo ./scripts/reset-kernel-tree.sh
-sudo ./scripts/apply-upstream-patches.sh
-sudo ./scripts/build-from-upstream.sh
-sudo ./scripts/build-upstream-post-sleep-reinit.sh
-sudo ./scripts/build-amd-soundwire-resume.sh
-```
-
-4. Reboot with GRUB menu available; keep the previous kernel installed until smoke passes.
-5. Smoke (~5 min), then set GRUB default to the new kernel only if OK:
-
-```bash
-uname -r
-journalctl -b 0 | rg -i 'TAS2783 FW broken|amd-soundwire card missing|Xwayland|SEGV'
-wpctl status | head -40
-modinfo snd_soc_tas2783_sdw | grep vermagic
+sudo grub-set-default 0   # or the entry you validated
 ```
 
 Do **not** purge the previous `linux-image-*` until the new ABI is validated for ≥1–2 days.
