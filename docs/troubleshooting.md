@@ -107,7 +107,7 @@ journalctl -k -b 0 | grep 'snd_repair resume enum kick' | tail -4
 journalctl --user -b 0 | grep -i 'spa.alsa.*broken pipe\|Broken pipe' | tail -5
 ```
 
-**Cause:** Case B re-attach (0003b) worked; patch 0001 only runs the second `fw_reinit()` on the **first post-sleep `hw_params`**. An open PipeWire stream that recovers in place never hits that gate. Patch **0001b** schedules the same second reinit after resume (~100 ms) so sound returns without reopening the device.
+**Cause:** Case B re-attach (0003b) worked; patch 0001 only runs the second `fw_reinit()` on the **first post-sleep `hw_params`**. An open PipeWire stream that recovers in place never hits that gate. Patch **0001b** schedules the same second reinit after resume (~100 ms); if still mute after that, force a PCM reopen (sink flip / PipeWire restart).
 
 **Workaround (while Attached):** force a new `hw_params` — e.g. in GNOME Settings deselect then reselect the Speaker output, stop playback clients, or:
 
@@ -248,12 +248,58 @@ sudo reboot
 
 ## Internal microphone missing in GNOME
 
-**Fix:**
+Two different failures — do not mix them.
+
+### A — No Internal Mic / Headset Mic nodes at all
+
+UCM incomplete. Install the PX13 mic overlay and restart the session audio stack:
 
 ```bash
 sudo ./scripts/install-ucm-px13.sh
-systemctl --user restart wireplumber pipewire
+systemctl --user restart wireplumber pipewire pipewire-pulse
 ```
+
+Confirm nodes exist:
+
+```bash
+wpctl status | sed -n '/Sources:/,/Filters:/p'
+# expect: Internal Microphone and/or Headset Microphone under Audio Coprocessor
+```
+
+### B — Mic nodes exist but GNOME / apps have “no input” (or record silence / speakers)
+
+WirePlumber’s **default Audio/Source** was pointed at the **Speaker sink** (monitor), not the mic. Seen after clean installs, EShare/other virtual sinks, or profile churn.
+
+**Check:**
+
+```bash
+wpctl status | sed -n '/Sources:/,/Filters:/p'
+wpctl status | sed -n '/Default Configured Devices:/,/^$/p'
+# BAD:  Audio/Source  …HiFi__Speaker__sink
+# GOOD: Audio/Source  …HiFi__Mic__source   (and Internal Microphone marked *)
+```
+
+**Fix (persists in user WirePlumber state):**
+
+```bash
+# Pick the Internal Microphone id from wpctl status (example: 46)
+wpctl set-default <ID>
+wpctl set-mute <ID> 0
+
+# Optional: drop a stale alternate that pins Speaker as source
+sed -i '/default.configured.audio.source.0=alsa_output.*Speaker/d' \
+  ~/.local/state/wireplumber/default-nodes
+```
+
+Stored in `~/.local/state/wireplumber/default-nodes` as:
+
+```text
+default.configured.audio.source=alsa_input.…platform-amd_sdw.HiFi__Mic__source
+```
+
+Survives reboot. **Not** part of the kernel overlay — redo after a **new user session**, wiped `~/.local/state/wireplumber/`, or if something rewrites the default (EShare, wrong GNOME pick).
+
+**After kernel upgrade / clean machine:** UCM (A) once per system; default source (B) once per user if GNOME shows no usable input.
 
 ---
 
@@ -273,7 +319,9 @@ sudo ./scripts/apply-upstream-patches.sh
 sudo ./scripts/build-from-upstream.sh
 sudo ./scripts/build-upstream-post-sleep-reinit.sh
 sudo ./scripts/build-amd-soundwire-resume.sh
+sudo ./scripts/snd-repair install   # or: build + install-modules
 sudo reboot
+# User session: if no mic in GNOME, fix default source — docs/troubleshooting.md (Internal microphone B)
 ```
 
 Verify:

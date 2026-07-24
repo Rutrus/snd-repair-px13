@@ -79,7 +79,7 @@ If `install-modules` claims a **missing 0001/0002 marker** but manual `strings |
 
 - Cold boot playback (stereo)
 - Suspend/resume playback (s2idle)
-- Internal microphone (PipeWire / GNOME)
+- Internal microphone (PipeWire / GNOME) — nodes present **and** default source = Internal Mic (`wpctl`; see `docs/troubleshooting.md`)
 - Headset microphone
 - Headphone playback
 - PipeWire and GNOME audio UI
@@ -96,7 +96,7 @@ If `install-modules` claims a **missing 0001/0002 marker** but manual `strings |
 | Proprietary firmware | Not in this repo — from brainchillz / ASUS installer |
 | Per-kernel rebuild | Overlay under `updates/snd_repair/` must be rebuilt after `apt` kernel upgrade |
 | GRUB without menu | Apply `sudo ./scripts/snd-repair gate` before risky ABI boots |
-| **s2idle (k28)** | Needs overlay **0001b+0003b** (open-stream mute + STAT==0 re-enum). Without them: UNATTACHED/`-110` or silent PCM. Safe recover if UNATTACHED: **cold power** — never live PCI reset. |
+| **s2idle (k28)** | Needs overlay **0001b+0003b**. If UNATTACHED: cold power — never live PCI reset. Open-stream mute: see troubleshooting (Attached but silent). |
 
 ---
 

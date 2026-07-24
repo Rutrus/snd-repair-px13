@@ -78,10 +78,17 @@ sudo reboot
 ./scripts/snd-repair status                # expect 0001 OK / 0002 OK, path under updates/
 ```
 
-Internal microphone in GNOME (once):
+Internal microphone (after overlay / on a clean install):
 
 ```bash
+# 1) UCM so PipeWire exposes Mic nodes (system, once)
 sudo ./scripts/install-ucm-px13.sh
+systemctl --user restart wireplumber pipewire pipewire-pulse
+
+# 2) If wpctl shows Mic nodes but GNOME has no input / wrong device:
+wpctl status | sed -n '/Sources:/,/Filters:/p'
+wpctl set-default <Internal-Microphone-ID>   # mark * on Internal Microphone
+# See docs/troubleshooting.md — “Internal microphone” section B
 ```
 
 Equivalent manual steps (same overlay):
