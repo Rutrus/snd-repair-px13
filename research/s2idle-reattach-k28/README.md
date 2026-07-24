@@ -170,8 +170,9 @@ Keep 0003b in product path. Optional: tune delay / second kick only if needed; s
 | E4 / 0003b delayed kick | **PASS** 2026-07-19 — Attached after S2; delayed sees `pend=0x4` |
 | E4b / S2×3 | **PASS** 2026-07-19 — three cycles, same kick→delayed contrast, Attached ×3 |
 | Overnight S2 2026-07-21→22 | **Case B PASS**, audio mute — [CASE-A-OPEN-STREAM-MUTE-20260722.md](CASE-A-OPEN-STREAM-MUTE-20260722.md) |
-| Proposed fix | **[PROPOSED-0001b-deferred-fw-reinit.md](PROPOSED-0001b-deferred-fw-reinit.md)** — **implemented** (staged) |
-| Next | `sudo ./scripts/snd-repair install-modules` + reboot; V1 Firefox-across-S2 |
+| 0001b product | on `main`; Scenario 2 still possible |
+| 2026-07-23 mute after 0001b | [CASE-A-PRIME-PCM-LIFECYCLE-20260723.md](CASE-A-PRIME-PCM-LIFECYCLE-20260723.md) — **no more fw_reinit timers** |
+| Next | E-PCM1 lifecycle trace (`apply-pcm-lifecycle-trace.py`); contrast mute vs sink-flip |
 
 ```bash
 # After cold power ≥10s (required while UNATTACHED):

@@ -77,10 +77,6 @@ Markers in `.ko`:
 
 ---
 
-## Validation
+## Post-ship note (2026-07-23)
 
-1. Firefox (or continuous playback) on Speaker.  
-2. One s2idle — **do not** change output device.  
-3. Expect: Attached + 0003b kick delayed; dmesg `snd_repair post-resume fw_reinit`; **audible** audio.
-
-Regression: silent machine → S2 → `speaker-test` still OK (`hw_params` or work may win).
+0001b can execute (`snd_repair post-resume fw_reinit`) and the machine can **still** be silent until a PipeWire/sink reopen. That is **Scenario 2** — do not “fix” with longer delays. See [CASE-A-PRIME-PCM-LIFECYCLE-20260723.md](CASE-A-PRIME-PCM-LIFECYCLE-20260723.md).

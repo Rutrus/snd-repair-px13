@@ -163,7 +163,9 @@ Safe recover while Attached: reopen stream (stop PW clients / `systemctl --user 
 | Patch | Role | This wake |
 |-------|------|-----------|
 | 0003b | Case B race | **PASS** |
-| 0001 | Case A @ `hw_params` | **did not run** (no new `hw_params`) |
-| 0001b | Case A′ open-stream | **implemented** — awaiting install + V1 |
+| 0001 | Case A @ `hw_params` | may not run (open PCM) |
+| 0001b | Case A′ open-stream | **can run and still mute** — see [CASE-A-PRIME-PCM-LIFECYCLE-20260723.md](CASE-A-PRIME-PCM-LIFECYCLE-20260723.md) |
 
-Automation today: S2 re-attach is automatic; **open-stream mute recovery is not**.
+**Do not** add longer delays / third `fw_reinit`. Next: PCM lifecycle contrast (`prepare` / `trigger` / `port_prep`).
+
+Automation today: S2 re-attach is automatic; open-stream reinit is automatic; **full PCM reopen still needed in Scenario 2**.
