@@ -36,13 +36,15 @@ Do **not** recommend live PCI reset of `0000:c4:00.5` (hard freeze risk).
 | Branch | Use |
 |--------|-----|
 | `main` | Default product; open PRs here |
-| `research/…` | Experiments and incidents |
-| `resolution/bruteforce` | Historical archive |
+| `research/…` | Short-lived experiments (merge notes into `main` when useful) |
+| `resolution/bruteforce` | Historical lab archive (optional local checkout) |
 
 | Tag | Meaning |
 |-----|---------|
 | `overlay-<kver>` | Commit validated for that kernel ABI |
 | `vMAJOR.MINOR.PATCH` | Optional product/docs release |
+| `archive/resolution-bruteforce` | Frozen lab notebook tip |
+| `archive/research-s2idle-sdw-reattach-k28` | Frozen k28 research tip (notes also on `main`) |
 
 Add a bullet under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md) with every user-visible or rebuild-affecting change.
 
@@ -51,6 +53,8 @@ Add a bullet under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md) with every us
 ## Kernel ABI reminder
 
 Overlay modules are **per-`uname -r`**. After a kernel upgrade, rebuild and reinstall — do not copy `.ko` from another ABI. Details: protocol §5 and [INSTALL.md](INSTALL.md) (“After kernel upgrade”).
+
+Local regenerable junk (gitignored): `build/linux-source`, old `build/staging/<other-abi>/`, `linux-source-*.deb`, `validation/` (may need `sudo rm -rf` if created as root).
 
 ---
 

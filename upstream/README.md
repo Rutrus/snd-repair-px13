@@ -8,4 +8,4 @@ Applied automatically by `scripts/apply-upstream-patches.sh`.
 | B | `series-B-firmware/` | FW retry, hw_params wait, sleep reload |
 | C | `series-C-channel-map/` | Stereo L/R channel map |
 
-See [PATCHES.md](../PATCHES.md) for rationale. Submission notes and checklists: branch **`resolution/bruteforce`**.
+See [PATCHES.md](../PATCHES.md) for rationale. Full lab notebook: tag **`archive/resolution-bruteforce`** (or branch `resolution/bruteforce`).

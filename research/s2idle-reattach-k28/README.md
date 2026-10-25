@@ -1,11 +1,11 @@
 # Research track — s2idle SDW re-attach fail on k28
 
-**Branch:** `research/s2idle-sdw-reattach-k28`  
-**Host:** colosal3 · PX13 HN7306EAC · kernel `7.0.0-28-generic`  
+**Track:** product-era reopen after overlay install on k28 (notes live on **`main`**)  
+**Host:** colosal3 · PX13 HN7306EAC · kernel `7.0.0-28-generic` (era) → validated overlay also on later ABIs  
 **Started:** 2026-07-19  
 **Constraint:** no live PCI unbind/bind (hard freeze 2026-07-19). Recover with **cold power** only.
 
-English (canonical). Lab history lives on `resolution/bruteforce` / `origin/research/suspend-lifecycle`; this track is the **product-era** reopen after overlay install on k28.
+English (canonical). Full lab notebook: tag **`archive/resolution-bruteforce`**. Frozen tip of the old research branch: **`archive/research-s2idle-sdw-reattach-k28`**.
 
 ---
 

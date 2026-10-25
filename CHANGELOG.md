@@ -4,7 +4,8 @@
 
 ### Product branch (`main`)
 
-_(none yet)_
+- Repo hygiene: drop upstream cover-letter/cc/send-email + B VALIDATION-TODO; promote k28 CASE-A notes to `main`
+- Archive tags: `archive/resolution-bruteforce`, `archive/research-s2idle-sdw-reattach-k28`; delete stale remotes (`product/…`, `research/suspend-lifecycle`, `resolution/lab`, old research tip)
 
 ---
 

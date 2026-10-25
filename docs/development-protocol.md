@@ -123,8 +123,8 @@ Runtime `snd reset` cannot fix a **missing overlay** on a new ABI.
 | Branch | Role |
 |--------|------|
 | `main` | Product install path (default for clones and PRs) |
-| `resolution/bruteforce` | Historical investigation archive — not the install default |
-| `research/…` | Evidence and experiments; promote product bits to `main` via PR |
+| `resolution/bruteforce` | Optional local checkout of lab archive (also tagged `archive/resolution-bruteforce`) |
+| `research/…` | Short-lived experiments; promote notes to `main`, then delete branch |
 | `fix/…` / `fix/…` | Short-lived; delete after merge |
 
 **Commits**
