@@ -1,0 +1,75 @@
+---
+description: Run C static analysis (cppcheck, clang --analyze) after editing kernel/driver sources
+globs: linux-source-*/**/*.c,linux-source-*/**/*.h
+alwaysApply: false
+---
+
+# C static analysis (kernel / driver files)
+
+After editing instrumented kernel C sources (especially under `linux-source-*/drivers/` or `linux-source-*/sound/`), **run static checks before considering the change done**. Goal: catch incomplete patches, dead helpers, and syntax issues before `make` or reboot tests.
+
+## When to run
+
+- After applying or regenerating a `.patch` on a `.c` file
+- After adding `static` helpers, `#define SND_REPAIR_*`, or PHASE6/7 trace hooks
+- Before `./scripts/build-phase6-amd-trace.sh` or `./scripts/build-phase7.sh`
+
+## Command (preferred)
+
+```bash
+./scripts/check-c-file.sh drivers/soundwire/amd_manager.c
+```
+
+Quick completeness + syntax only (faster):
+
+```bash
+./scripts/check-c-file.sh --quick drivers/soundwire/amd_manager.c
+```
+
+Install tools once if missing:
+
+```bash
+sudo apt install cppcheck clang
+```
+
+## What the script runs
+
+| Step | Tool | Catches |
+|------|------|---------|
+| 1 | snd-repair heuristics | `static snd_repair_*` defined but never called (partial patch) |
+| 2 | `gcc -fsyntax-only` | missing symbols, bad types, incomplete edits |
+| 3 | `cppcheck --enable=all --inconclusive` | logic bugs, unused paths, suspicious constructs |
+| 4 | `clang --analyze` | deeper path-sensitive issues |
+
+Optional full module build:
+
+```bash
+CHECK_C_MODULE_BUILD=1 ./scripts/check-c-file.sh drivers/soundwire/amd_manager.c
+```
+
+## Manual equivalents
+
+If the script is unavailable, run at least one of:
+
+```bash
+cppcheck --enable=all --inconclusive --suppress=missingIncludeSystem FILE.c
+clang --analyze -std=gnu11 FILE.c
+```
+
+For kernel files, always prefer `./scripts/check-c-file.sh` (adds `-I` paths from `KERNEL_BUILD`).
+
+## Agent workflow
+
+1. Edit the `.c` / `.h` file
+2. Run `./scripts/check-c-file.sh <path-relative-to-kernel-src>`
+3. Fix all reported errors (do not ignore `defined but not used` on new helpers — usually means a missing call site)
+4. Regenerate the patch if the edit came from a patch series (`regenerate-phase7-0006b.sh`, etc.)
+5. Run the relevant build script (`build-phase6-amd-trace.sh`, `build-phase7.sh`)
+
+## Common failure patterns (this repo)
+
+- **Partial patch**: function + `#define` applied, call site hunk missing → cppcheck/gcc may pass; completeness check fails
+- **Truncated patch file**: `patch` reports "Reversed or previously applied" with `.rej` → verify all hunks in the `.patch` before retrying
+- **Heredoc corruption**: shell unquoted heredocs can mangle `\n` in C string anchors → use quoted heredocs in regenerate scripts
+
+Do not mark a kernel C change complete until static checks pass or explicitly document why a tool was skipped (missing headers, tool not installed).

@@ -1,0 +1,19 @@
+---
+description: Follow public development protocol (patches, ABI, git, tags)
+alwaysApply: true
+---
+
+# Development protocol (agent mirror)
+
+**Canonical public doc:** [`docs/development-protocol.md`](../../docs/development-protocol.md)  
+Also: [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
+
+When changing `upstream/`, `patches/`, build/install scripts, or releasing:
+
+1. Do not collapse layers (A+B+C vs 0001…0003b vs userspace vs research).
+2. Never PCI-unbind / live-reset `0000:c4:00.5` (`PX13_AFTER_SUSPEND`) — freeze risk.
+3. After kernel bump: rewrite failing patches; rebuild staging for **this** `uname -r`; reboot to load overlay.
+4. Update `CHANGELOG.md` `## Unreleased`; tag only after VALIDATION smoke (`overlay-<kver>` / optional SemVer).
+5. PRs target `main`. Keep research-only work on `research/…`.
+
+Full checklists, marker table, and git/tag rules: **docs/development-protocol.md**.

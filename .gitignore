@@ -45,4 +45,9 @@ firmware/
 # Editor / OS
 .DS_Store
 *.swp
-.cursor/
+# Cursor local state — keep shared rules/skills trackable
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**/*.mdc
+!.cursor/skills/
+!.cursor/skills/**/

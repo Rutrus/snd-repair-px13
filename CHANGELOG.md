@@ -4,6 +4,7 @@
 
 ### Product branch (`main`)
 
+- Public contributor protocol: `CONTRIBUTING.md` + `docs/development-protocol.md` (patches, ABI, git, tags)
 - Overlay install under `updates/snd_repair/` (stock in-tree untouched)
 - CLI: `scripts/snd-repair` (`status`, `gate`, `build`, `install-modules`, `rollback`)
 - In-repo GRUB escape hatch: `scripts/apply-kernel-safety.sh`

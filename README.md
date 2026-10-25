@@ -72,6 +72,8 @@ See **[VALIDATION.md](VALIDATION.md)** for the full checklist.
 | [INSTALL.md](INSTALL.md) | Copy-paste commands |
 | [VALIDATION.md](VALIDATION.md) | What works / known issues |
 | [PATCHES.md](PATCHES.md) | What each patch does |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute (branches, PRs, ABI) |
+| [docs/development-protocol.md](docs/development-protocol.md) | Maintainer protocol: patches, git, tags, validation |
 | [docs/architecture.md](docs/architecture.md) | Hardware stack |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Common failures |
 
