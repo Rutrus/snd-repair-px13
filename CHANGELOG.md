@@ -4,6 +4,21 @@
 
 ### Product branch (`main`)
 
+_(none yet)_
+
+---
+
+## [0.4.0] — 2026-10-25
+
+**Tag:** `v0.4.0` · **ABI tag:** `overlay-7.0.0-38`  
+**Validated:** PX13 HN7306EAC · `7.0.0-38-generic` · cold-boot stereo OK · live markers OK
+
+- Refresh upstream B-0003 for 7.0.0-38 resume (`sdw_slave_wait_for_init` + checked `regcache_sync`)
+- CLI `scripts/snd`: status/check/install/reset; RT721 capture unmute; Meet HDMI-as-mic stream scrub
+- `snd check-patches` + `apply-upstream-patches.sh --check` (fail-fast dry-run before long build)
+- Recover helpers: `px13-pro-audio-route.sh`, `recover-post-s2-mute-no-reboot.sh`, `recover-asymmetric-amp-mute.sh`
+- Troubleshooting: Post-S2 mute/mic, pro-audio jack routing, internal mic Source=sink
+- Research incidents under `research/s2idle-reattach-k28/` (2026-07-27, 08-03, 08-05)
 - Public contributor protocol: `CONTRIBUTING.md` + `docs/development-protocol.md` (patches, ABI, git, tags)
 - Overlay install under `updates/snd_repair/` (stock in-tree untouched)
 - CLI: `scripts/snd-repair` (`status`, `gate`, `build`, `install-modules`, `rollback`)

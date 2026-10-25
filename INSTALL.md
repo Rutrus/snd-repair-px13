@@ -78,6 +78,16 @@ sudo reboot
 ./scripts/snd-repair status                # expect 0001 OK / 0002 OK, path under updates/
 ```
 
+Daily driver (symlink `~/.local/bin/snd` → `scripts/snd`):
+
+```bash
+snd status         # markers + Dummy/Speaker
+snd check-patches  # dry-run A+B+C before a long build (new ABI / patch edit)
+snd                # if patches missing → confirm → build/install (then reboot);
+                   # if live OK → PipeWire/HiFi/volume reset without reboot
+snd reset          # runtime reset only
+```
+
 Internal microphone (after overlay / on a clean install):
 
 ```bash

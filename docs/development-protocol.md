@@ -57,14 +57,22 @@ Work against **current** `/usr/src/linux-source-*` matching headers for `$(uname
 3. Do not add another delayed `fw_reinit` for Scenario 2 mute without PCM lifecycle contrast (Case A′′ research).
 4. Update [PATCHES.md](../PATCHES.md) when adding a new numbered patch.
 
+### Predict apply failure (before a long build)
+
+```bash
+snd check-patches
+# or: ./scripts/reset-kernel-tree.sh && ./scripts/apply-upstream-patches.sh --check
+```
+
+Exit 0 ⇒ A+B+C dry-run cleanly on this ABI’s `linux-source`. Exit 1 ⇒ refresh the failing `.patch` (§ below) **before** `snd-repair build`. `snd install` runs this preflight automatically when staging is empty.
+
 ### Regenerating a broken hunk (kernel bump)
 
 ```text
-reset-kernel-tree
-→ apply patches until first FAIL
+snd check-patches          # fail fast
 → edit semantics / refresh context
 → diff -u before after → replace .patch
-→ full reset + apply A+B+C (exit 0)
+→ snd check-patches        # must exit 0
 → build staging → verify markers (zstdcat | strings)
 ```
 

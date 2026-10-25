@@ -1,0 +1,355 @@
+#!/usr/bin/env bash
+# snd — ensure snd_repair overlay on the running kernel; if already OK, runtime audio reset (no reboot).
+#
+# Usage:
+#   snd              # check → install if needed → reset if live patches OK
+#   snd status       # markers / overlay / sinks
+#   snd check        # exit 0 only if live modules carry all markers
+#   snd check-patches  # dry-run upstream A+B+C before a long build (no install)
+#   snd install      # build (if needed) + sudo install-modules
+#   snd reset        # PipeWire / HiFi / volumes (no PCI, no SDW rebind)
+#   snd help
+set -euo pipefail
+
+SELF="${BASH_SOURCE[0]}"
+if [[ -L "$SELF" ]]; then
+	SELF="$(readlink -f "$SELF")"
+fi
+SCRIPT_DIR="$(cd "$(dirname "$SELF")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=lib/modules.sh
+source "$SCRIPT_DIR/lib/modules.sh"
+
+SINK_SPEAKER='alsa_output.pci-0000_c4_00.5-platform-amd_sdw.HiFi__Speaker__sink'
+SINK_HP='alsa_output.pci-0000_c4_00.5-platform-amd_sdw.HiFi__Headphones__sink'
+SRC_MIC='alsa_input.pci-0000_c4_00.5-platform-amd_sdw.HiFi__Mic__source'
+SRC_HS='alsa_input.pci-0000_c4_00.5-platform-amd_sdw.HiFi__Headset__source'
+# Fallback when UCM HiFi fails (SpeakerCodecFile / Dummy Output)
+SINK_PRO_SPK='alsa_output.pci-0000_c4_00.5-platform-amd_sdw.pro-output-2'
+SINK_PRO_HP='alsa_output.pci-0000_c4_00.5-platform-amd_sdw.pro-output-0'
+SRC_PRO_DMIC='alsa_input.pci-0000_c4_00.5-platform-amd_sdw.pro-input-4'
+SRC_PRO_HS='alsa_input.pci-0000_c4_00.5-platform-amd_sdw.pro-input-1'
+CARD='alsa_card.pci-0000_c4_00.5-platform-amd_sdw'
+
+usage() {
+	cat <<EOF
+Usage: snd [status|check|check-patches|install|reset|help]
+
+  (default)       Ensure patches on $(uname -r); if live OK → runtime reset (no reboot).
+  status          Overlay + markers + quick PipeWire defaults
+  check           Exit 0 iff live modules expose 0001/0001b/0002/0003/0003b
+  check-patches   Reset tree + dry-run upstream A+B+C (predict apply FAIL before build)
+  install         Build staging if needed, then sudo install-modules (reboot after)
+  reset           HiFi + PipeWire restart + Speaker/Mic defaults (no reboot)
+
+Repo: $REPO_ROOT
+EOF
+}
+
+ensure_session() {
+	if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+		export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+	fi
+	if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" && -S "${XDG_RUNTIME_DIR}/bus" ]]; then
+		export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+	fi
+}
+
+live_tas() {
+	resolve_mod_path snd-soc-tas2783-sdw "$SND_REPAIR_OVERLAY_DIR/$MODULE_TAS" "$INTREE_TAS" || true
+}
+
+live_amd() {
+	resolve_mod_path soundwire-amd "$SND_REPAIR_OVERLAY_DIR/$MODULE_AMD" "$INTREE_AMD" || true
+}
+
+markers_ok_in() {
+	local tas="$1" amd="$2"
+	[[ -n "$tas" && -n "$amd" ]] || return 1
+	ko_strings_has "$tas" "$MARKER_0001" || return 1
+	ko_strings_has "$tas" "$MARKER_0001B" || return 1
+	ko_strings_has "$amd" "$MARKER_0002" || return 1
+	ko_strings_has "$amd" "$MARKER_0003" || return 1
+	ko_strings_has "$amd" "$MARKER_0003B" || return 1
+	return 0
+}
+
+# Live = what the kernel actually loaded (modinfo path).
+live_patches_ok() {
+	local tas amd
+	tas="$(live_tas)"
+	amd="$(live_amd)"
+	[[ "$tas" == *"/updates/snd_repair/"* ]] || return 1
+	[[ "$amd" == *"/updates/snd_repair/"* ]] || return 1
+	markers_ok_in "$tas" "$amd"
+}
+
+# On-disk overlay ready for this ABI (may still need reboot if stock is loaded).
+overlay_ready() {
+	[[ -f "$SND_REPAIR_OVERLAY_DIR/$MODULE_TAS" && -f "$SND_REPAIR_OVERLAY_DIR/$MODULE_AMD" ]] || return 1
+	markers_ok_in "$SND_REPAIR_OVERLAY_DIR/$MODULE_TAS" "$SND_REPAIR_OVERLAY_DIR/$MODULE_AMD"
+}
+
+staging_ready() {
+	[[ -f "$SND_REPAIR_STAGING_DIR/$MODULE_TAS" && -f "$SND_REPAIR_STAGING_DIR/$MODULE_AMD" ]]
+}
+
+cmd_status() {
+	"$SCRIPT_DIR/snd-repair" status
+	echo ""
+	echo "--- live check ---"
+	if live_patches_ok; then
+		echo "live patches: OK (running from updates/snd_repair)"
+	elif overlay_ready; then
+		echo "live patches: STOCK (overlay on disk OK — reboot required to load)"
+	else
+		echo "live patches: MISSING (need: snd install)"
+	fi
+	ensure_session
+	if command -v pactl >/dev/null; then
+		echo ""
+		pactl info 2>/dev/null | grep -E 'Destino|Fuente|Default' || true
+		pactl list short sinks 2>/dev/null | head -10 || true
+	fi
+	grep . /sys/bus/soundwire/devices/sdw:*/status 2>/dev/null || true
+}
+
+cmd_check() {
+	if live_patches_ok; then
+		echo "OK: live snd_repair markers on $KVER"
+		return 0
+	fi
+	echo "FAIL: live modules lack snd_repair overlay markers on $KVER" >&2
+	local tas amd
+	tas="$(live_tas)"; amd="$(live_amd)"
+	echo "  tas=$tas" >&2
+	echo "  amd=$amd" >&2
+	if overlay_ready; then
+		echo "  hint: overlay installed — reboot to activate" >&2
+		return 2
+	fi
+	return 1
+}
+
+prompt_sudo_install() {
+	echo ""
+	echo "Kernel $KVER has no live snd_repair overlay."
+	echo "This will: build (if staging empty) + sudo install-modules."
+	echo "A reboot is required afterward for modules to load."
+	# Non-interactive: SND_YES=1 or snd install (no prompt). Bare `snd` needs tty.
+	if [[ "${SND_YES:-}" == "1" || "${SND_ASSUME_YES:-}" == "1" ]]; then
+		echo "SND_YES=1 — continuing without prompt."
+		return 0
+	fi
+	if [[ ! -t 0 ]]; then
+		echo "Non-interactive stdin: run \`snd install\` or \`SND_YES=1 snd\`." >&2
+		return 1
+	fi
+	read -r -p "Continue? [y/N] " ans
+	case "$ans" in
+	y | Y | yes | YES) return 0 ;;
+	*) echo "Aborted."; return 1 ;;
+	esac
+}
+
+# Predict whether upstream series A+B+C still apply on this ABI's linux-source.
+# Cheap vs full module build; does not install overlay or write apply stamp.
+cmd_check_patches() {
+	echo "==> check-patches for $KVER"
+	if [[ ! -d "/lib/modules/$KVER/build" ]]; then
+		echo "FAIL: missing linux-headers for $KVER (/lib/modules/$KVER/build)" >&2
+		echo "  sudo apt install linux-headers-$KVER" >&2
+		return 1
+	fi
+	if [[ ! -f "$KERNEL_SRC/Makefile" ]]; then
+		echo "==> Preparing kernel source tree…"
+		"$SCRIPT_DIR/prepare-kernel-tree.sh"
+	fi
+	echo "==> Resetting tree, then dry-running A+B+C…"
+	"$SCRIPT_DIR/reset-kernel-tree.sh"
+	"$SCRIPT_DIR/apply-upstream-patches.sh" --check
+}
+
+cmd_install() {
+	if live_patches_ok; then
+		echo "Already live OK on $KVER — nothing to install."
+		return 0
+	fi
+	if overlay_ready; then
+		echo "Overlay already in $SND_REPAIR_OVERLAY_DIR"
+		echo "Reboot to load updates/snd_repair (stock modules still running)."
+		return 2
+	fi
+
+	if ! staging_ready; then
+		echo "==> Preflight: check-patches before build…"
+		cmd_check_patches
+		echo "==> Building overlay for $KVER (staging empty)…"
+		"$SCRIPT_DIR/snd-repair" build
+	else
+		echo "==> Staging already ready: $SND_REPAIR_STAGING_DIR"
+	fi
+
+	if ! staging_ready; then
+		echo "ERROR: staging still incomplete after build" >&2
+		return 1
+	fi
+
+	echo "==> Installing overlay (sudo)…"
+	sudo "$SCRIPT_DIR/snd-repair" install-modules
+
+	if overlay_ready; then
+		echo ""
+		echo "Installed. Reboot now to activate:"
+		echo "  sudo reboot"
+		return 2
+	fi
+	echo "ERROR: overlay markers missing after install" >&2
+	return 1
+}
+
+write_default_nodes() {
+	local sink="$1" sink_alt="$2" src="$3" src_alt="$4"
+	local state="${XDG_STATE_HOME:-$HOME/.local/state}/wireplumber/default-nodes"
+	mkdir -p "$(dirname "$state")"
+	cat >"$state" <<EOF
+[default-nodes]
+default.configured.audio.sink=${sink}
+default.configured.audio.sink.0=${sink_alt}
+default.configured.audio.source=${src}
+default.configured.audio.source.0=${src_alt}
+EOF
+}
+
+hifi_available() {
+	pactl list cards 2>/dev/null | awk "/${CARD#alsa_card.}/,/^Card #/" | grep -q 'HiFi:'
+}
+
+cmd_reset() {
+	ensure_session
+	echo "==> Runtime audio reset (no reboot, no PCI, no SDW rebind)"
+
+	# Mixer: speakers on, headphone off when jack empty
+	amixer -c 1 sset Headphone off 2>/dev/null || true
+	amixer -c 1 sset 'Headset Mic' off 2>/dev/null || true
+	for c in 'Left Spk' 'Left Spk2' 'Right Spk' 'Right Spk2'; do
+		amixer -c 1 sset "$c" on 2>/dev/null || true
+	done
+	amixer -c 1 sset 'tas2783-1 Amp' 20 2>/dev/null || true
+	amixer -c 1 sset 'tas2783-2 Amp' 20 2>/dev/null || true
+	amixer -c 1 sset 'tas2783-1 Speaker' 200 2>/dev/null || true
+	amixer -c 1 sset 'tas2783-2 Speaker' 200 2>/dev/null || true
+	# RT721 capture switches (pro-audio / UCM): muted → silent mic in GNOME/Firefox
+	amixer -c 1 sset 'rt721 FU0F' cap 2>/dev/null || true
+	amixer -c 1 sset 'rt721 FU1E' cap 2>/dev/null || true
+
+	systemctl --user restart wireplumber pipewire pipewire-pulse 2>/dev/null || true
+	sleep 2
+
+	pactl set-card-profile "$CARD" HiFi 2>/dev/null || true
+	sleep 1
+
+	local sink sink_alt src src_alt
+	if hifi_available && pactl list short sinks 2>/dev/null | grep -q "$SINK_SPEAKER"; then
+		echo "==> Using HiFi profile"
+		sink=$SINK_SPEAKER
+		sink_alt=$SINK_HP
+		src=$SRC_MIC
+		src_alt=$SRC_HS
+		if pactl list short sinks 2>/dev/null | grep -q "$SINK_HP"; then
+			pactl set-default-sink "$SINK_HP" 2>/dev/null || true
+			sleep 1
+		fi
+	else
+		echo "==> HiFi/UCM unavailable — falling back to pro-audio (Pro 2 = speakers)"
+		pactl set-card-profile "$CARD" pro-audio 2>/dev/null || true
+		sleep 1
+		sink=$SINK_PRO_SPK
+		sink_alt=$SINK_PRO_HP
+		src=$SRC_PRO_DMIC
+		src_alt=$SRC_PRO_HS
+	fi
+
+	write_default_nodes "$sink" "$sink_alt" "$src" "$src_alt"
+	pactl set-default-sink "$sink" 2>/dev/null || true
+	pactl set-sink-mute "$sink" 0 2>/dev/null || true
+	pactl set-sink-volume "$sink" 100% 100% 2>/dev/null || true
+	pactl set-default-source "$src" 2>/dev/null || true
+	pactl set-source-mute "$src" 0 2>/dev/null || true
+	# Move active streams onto the recovered sink
+	pactl list short sink-inputs 2>/dev/null | while read -r id _; do
+		pactl move-sink-input "$id" "$sink" 2>/dev/null || true
+	done
+	# Move capture onto mic (skip sink-monitor / stream.capture.sink — those need app reopen)
+	pactl list short source-outputs 2>/dev/null | while read -r id _; do
+		pactl move-source-output "$id" "$src" 2>/dev/null || true
+	done
+	# Drop app streams that capture HDMI/speaker sinks as "mic" (Meet after Dummy/HDMI default).
+	# Do not destroy arbitrary sink-captures (OBS desktop audio, etc.).
+	pw-dump 2>/dev/null | python3 -c '
+import json, sys, subprocess
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+bad = ("hdmi", "Speaker__sink", "Headphones__sink", "pro-output-", "stereo-fallback")
+for o in data:
+    props = (o.get("info") or {}).get("props") or {}
+    if props.get("media.class") != "Stream/Input/Audio":
+        continue
+    if props.get("stream.capture.sink") not in (True, "true"):
+        continue
+    target = str(props.get("target.object") or "")
+    if any(b in target for b in bad):
+        subprocess.run(["pw-cli", "destroy", str(o["id"])], check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+' || true
+
+	echo ""
+	echo "--- after reset ---"
+	pactl info 2>/dev/null | grep -E 'Destino|Fuente|Default' || true
+	pactl list short sinks 2>/dev/null | head -8 || true
+	grep . /sys/bus/soundwire/devices/sdw:*/status 2>/dev/null || true
+	echo ""
+	echo "Test: speaker-test -D pipewire -c 2 -t sine -f 440 -l 1"
+	echo "If only one channel: ./scripts/recover-asymmetric-amp-mute.sh  (sudo rtcwake)"
+	echo "If UCM HiFi broken (SpeakerCodecFile): keep pro-audio or fix machine UCM."
+}
+
+cmd_default() {
+	if live_patches_ok; then
+		echo "Patches live OK on $KVER — running runtime reset…"
+		cmd_reset
+		return 0
+	fi
+
+	if overlay_ready; then
+		echo "Overlay on disk for $KVER but stock modules still loaded."
+		echo "Reboot required (cannot activate without restart):"
+		echo "  sudo reboot"
+		return 2
+	fi
+
+	prompt_sudo_install || return 1
+	cmd_install
+}
+
+main() {
+	local cmd="${1:-}"
+	case "$cmd" in
+	"" | ensure) cmd_default ;;
+	status) cmd_status ;;
+	check) cmd_check ;;
+	check-patches | check_patches) cmd_check_patches ;;
+	install) cmd_install ;;
+	reset) cmd_reset ;;
+	help | -h | --help) usage ;;
+	*)
+		echo "Unknown: $cmd" >&2
+		usage >&2
+		exit 1
+		;;
+	esac
+}
+
+main "$@"

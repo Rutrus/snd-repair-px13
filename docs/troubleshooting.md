@@ -268,7 +268,7 @@ wpctl status | sed -n '/Sources:/,/Filters:/p'
 
 ### B — Mic nodes exist but GNOME / apps have “no input” (or record silence / speakers)
 
-WirePlumber’s **default Audio/Source** was pointed at the **Speaker sink** (monitor), not the mic. Seen after clean installs, EShare/other virtual sinks, or profile churn.
+WirePlumber’s **default Audio/Source** was pointed at the **Speaker sink** (monitor), not the mic. Seen after clean installs, S2 / EShare, or profile churn.
 
 **Check:**
 
@@ -300,6 +300,99 @@ default.configured.audio.source=alsa_input.…platform-amd_sdw.HiFi__Mic__source
 Survives reboot. **Not** part of the kernel overlay — redo after a **new user session**, wiped `~/.local/state/wireplumber/`, or if something rewrites the default (EShare, wrong GNOME pick).
 
 **After kernel upgrade / clean machine:** UCM (A) once per system; default source (B) once per user if GNOME shows no usable input.
+
+---
+
+## Post-S2: silent speakers + “no mic” (both at once)
+
+**Check kernel first** (must be Attached ×3; no `-110` / `fw download wait timeout`):
+
+```bash
+grep . /sys/bus/soundwire/devices/sdw:*/status
+journalctl -k -b 0 | grep -E 'snd_repair resume enum kick|post-resume fw_reinit'
+```
+
+| Layer | Typical finding | Class |
+|-------|-----------------|-------|
+| SDW slaves Attached, delayed kick `pend=0x4` | Case B OK | not PCI reset |
+| `snd_repair post-resume fw_reinit` present | 0001b ran | still may be mute |
+| PCM `RUNNING`, Firefox active, silence | Scenario 2 | need PCM reopen |
+| `Audio/Source` = `…Speaker__sink` | WirePlumber default | not missing HW |
+
+**Recover without reboot** (do not PCI unbind):
+
+```bash
+# 1) Mic default (section B above)
+wpctl set-default <Mic-ID>
+
+# 2) Force playback reopen (Scenario 2)
+SPK=<Speaker-ID>; HP=<Headphones-ID>
+wpctl set-default "$HP"; sleep 1; wpctl set-default "$SPK"
+# or: systemctl --user restart wireplumber pipewire pipewire-pulse
+
+speaker-test -D pipewire -c 2 -t sine -f 440 -l 1
+```
+
+Research: `research/s2idle-reattach-k28/INCIDENT-20260727-S2-MUTE-MIC-DEFAULT.md`.
+
+### Scenario 2 mute survives PipeWire restart
+
+If slaves are Attached, `post-resume fw_reinit` already ran once this wake, and a full PipeWire restart + sink flip still leaves **silent** speakers (PCM `prepare`/`START` in dmesg, amps at 100%), 0001b will not fire again until the next system sleep.
+
+**Safe recover without reboot / without PCI reset** — rebind SoundWire codec slaves only:
+
+```bash
+# stop user audio so PCM is free
+systemctl --user stop wireplumber pipewire pipewire-pulse \
+  pipewire.socket pipewire-pulse.socket
+
+sudo ./scripts/recover-post-s2-mute-no-reboot.sh
+
+systemctl --user start pipewire.socket pipewire-pulse.socket \
+  pipewire pipewire-pulse wireplumber
+wpctl set-default <Speaker-ID>
+```
+
+Do **not** PCI-unbind `0000:c4:00.5`.
+
+### Headset jack input “dead” after S2
+
+Kernel jack switches are authoritative:
+
+```bash
+amixer -c 1 cget numid=15   # Headphone Jack
+amixer -c 1 cget numid=16   # Headset Mic Jack
+```
+
+| Values | Meaning |
+|--------|---------|
+| both `off` | Kernel thinks jack empty → Headphones/Headset ports **not available** in PipeWire |
+| both `on` | Plug detected; select Headset Microphone / Headphones |
+
+If a TRRS headset is **physically plugged** but both stay `off`, detection is stuck: unplug/replug once, or run the same `recover-post-s2-mute-no-reboot.sh` (cycles `rt721-sdca`). Forcing `amixer sset Headphone on` while jack=`off` can steal the route from speakers and leave you silent — avoid unless the jack is really in use.
+
+### HiFi missing after SDW rebind (stereo-fallback / no inputs)
+
+After `recover-post-s2-mute-no-reboot.sh`, UCM HiFi can fail (`Headphone Switch` / Jack controls absent). WirePlumber then only offers `pro-audio` and `output:stereo-fallback`.
+
+**On jack unplug**, WP often switches to **`stereo-fallback`**: one “Estéreo” sink, **zero** capture sources → speakers may stay silent/wrong and GNOME shows no input. Default source becomes `….stereo-fallback.monitor`.
+
+**Workaround (until reboot restores HiFi):** keep **pro-audio** and route by name:
+
+```bash
+./scripts/px13-pro-audio-route.sh jack-out   # unplug → speakers + DMIC
+./scripts/px13-pro-audio-route.sh jack-in    # plug   → headphones + headset mic
+./scripts/px13-pro-audio-route.sh status
+```
+
+| pro-audio node | Role |
+|----------------|------|
+| Pro / `pro-output-0` | Headphones (jack) |
+| Pro 2 / `pro-output-2` | Speakers (TAS) |
+| Pro 1 / `pro-input-1` | Headset mic |
+| Pro 4 / `pro-input-4` | Digital mic |
+
+Do not use numeric `wpctl` IDs across restarts. Prefer a reboot when convenient to restore normal HiFi jack switching.
 
 ---
 

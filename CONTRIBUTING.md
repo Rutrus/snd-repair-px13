@@ -11,8 +11,9 @@ Thank you for helping improve Linux audio on the ASUS ProArt PX13 (and related A
 
 1. Install prerequisites and the product overlay: [INSTALL.md](INSTALL.md).
 2. Confirm live markers: `./scripts/snd-repair status`.
-3. Open a PR against **`main`** (not `resolution/bruteforce`).
-4. Run the smoke gate in the protocol (§8) on your ABI (`uname -r`).
+3. Before a long rebuild on a new ABI: `snd check-patches` (dry-run A+B+C; fails fast if a hunk drifted).
+4. Open a PR against **`main`** (not `resolution/bruteforce`).
+5. Run the smoke gate in the protocol (§8) on your ABI (`uname -r`).
 
 ---
 
