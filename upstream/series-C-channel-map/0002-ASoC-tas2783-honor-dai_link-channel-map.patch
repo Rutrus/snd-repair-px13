@@ -4,8 +4,9 @@ Subject: [PATCH 2/2] ASoC: tas2783: honor dai_link channel map for SDW port
 
 snd_sdw_params_to_config() documents that drivers may override fields in
 port_config. For multicodec links, asoc_sdw_hw_params() fills per-codec
-ch_maps; apply ch_map->ch_mask when calling sdw_stream_add_slave() instead
+ch_maps; apply ch_map->cpu_ch_mask when calling sdw_stream_add_slave() instead
 of always programming the full PCM channel count on every slave.
+7.0.0-42 renamed dai_link ch_map.ch_mask to cpu_ch_mask.
 
 Reported-on: AMD ACP70 2x TAS2783 (stereo playback validated with
 speaker-test per channel).
@@ -30,8 +31,8 @@ diff --git a/sound/soc/codecs/tas2783-sdw.c b/sound/soc/codecs/tas2783-sdw.c
 +
 +		for_each_rtd_ch_maps(rtd, i, ch_map) {
 +			if (snd_soc_rtd_to_codec(rtd, ch_map->codec) == dai &&
-+			    ch_map->ch_mask) {
-+				port_config.ch_mask = ch_map->ch_mask;
++			    ch_map->cpu_ch_mask) {
++				port_config.ch_mask = ch_map->cpu_ch_mask;
 +				break;
 +			}
 +		}

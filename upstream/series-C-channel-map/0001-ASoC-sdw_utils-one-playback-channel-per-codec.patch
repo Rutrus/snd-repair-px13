@@ -3,8 +3,10 @@ Date: Thu, 9 Jul 2026 00:00:00 +0200
 Subject: [PATCH 1/2] ASoC: sdw_utils: split playback channels across codecs
 
 When a dai_link has N codec DAIs and the PCM stream presents N channels
-in playback, assign one channel per codec via ch_maps (ch_maps[i].ch_mask
-= BIT(i)).
+in playback, assign one channel per codec via ch_maps (ch_maps[i].cpu_ch_mask
+= BIT(i)). On 7.0.0-42 the old ch_mask member is cpu_ch_mask; soc-pcm ORs
+that into the CPU DAI. codec_ch_mask stays 0 so each codec still sees the
+full PCM, and the TAS port mask selects the stream channel.
 
 Capture already splits channels when aggregating multiple codecs; playback
 used step = 0 so every codec received the full channel mask. That is
@@ -34,7 +36,7 @@ diff --git a/sound/soc/sdw_utils/soc_sdw_utils.c b/sound/soc/sdw_utils/soc_sdw_u
 +		num_codecs = rtd->dai_link->num_codecs;
 +		if (num_codecs > 1 && ch == num_codecs) {
 +			for_each_link_ch_maps(rtd->dai_link, i, ch_maps)
-+				ch_maps->ch_mask = BIT(i);
++				ch_maps->cpu_ch_mask = BIT(i);
 +			return 0;
 +		}
 +

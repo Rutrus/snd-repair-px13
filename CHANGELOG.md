@@ -4,6 +4,15 @@
 
 ### Product branch (`main`)
 
+---
+
+## [0.5.0] — 2026-11-04
+
+**Tag:** `v0.5.0` · **ABI tag:** `overlay-7.0.0-42`  
+**Built:** PX13 HN7306EAC · `7.0.0-42-generic` · series A+B+C apply and staging markers OK  
+**Not yet:** live smoke after reboot (`speaker-test`, one s2idle). `7.0.0-38` stays on `v0.4.0` / `overlay-7.0.0-38` (`ch_mask`).
+
+- Series C: `snd_soc_dai_link_ch_map.ch_mask` is `cpu_ch_mask` on `7.0.0-42` (codec mask stays unset). Playback still assigns `BIT(i)` per TAS amp.
 - Repo hygiene: drop upstream cover-letter/cc/send-email + B VALIDATION-TODO; promote k28 CASE-A notes to `main`
 - Archive tags: `archive/resolution-bruteforce`, `archive/research-s2idle-sdw-reattach-k28`; delete stale remotes (`product/…`, `research/suspend-lifecycle`, `resolution/lab`, old research tip)
 
